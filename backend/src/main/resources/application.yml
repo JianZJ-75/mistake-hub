@@ -1,0 +1,59 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /mistake-hub/backend
+  tomcat:
+    max-http-form-post-size: 50MB
+    connection-timeout: 120000
+
+# spring
+spring:
+  application:
+    name: mistake-hub-backend
+  profiles:
+    active: dev
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/mistake_hub?remarks=true&useInformationSchema=true&tinyInt1isBit=true&useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&rewriteBatchedStatements=true
+    username: root
+    password: mysql-1q2w3e4R
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: redis-1q2w3e4R
+
+# 微信小程序
+wechat:
+  app-id: your-app-id
+  app-secret: your-app-secret
+
+# http://localhost:18080/actuator/swagger-ui/index.html
+# SpringDoc 基础配置
+springdoc:
+  show-actuator: true
+  use-management-port: true
+  swagger-ui:
+    enabled: true
+    disable-swagger-default-url: true
+
+# 管理面配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: openapi, swagger-ui
+  server:
+    port: 18080
+
+# 是否进行登录和权限校验
+auth-check:
+  exclude-path-list:
+    - "/v1/account/login-wx" # 微信登录
+    - "/v1/console/account/login/code-pwd" # 用户登录
+    - "/v1/console/account/login/lark" # 用户登录
+    - "/v1/console/nonce/generate" # 生成 nonce
