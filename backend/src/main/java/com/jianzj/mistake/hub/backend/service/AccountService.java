@@ -319,7 +319,7 @@ public class AccountService extends ServiceImpl<AccountMapper, Account> {
     /**
      * 根据用户编码和角色查询用户
      */
-    public Account getByCodeAndRole(String code, Integer role) {
+    public Account getByCodeAndRole(String code, String role) {
 
         List<Account> accounts = lambdaQuery()
                 .eq(Account::getCode, code)

@@ -13,7 +13,7 @@ CREATE TABLE `account`
     `code`            VARCHAR(128)                           NOT NULL COMMENT '用户名',
     `nickname`        VARCHAR(128)                           NOT NULL COMMENT '昵称',
     `avatar_url`      VARCHAR(512) DEFAULT NULL COMMENT '用户头像URL',
-    `cipher_password` VARCHAR(128) DEFAULT NULL COMMENT '加密密码（仅管理员）',
+    `cipher_password` VARCHAR(256) DEFAULT NULL COMMENT '加密密码（仅管理员）',
     `role`            VARCHAR(16)                            NOT NULL COMMENT '角色',
     `wechat_open_id`  VARCHAR(128) DEFAULT NULL COMMENT '微信OpenID',
     `daily_limit`     BIGINT       DEFAULT 30 COMMENT '每日最大复习量',

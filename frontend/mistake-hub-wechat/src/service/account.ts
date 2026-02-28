@@ -1,0 +1,70 @@
+import Taro from '@tarojs/taro'
+import request, { setToken, getToken } from '../utils/request'
+
+// ===== 登录逻辑 =====
+
+/**
+ * 静默登录：wx.login 获取 code → 调用后端 → 缓存 token
+ * 若 token 已存在则跳过，避免重复登录
+ */
+export const login = async (): Promise<void> => {
+
+  // 已有 token，跳过登录
+  if (getToken()) {
+    return
+  }
+
+  try {
+    const { code } = await wxLogin()
+    // 后端 login-wx 返回的 data 直接就是 token 字符串
+    const token = await request<string>({
+      url: '/v1/account/login-wx',
+      data: { code },
+    })
+    setToken(token)
+  } catch (err) {
+    // 静默登录失败不阻塞页面，只打印日志
+    console.error('[login] 微信登录失败:', err)
+  }
+}
+
+/**
+ * 主动刷新登录（如 token 过期后调用）
+ */
+export const refreshLogin = async (): Promise<void> => {
+
+  try {
+    const { code } = await wxLogin()
+    const token = await request<string>({
+      url: '/v1/account/login-wx',
+      data: { code },
+    })
+    setToken(token)
+  } catch (err) {
+    console.error('[refreshLogin] 刷新登录失败:', err)
+    throw err
+  }
+}
+
+// ===== 工具方法 =====
+
+/**
+ * 封装 wx.login，返回 Promise
+ */
+const wxLogin = (): Promise<{ code: string }> => {
+
+  return new Promise((resolve, reject) => {
+    Taro.login({
+      success: (res) => {
+        if (res.code) {
+          resolve({ code: res.code })
+        } else {
+          reject(new Error('wx.login 未返回 code'))
+        }
+      },
+      fail: (err) => {
+        reject(new Error(err.errMsg || 'wx.login 调用失败'))
+      },
+    })
+  })
+}

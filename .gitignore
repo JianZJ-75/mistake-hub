@@ -31,3 +31,15 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Frontend - Node ###
+**/node_modules/
+
+### Frontend - Build Output ###
+frontend/**/dist/
+
+### Frontend - WeChat Miniprogram ###
+**/project.private.config.json
+
+### Frontend - SWC Cache ###
+**/.swc/

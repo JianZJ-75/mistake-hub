@@ -1,6 +1,8 @@
 package com.jianzj.mistake.hub.backend.utils.encryption;
 
 import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
@@ -38,6 +40,7 @@ public class AesUtil {
      * 加密方法（入参：明文、原始密钥；出参：密文 Base64）
      */
     public static String encryptWithRawKey(String plainText, String rawKey) throws Exception {
+
         String key = generateKey(rawKey);
         // 生成随机 IV
         String iv = generateIv();
@@ -51,6 +54,7 @@ public class AesUtil {
      * 解密方法（入参：密文、原始密钥；出参：明文）
      */
     public static String decryptWithRawKey(String cipherText, String rawKey) throws Exception {
+
         // 拆分密文和 IV
         String[] parts = splitCipherTextAndIv(cipherText);
         String realCipherText = parts[0];
@@ -65,6 +69,7 @@ public class AesUtil {
      * 加密方法（入参：明文、密钥；出参：密文 Base64）
      */
     public static String encrypt(String plainText, String key) throws Exception {
+
         // 生成随机 IV
         String iv = generateIv();
         // CBC 加密
@@ -77,6 +82,7 @@ public class AesUtil {
      * 解密方法（入参：密文、密钥；出参：明文）
      */
     public static String decrypt(String cipherText, String key) throws Exception {
+
         // 拆分密文和 IV
         String[] parts = splitCipherTextAndIv(cipherText);
         String realCipherText = parts[0];
@@ -89,6 +95,7 @@ public class AesUtil {
      * CBC 模式加密
      */
     private static String encrypt(String plainText, String key, String iv) throws Exception {
+
         // 1. 校验密钥长度
         byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
         validateAesKeyLength(keyBytes.length);
@@ -114,6 +121,7 @@ public class AesUtil {
      * CBC 模式解密
      */
     private static String decrypt(String cipherText, String key, String iv) throws Exception {
+
         // 1. 校验密钥长度
         byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
         validateAesKeyLength(keyBytes.length);
@@ -140,6 +148,7 @@ public class AesUtil {
      * 生成 AES 密钥（SHA256 加密后截取 32 字节）
      */
     public static String generateKey(String rawKey) {
+
         String key = Sha256Util.encrypt(rawKey);
         return key.substring(0, AES_256_KEY_SIZE);
     }
@@ -148,10 +157,11 @@ public class AesUtil {
      * 生成随机 AES 密钥
      */
     public static String generateKey(int keySize) throws Exception {
-        javax.crypto.KeyGenerator keyGenerator = javax.crypto.KeyGenerator.getInstance(ALGORITHM);
+
+        KeyGenerator keyGenerator = KeyGenerator.getInstance(ALGORITHM);
         SecureRandom secureRandom = new SecureRandom();
         keyGenerator.init(keySize, secureRandom);
-        javax.crypto.SecretKey secretKey = keyGenerator.generateKey();
+        SecretKey secretKey = keyGenerator.generateKey();
         return Base64.getEncoder().encodeToString(secretKey.getEncoded());
     }
 
@@ -159,6 +169,7 @@ public class AesUtil {
      * 生成随机 IV（16 字节），返回 Base64 编码结果
      */
     private static String generateIv() {
+
         byte[] iv = new byte[IV_SIZE];
         new SecureRandom().nextBytes(iv);
         return Base64.getEncoder().encodeToString(iv);

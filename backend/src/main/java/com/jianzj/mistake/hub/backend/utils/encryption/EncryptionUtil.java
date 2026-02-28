@@ -94,14 +94,14 @@ public class EncryptionUtil {
     }
 
     /**
-     * 生成一个随机 key，长度 88
+     * 生成一个随机 key，长度 44
      *
-     * 7vFyxx9S8JHrrT6MWFLakI7h1DGu17ngFC3Yvf6Da7DGSAAYDcGtd7rnjaMxDV6qnZjGd89YeboIf9QEETPzMQ==
+     * 7vFyxx9S8JHrrT6MWFLakI7h1DGu17ngFC3Yvf6Da7A=
      */
     public String generateKey() {
 
         try {
-            return AesUtil.generateKey(512);
+            return AesUtil.generateKey(256);
         } catch (Exception e) {
             log.error("fail to generateKey, error: ", e);
             throw new RuntimeException(e);

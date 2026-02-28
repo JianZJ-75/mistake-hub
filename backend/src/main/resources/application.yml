@@ -29,8 +29,8 @@ spring:
 
 # 微信小程序
 wechat:
-  app-id: your-app-id
-  app-secret: your-app-secret
+  app-id: ${WECHAT_APP_ID}
+  app-secret: ${WECHAT_APP_SECRET}
 
 # http://localhost:18080/actuator/swagger-ui/index.html
 # SpringDoc 基础配置
