@@ -41,12 +41,12 @@ public class Account implements Serializable {
     /**
      * 昵称
      */
-    private String name;
+    private String nickname;
 
     /**
-     * 用户头像
+     * 用户头像URL
      */
-    private String avatar;
+    private String avatarUrl;
 
     /**
      * 加密密码（仅管理员）

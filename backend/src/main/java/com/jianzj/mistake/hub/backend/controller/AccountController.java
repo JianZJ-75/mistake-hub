@@ -1,6 +1,16 @@
 package com.jianzj.mistake.hub.backend.controller;
 
+import com.jianzj.mistake.hub.backend.annotation.PreAuthorize;
+import com.jianzj.mistake.hub.backend.dto.req.AccountChangePasswordReq;
+import com.jianzj.mistake.hub.backend.dto.req.AccountChangeRoleReq;
+import com.jianzj.mistake.hub.backend.dto.req.AccountLoginWebReq;
 import com.jianzj.mistake.hub.backend.dto.req.AccountLoginWxReq;
+import com.jianzj.mistake.hub.backend.dto.req.AccountResetPasswordReq;
+import com.jianzj.mistake.hub.backend.dto.req.AccountUpdateDailyLimitReq;
+import com.jianzj.mistake.hub.backend.dto.resp.AccountChangeRoleResp;
+import com.jianzj.mistake.hub.backend.dto.resp.AccountDetailResp;
+import com.jianzj.mistake.hub.backend.dto.resp.AccountResetPasswordResp;
+import com.jianzj.mistake.hub.backend.enums.Role;
 import com.jianzj.mistake.hub.backend.service.AccountService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,33 +40,29 @@ public class AccountController {
     private final AccountService accountService;
 
     public AccountController(AccountService accountService) {
+
         this.accountService = accountService;
     }
 
-    /**
-     * 注册用户
-     */
-    @Operation(summary = "注册用户")
-    @PostMapping("/register")
-    public void register() {
+    // ==================== 通用接口 ====================
 
-        accountService.register();
+    /**
+     * 获取当前用户详情
+     */
+    @Operation(summary = "获取当前用户详情")
+    @PostMapping("/current-detail")
+    @PreAuthorize(requiredRole = Role.STUDENT)
+    public AccountDetailResp currentDetail() {
+
+        return accountService.currentDetail();
     }
 
-    /**
-     * 删除指定用户
-     */
-    @Operation(summary = "删除指定用户")
-    @PostMapping("/delete")
-    public void delete() {
-
-        accountService.delete();
-    }
+    // ==================== 小程序接口 ====================
 
     /**
-     * 登录微信小程序
+     * 微信小程序登录
      */
-    @Operation(summary = "登录微信小程序")
+    @Operation(summary = "微信小程序登录")
     @PostMapping("/login-wx")
     public String loginWx(@RequestBody @Valid AccountLoginWxReq req) {
 
@@ -64,12 +70,58 @@ public class AccountController {
     }
 
     /**
-     * 登录 Web 管理端
+     * 修改每日复习量
      */
-    @Operation(summary = "登录 Web 管理端")
-    @PostMapping("/login-web")
-    public void loginWeb() {
+    @Operation(summary = "修改每日复习量")
+    @PostMapping("/update-daily-limit")
+    @PreAuthorize(requiredRole = Role.STUDENT)
+    public void updateDailyLimit(@RequestBody @Valid AccountUpdateDailyLimitReq req) {
 
-        accountService.loginWeb();
+        accountService.updateDailyLimit(req);
+    }
+
+    // ==================== 管理端接口 ====================
+
+    /**
+     * Web 管理端登录
+     */
+    @Operation(summary = "Web 管理端登录")
+    @PostMapping("/login-web")
+    public String loginWeb(@RequestBody @Valid AccountLoginWebReq req) {
+
+        return accountService.loginWeb(req);
+    }
+
+    /**
+     * 修改用户角色
+     */
+    @Operation(summary = "修改用户角色")
+    @PostMapping("/change-role")
+    @PreAuthorize(requiredRole = Role.ADMIN)
+    public AccountChangeRoleResp changeRole(@RequestBody @Valid AccountChangeRoleReq req) {
+
+        return accountService.changeRole(req);
+    }
+
+    /**
+     * 重置密码
+     */
+    @Operation(summary = "重置密码")
+    @PostMapping("/reset-password")
+    @PreAuthorize(requiredRole = Role.ADMIN)
+    public AccountResetPasswordResp resetPassword(@RequestBody @Valid AccountResetPasswordReq req) {
+
+        return accountService.resetPassword(req);
+    }
+
+    /**
+     * 修改密码
+     */
+    @Operation(summary = "修改密码")
+    @PostMapping("/change-password")
+    @PreAuthorize(requiredRole = Role.ADMIN)
+    public void changePassword(@RequestBody @Valid AccountChangePasswordReq req) {
+
+        accountService.changePassword(req);
     }
 }

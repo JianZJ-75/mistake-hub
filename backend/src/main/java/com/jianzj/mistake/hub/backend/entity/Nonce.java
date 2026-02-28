@@ -42,9 +42,4 @@ public class Nonce implements Serializable {
      * 创建时间
      */
     private LocalDateTime createdTime;
-
-    /**
-     * 更新时间
-     */
-    private LocalDateTime updatedTime;
 }
