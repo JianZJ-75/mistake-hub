@@ -1,5 +1,6 @@
 package com.jianzj.mistake.hub.backend.controller;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.jianzj.mistake.hub.backend.annotation.PreAuthorize;
 import com.jianzj.mistake.hub.backend.dto.req.AccountChangePasswordReq;
 import com.jianzj.mistake.hub.backend.dto.req.AccountChangeRoleReq;
@@ -15,11 +16,15 @@ import com.jianzj.mistake.hub.backend.service.AccountService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -81,6 +86,21 @@ public class AccountController {
     }
 
     // ==================== 管理端接口 ====================
+
+    /**
+     * 分页查询用户列表
+     */
+    @Operation(summary = "分页查询用户列表")
+    @GetMapping("/list")
+    @PreAuthorize(requiredRole = Role.ADMIN)
+    public Page<AccountDetailResp> list(@RequestParam(value = "code", required = false) String code,
+                                        @RequestParam(value = "nickname", required = false) String nickname,
+                                        @RequestParam(value = "role", required = false) String role,
+                                        @RequestParam(value = "pageNum") @NotNull @Min(1) Long pageNum,
+                                        @RequestParam(value = "pageSize") @NotNull @Min(1) Long pageSize) {
+
+        return accountService.list(code, nickname, role, pageNum, pageSize);
+    }
 
     /**
      * Web 管理端登录

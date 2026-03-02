@@ -131,7 +131,19 @@ if (!success) {
 }
 ```
 
-### 异常处理
+### 实体转 DTO
+- 使用 `org.springframework.beans.BeanUtils.copyProperties(source, target)` 进行字段拷贝，**不需要逐字段手写 builder**。
+- 前提：DTO 中只包含 Entity 字段的子集，多余字段（如 `cipherPassword`）会被自动忽略，**不会泄漏**。
+- 示例：
+```java
+private AccountDetailResp toDetailResp(Account account) {
+
+    AccountDetailResp resp = new AccountDetailResp();
+    BeanUtils.copyProperties(account, resp);
+    return resp;
+}
+```
+- **禁止**使用 Apache Commons BeanUtils（会抛受检异常）；只用 Spring 的 `org.springframework.beans.BeanUtils`。
 - 业务异常使用 `oops(zhFormat, enFormat, args...)` 抛出，通过 `static import` 导入，**禁止写 `BaseException.oops()`**。
 - 消息为中英文双语。
 
@@ -162,5 +174,154 @@ if (!success) {
 
 ## 11. 前端项目结构 (Frontend)
 - **微信小程序**：`frontend/mistake-hub-wechat`（Taro + React）
-- **Web 管理端**：`frontend/mistake-hub-web`（React + Ant Design）
+- **Web 管理端**：`frontend/mistake-hub-web`（React + Vite + TypeScript + Tailwind/shadcn-ui，基于 slash-admin-main 模板）
 - 前端进度跟随后端迭代，后端接口完成后同步实现对应前端页面。
+
+---
+
+# Frontend Standards
+
+## F1. 技术栈 (Tech Stack)
+
+### Web 管理端（`frontend/mistake-hub-web`）
+- **框架**：React 19 + Vite + TypeScript
+- **UI**：Tailwind CSS + shadcn/ui（基于 slash-admin-main 模板，禁止引入 Ant Design）
+- **路由**：react-router v7
+- **状态管理**：Zustand + persist 中间件
+- **HTTP 客户端**：axios（封装在 `src/api/apiClient.ts`）
+- **通知**：sonner（`toast.success / toast.error`）
+- **图标**：`@/components/icon` 封装的 Iconify 图标
+- **加密**：Web Crypto API（零依赖，封装在 `src/utils/crypto.ts`）
+
+### 微信小程序（`frontend/mistake-hub-wechat`）
+- **框架**：Taro 4 + React + TypeScript
+- **样式**：SCSS
+- **HTTP**：`src/utils/request.ts` 封装的 `Taro.request`
+- **存储**：`Taro.setStorageSync / getStorageSync`
+
+## F2. 项目分层规范
+
+### Web 管理端目录结构
+```
+src/
+├── api/
+│   ├── apiClient.ts          # axios 封装（统一响应处理、token 注入、403 跳转）
+│   └── services/
+│       ├── userService.ts    # 业务 API，内含加密逻辑
+│       └── nonceService.ts   # Nonce 生成 / 消费
+├── layouts/                  # 布局组件（复用模板，禁止轻易改动）
+├── pages/                    # 页面组件，按业务模块分目录
+│   └── management/user/index.tsx
+├── routes/                   # 路由配置 + 路由守卫
+├── store/
+│   └── userStore.ts          # Zustand store
+├── types/
+│   └── entity.ts             # 与后端对应的业务类型
+└── utils/
+    └── crypto.ts             # SHA-256 + AES-256-CBC（与后端 AesUtil 严格对齐）
+```
+
+## F3. 命名规范
+
+| 类型 | 规范 | 示例 |
+|------|------|------|
+| 组件文件 | PascalCase | `AdminLayout.tsx` |
+| 页面目录 | kebab-case | `management/user/` |
+| 工具函数文件 | camelCase | `crypto.ts` |
+| React 组件 | PascalCase 函数 | `export default function UserPage()` |
+| Hook | `use` 前缀 camelCase | `useToken`, `useUserInfo` |
+| 接口 / 类型 | PascalCase | `UserInfo`, `PageResult<T>` |
+| 常量 | UPPER_SNAKE_CASE | `PAGE_SIZE`, `TOKEN_KEY` |
+| 普通变量/函数 | camelCase | `fetchUsers`, `handleSearch` |
+
+## F4. TypeScript 规范
+
+- **全量使用 TypeScript**，禁止 `any`（必要时用 `unknown` + 类型守卫）。
+- 接口优先于 `type`，只有联合类型、元组等才用 `type`。
+- 与后端 DTO 对应的接口放在 `src/types/entity.ts`，API 专用接口放在对应 service 文件中。
+- 组件 props 使用 `interface`，不用 `React.FC<Props>`，直接解构参数：
+```typescript
+// ✅
+export default function UserCard({ user, onAction }: { user: UserInfo; onAction: () => void }) {}
+
+// ❌
+const UserCard: React.FC<Props> = ({ user }) => {}
+```
+
+## F5. Zustand 规范
+
+- **每个状态字段单独导出 hook**，禁止用返回对象的 selector（会导致无限重渲染）：
+```typescript
+// ✅ 稳定引用，不触发无限渲染
+export const useToken = () => useUserStore(s => s.token)
+export const useSetToken = () => useUserStore(s => s.setToken)
+
+// ❌ 每次渲染创建新对象，导致无限循环
+export const useUserActions = () => useUserStore(s => ({ setToken: s.setToken, logout: s.logout }))
+```
+- Store 中的 action 必须同步更新 `localStorage`（通过 `storage.ts` 工具）和 Zustand state。
+- persist 中间件只持久化数据字段（`partialize`），不持久化 actions。
+
+## F6. API 层规范
+
+- 所有 HTTP 请求通过 `apiClient.ts` 统一发出，禁止在组件内直接调用 axios。
+- `apiClient` 响应拦截器负责：解包 `BaseResult<T>`（code=0 返回 data，否则 `toast.error`）、HTTP 403 时清 token 并跳转 `/auth/login`。
+- 涉及加密的逻辑（Nonce 获取、SHA-256、AES 加密）封装在 service 层，页面组件感知不到加密细节：
+```typescript
+// ✅ 页面只关心业务
+const token = await userService.loginWeb({ username, password })
+
+// ❌ 页面自己处理加密
+const nonce = await generateNonce()
+const digest = await sha256(password)
+const cipher = await aesEncrypt(digest, nonce.nonce)
+```
+- GET 接口（分页查询）用 `apiClient.get({ url, params })`；其余用 `apiClient.post({ url, data })`。
+
+## F7. 组件规范
+
+- **页面组件**（`pages/` 下）：负责数据获取、状态管理、事件处理，不写复杂 UI 逻辑。
+- **布局组件**（`layouts/` 下）：复用模板已有实现，不重复造轮子。
+- **优先使用模板现有 UI 组件**（`src/ui/`），没有的才新增，禁止引入其他 UI 库。
+- 状态变量按用途分组，用注释标注：
+```typescript
+// ===== 列表状态 =====
+const [users, setUsers] = useState<UserInfo[]>([])
+const [loading, setLoading] = useState(false)
+
+// ===== 操作弹窗状态 =====
+const [confirmOpen, setConfirmOpen] = useState(false)
+```
+- Dialog/Modal 的开关状态和数据内聚在同一组件，不做 context 传递。
+
+## F8. 加密规范（前后端对齐）
+
+`crypto.ts` 中的实现必须与后端 `AesUtil` 严格对齐：
+
+| 场景 | 前端函数 | 后端方法 | 密钥派生 |
+|------|---------|---------|---------|
+| 登录/改密（前端加密） | `aesEncrypt(plain, rawKey)` | `decryptWithRawKey` | SHA256(rawKey).substring(0,32) |
+| 升级角色/重置密码（后端加密，前端解密） | `aesDecryptDirect(cipher, key)` | `encrypt` | key 直接用（无 SHA256） |
+
+输出格式固定为 `cipherBase64_ivBase64`（下划线分隔）。
+
+## F9. 微信小程序规范
+
+- 登录逻辑在 `app.tsx` 中用 `componentDidMount` 触发静默登录，全程无 UI。
+- 403 处理：检查 `res.statusCode === 403`（HTTP 状态），自动重登并重试原请求（最多 1 次），禁止用 `body.code` 判断。
+- `request.ts` 中的 `silentReLogin` 必须直接用 `Taro.request` 裸调登录接口，**禁止**调用 `account.ts` 的方法（避免循环依赖）。
+- 页面占位组件居中显示功能说明，后续迭代填充实际内容。
+
+## F10. 启动命令
+
+```bash
+# Web 管理端（端口 5173）
+cd frontend/mistake-hub-web && pnpm dev
+
+# 微信小程序（生成到 dist/，用微信开发者工具打开）
+cd frontend/mistake-hub-wechat && npm run dev:weapp
+
+# 后端
+cd dependencies && mvn install -Dmaven.test.skip=true -q && cd ..
+cd backend && mvn spring-boot:run -Dmaven.test.skip=true
+```

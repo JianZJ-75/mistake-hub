@@ -3,6 +3,7 @@ package com.jianzj.mistake.hub.backend.service;
 import cn.hutool.http.HttpUtil;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.jianzj.mistake.hub.backend.config.WechatProperties;
 import com.jianzj.mistake.hub.backend.dto.req.AccountChangePasswordReq;
@@ -23,6 +24,7 @@ import com.jianzj.mistake.hub.common.utils.ThreadStorageUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import static com.jianzj.mistake.hub.common.convention.exception.BaseException.oops;
@@ -31,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -257,6 +260,26 @@ public class AccountService extends ServiceImpl<AccountMapper, Account> {
     }
 
     /**
+     * 分页查询用户列表，支持按 code/昵称关键字和角色筛选
+     */
+    public Page<AccountDetailResp> list(String code, String nickname, String role, Long pageNum, Long pageSize) {
+
+        Page<Account> accountPage = lambdaQuery()
+                .like(StringUtils.isNotBlank(code), Account::getCode, code)
+                .like(StringUtils.isNotBlank(nickname), Account::getNickname, nickname)
+                .eq(StringUtils.isNotBlank(role), Account::getRole, role)
+                .page(new Page<>(pageNum, pageSize));
+
+        List<AccountDetailResp> respList = accountPage.getRecords().stream()
+                .map(this::toDetailResp)
+                .collect(Collectors.toList());
+
+        Page<AccountDetailResp> respPage = new Page<>(accountPage.getCurrent(), accountPage.getSize(), accountPage.getTotal());
+        respPage.setRecords(respList);
+        return respPage;
+    }
+
+    /**
      * 获取当前用户详情
      */
     public AccountDetailResp currentDetail() {
@@ -267,14 +290,7 @@ public class AccountService extends ServiceImpl<AccountMapper, Account> {
             oops("用户不存在", "Account does not exist.");
         }
 
-        return AccountDetailResp.builder()
-                .id(account.getId())
-                .code(account.getCode())
-                .nickname(account.getNickname())
-                .avatarUrl(account.getAvatarUrl())
-                .role(account.getRole())
-                .dailyLimit(account.getDailyLimit())
-                .build();
+        return toDetailResp(account);
     }
 
     /**
@@ -298,6 +314,14 @@ public class AccountService extends ServiceImpl<AccountMapper, Account> {
 
     // ==================== 工具方法 ====================
 
+    /** 将 Account 实体转为 AccountDetailResp */
+    private AccountDetailResp toDetailResp(Account account) {
+
+        AccountDetailResp resp = new AccountDetailResp();
+        BeanUtils.copyProperties(account, resp);
+        return resp;
+    }
+
     /**
      * 根据微信 openId 查询用户
      */
@@ -308,7 +332,7 @@ public class AccountService extends ServiceImpl<AccountMapper, Account> {
     }
 
     /**
-     * 根据用户编码查询用户
+     * 根据用户 code 查询用户
      */
     private Account getByCode(String code) {
 
@@ -317,7 +341,7 @@ public class AccountService extends ServiceImpl<AccountMapper, Account> {
     }
 
     /**
-     * 根据用户编码和角色查询用户
+     * 根据用户 code 和角色查询用户
      */
     public Account getByCodeAndRole(String code, String role) {
 

@@ -24,7 +24,7 @@ public class DataInitializer implements CommandLineRunner {
 
     private static final String ADMIN_CODE = "admin";
 
-    private static final String ADMIN_DEFAULT_PASSWORD = "admin-1q2w3e4R";
+    private static final String ADMIN_DEFAULT_PASSWORD = "admin-123";
 
     private final AccountService accountService;
 

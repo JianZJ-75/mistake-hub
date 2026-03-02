@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 /**
  * <p>
  * 用户详情 Resp
@@ -22,7 +24,7 @@ public class AccountDetailResp {
     /** 用户 ID */
     private Long id;
 
-    /** 用户名 */
+    /** 用户 code */
     private String code;
 
     /** 昵称 */
@@ -36,4 +38,7 @@ public class AccountDetailResp {
 
     /** 每日最大复习量 */
     private Long dailyLimit;
+
+    /** 注册时间 */
+    private LocalDateTime createdTime;
 }

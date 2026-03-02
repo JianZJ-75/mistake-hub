@@ -43,3 +43,19 @@ frontend/**/dist/
 
 ### Frontend - SWC Cache ###
 **/.swc/
+
+### Template Source (excluded from tracking) ###
+frontend/slash-admin-main/
+frontend/slash-admin-main.zip
+
+### Frontend - Node ###
+**/node_modules/
+
+### Frontend - Build Output ###
+frontend/**/dist/
+
+### Frontend - WeChat Miniprogram ###
+**/project.private.config.json
+
+### Frontend - SWC Cache ###
+**/.swc/
