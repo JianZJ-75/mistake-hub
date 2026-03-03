@@ -1,6 +1,7 @@
 package com.jianzj.mistake.hub.backend.config.mvc;
 
 import com.jianzj.mistake.hub.backend.config.AuthCheckProperties;
+import com.jianzj.mistake.hub.backend.config.UploadProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -9,6 +10,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.List;
@@ -28,11 +30,15 @@ public class CustomizedWebMvcConfig implements WebMvcConfigurer {
 
     private final AuthCheckProperties authCheckProperties;
 
+    private final UploadProperties uploadProperties;
+
     public CustomizedWebMvcConfig(RequestAuthInterceptor requestAuthInterceptor,
-                                  AuthCheckProperties authCheckProperties) {
+                                  AuthCheckProperties authCheckProperties,
+                                  UploadProperties uploadProperties) {
 
         this.requestAuthInterceptor = requestAuthInterceptor;
         this.authCheckProperties = authCheckProperties;
+        this.uploadProperties = uploadProperties;
     }
 
     @Override
@@ -41,6 +47,19 @@ public class CustomizedWebMvcConfig implements WebMvcConfigurer {
         registry.addInterceptor(requestAuthInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns(authCheckProperties.getExcludePathList());
+    }
+
+    /**
+     * 映射本地上传目录到 /uploads/** 静态资源路径
+     *
+     * 图片上传到本地磁盘后，前端需要能直接访问图片 URL。
+     * 通过此配置将磁盘目录映射为可通过 HTTP 访问的静态资源路径。
+     */
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+
+        registry.addResourceHandler(uploadProperties.getUrlPrefix() + "/**")
+                .addResourceLocations("file:" + uploadProperties.getDir() + "/");
     }
 
     /**

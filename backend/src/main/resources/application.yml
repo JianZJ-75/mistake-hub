@@ -56,3 +56,11 @@ auth-check:
     - "/v1/account/login-wx"
     - "/v1/account/login-web"
     - "/v1/nonce/generate"
+    - "/uploads/**"
+
+# 图片上传配置
+upload:
+  # 本地存储目录，绝对路径
+  dir: /tmp/mistake-hub/uploads
+  # 访问URL前缀（通过静态资源映射对外暴露）
+  url-prefix: /uploads
