@@ -1,7 +1,7 @@
 import Taro from '@tarojs/taro'
 
 // 后端接口基础地址
-const BASE_URL = 'http://localhost:8080/mistake-hub/backend'
+export const BASE_URL = 'http://localhost:8080/mistake-hub/backend'
 
 // 本地存储 Token 的 key
 const TOKEN_KEY = 'mistake_hub_token'
@@ -28,7 +28,7 @@ export const removeToken = (): void => {
 interface RequestOptions {
   url: string
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
-  data?: Record<string, unknown>
+  data?: unknown
 }
 
 /**

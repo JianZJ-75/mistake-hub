@@ -24,8 +24,6 @@ public class MistakeDetailResp {
 
     private Long id;
 
-    private Long accountId;
-
     private String title;
 
     private String correctAnswer;
@@ -43,8 +41,6 @@ public class MistakeDetailResp {
     private LocalDateTime lastReviewTime;
 
     private LocalDateTime nextReviewTime;
-
-    private Integer status;
 
     private LocalDateTime createdTime;
 

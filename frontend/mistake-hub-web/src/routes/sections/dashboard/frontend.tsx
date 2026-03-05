@@ -5,5 +5,6 @@ export function getFrontendDashboardRoutes(): RouteObject[] {
 	return [
 		{ path: "workbench", element: Component("/pages/dashboard/workbench") },
 		{ path: "management/user", element: Component("/pages/management/user") },
+		{ path: "management/mistake", element: Component("/pages/management/mistake") },
 	];
 }

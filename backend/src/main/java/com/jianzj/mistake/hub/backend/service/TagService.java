@@ -7,6 +7,7 @@ import com.jianzj.mistake.hub.backend.entity.Tag;
 import com.jianzj.mistake.hub.backend.enums.TagType;
 import com.jianzj.mistake.hub.backend.mapper.TagMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
@@ -49,11 +50,21 @@ public class TagService extends ServiceImpl<TagMapper, Tag> {
             oops("无效的标签类型：%s", "Invalid tag type: %s", req.getType());
         }
 
-        if (req.getParentId() != 0L) {
+        if (!req.getParentId().equals(0L)) {
             Tag parent = getById(req.getParentId());
             if (parent == null) {
                 oops("父标签不存在", "Parent tag does not exist.");
             }
+        }
+
+        // 同名 + 同类型 + 同父级去重
+        List<Tag> duplicates = lambdaQuery()
+                .eq(Tag::getName, req.getName())
+                .eq(Tag::getType, req.getType())
+                .eq(Tag::getParentId, req.getParentId())
+                .list();
+        if (CollectionUtils.isNotEmpty(duplicates)) {
+            oops("同级下已存在同名标签：%s", "Duplicate tag name under the same parent: %s", req.getName());
         }
 
         Tag tag = Tag.builder()
@@ -75,7 +86,7 @@ public class TagService extends ServiceImpl<TagMapper, Tag> {
      */
     public List<TagResp> getByIds(List<Long> ids) {
 
-        if (ids == null || ids.isEmpty()) {
+        if (CollectionUtils.isEmpty(ids)) {
             return new ArrayList<>();
         }
 

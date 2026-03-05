@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -43,7 +44,7 @@ public class TagController {
      * 查询标签树
      */
     @Operation(summary = "查询标签树")
-    @PostMapping("/tree")
+    @GetMapping("/tree")
     @PreAuthorize(requiredRole = Role.STUDENT)
     public List<TagResp> tree() {
 

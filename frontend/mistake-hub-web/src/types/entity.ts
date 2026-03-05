@@ -94,3 +94,39 @@ export type MenuMetaInfo = Partial<Pick<NavItemDataProps, "path" | "icon" | "cap
 export type MenuTree = Menu & {
 	children?: MenuTree[];
 };
+
+/** 通用分页结果，对应后端 MyBatis Plus Page */
+export interface PageResult<T> {
+	records: T[];
+	total: number;
+	size: number;
+	current: number;
+	pages: number;
+}
+
+/** 对应后端 TagResp */
+export interface TagResp {
+	id: number;
+	name: string;
+	type: string;
+	parentId: number;
+	createdTime: string;
+	children?: TagResp[];
+}
+
+/** 对应后端 MistakeDetailResp */
+export interface MistakeDetailResp {
+	id: number;
+	title: string;
+	correctAnswer?: string;
+	errorReason?: string;
+	imageUrl?: string;
+	subject?: string;
+	reviewStage: number;
+	masteryLevel: number;
+	lastReviewTime?: string;
+	nextReviewTime?: string;
+	createdTime?: string;
+	updatedTime?: string;
+	tags?: TagResp[];
+}

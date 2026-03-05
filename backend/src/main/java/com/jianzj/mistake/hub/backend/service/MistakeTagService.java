@@ -2,12 +2,15 @@ package com.jianzj.mistake.hub.backend.service;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.jianzj.mistake.hub.backend.entity.MistakeTag;
+import com.jianzj.mistake.hub.backend.entity.Tag;
 import com.jianzj.mistake.hub.backend.mapper.MistakeTagMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.jianzj.mistake.hub.common.convention.exception.BaseException.oops;
@@ -24,6 +27,13 @@ import static com.jianzj.mistake.hub.common.convention.exception.BaseException.o
 @Slf4j
 public class MistakeTagService extends ServiceImpl<MistakeTagMapper, MistakeTag> {
 
+    private final TagService tagService;
+
+    public MistakeTagService(TagService tagService) {
+
+        this.tagService = tagService;
+    }
+
     // ===== 业务方法 =====
 
     /**
@@ -37,8 +47,16 @@ public class MistakeTagService extends ServiceImpl<MistakeTagMapper, MistakeTag>
             return;
         }
 
-        List<MistakeTag> relations = tagIds.stream()
-                .distinct()
+        // 校验 tag ID 全部存在
+        List<Long> distinctIds = tagIds.stream().distinct().collect(Collectors.toList());
+        List<Tag> existingTags = tagService.listByIds(distinctIds);
+        if (existingTags.size() != distinctIds.size()) {
+            Set<Long> existingIds = existingTags.stream().map(Tag::getId).collect(Collectors.toSet());
+            List<Long> missingIds = distinctIds.stream().filter(id -> !existingIds.contains(id)).collect(Collectors.toList());
+            oops("标签不存在：%s", "Tags not found: %s", missingIds);
+        }
+
+        List<MistakeTag> relations = distinctIds.stream()
                 .map(tagId -> MistakeTag.builder()
                         .mistakeId(mistakeId)
                         .tagId(tagId)
@@ -69,13 +87,33 @@ public class MistakeTagService extends ServiceImpl<MistakeTagMapper, MistakeTag>
         return relations.stream().map(MistakeTag::getMistakeId).collect(Collectors.toList());
     }
 
+    /**
+     * 批量查询多个错题的标签ID映射（mistakeId -> tagIds）
+     */
+    public Map<Long, List<Long>> getTagIdMapByMistakeIds(List<Long> mistakeIds) {
+
+        if (CollectionUtils.isEmpty(mistakeIds)) {
+            return Map.of();
+        }
+
+        List<MistakeTag> relations = lambdaQuery().in(MistakeTag::getMistakeId, mistakeIds).list();
+        return relations.stream()
+                .collect(Collectors.groupingBy(
+                        MistakeTag::getMistakeId,
+                        Collectors.mapping(MistakeTag::getTagId, Collectors.toList())
+                ));
+    }
+
     // ===== 工具方法 =====
 
     /**
-     * 删除指定错题的所有标签关联
+     * 删除指定错题的所有标签关联（无关联时不做任何操作）
      */
-    private void removeByMistakeId(Long mistakeId) {
+    public void removeByMistakeId(Long mistakeId) {
 
-        lambdaUpdate().eq(MistakeTag::getMistakeId, mistakeId).remove();
+        boolean success = lambdaUpdate().eq(MistakeTag::getMistakeId, mistakeId).remove();
+        if (!success) {
+            log.warn("删除错题标签关联无影响行（mistakeId={}），可能无关联数据", mistakeId);
+        }
     }
 }

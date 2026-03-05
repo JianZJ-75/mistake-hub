@@ -4,6 +4,8 @@ export default defineAppConfig({
     'pages/mistake/index',
     'pages/review/index',
     'pages/profile/index',
+    'pages/mistake-add/index',
+    'pages/mistake-detail/index',
   ],
   window: {
     backgroundTextStyle: 'light',

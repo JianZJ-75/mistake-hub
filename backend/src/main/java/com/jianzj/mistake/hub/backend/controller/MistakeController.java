@@ -61,7 +61,7 @@ public class MistakeController {
     @PreAuthorize(requiredRole = Role.STUDENT)
     public Page<MistakeDetailResp> list(@RequestBody @Valid MistakeListReq req) {
 
-        return mistakeService.list(req);
+        return mistakeService.listPage(req);
     }
 
     /**

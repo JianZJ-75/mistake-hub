@@ -20,7 +20,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.jianzj.mistake.hub.common.convention.exception.BaseException.oops;
@@ -92,7 +95,7 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
     /**
      * 分页查询错题列表（2.8）
      */
-    public Page<MistakeDetailResp> list(MistakeListReq req) {
+    public Page<MistakeDetailResp> listPage(MistakeListReq req) {
 
         Long accountId = threadStorageUtil.getCurAccountId();
 
@@ -106,21 +109,47 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
         }
 
         final List<Long> finalTagMistakeIds = tagMistakeIds;
+        Integer mf = req.getMasteryFilter();
 
         Page<Mistake> page = lambdaQuery()
                 .eq(Mistake::getAccountId, accountId)
                 .eq(Mistake::getStatus, STATUS_VALID)
-                .eq(StringUtils.isNotBlank(req.getSubject()), Mistake::getSubject, req.getSubject())
+                .like(StringUtils.isNotBlank(req.getSubject()), Mistake::getSubject, req.getSubject())
                 .in(finalTagMistakeIds != null, Mistake::getId, finalTagMistakeIds != null ? finalTagMistakeIds : List.of())
-                .ge(req.getMasteryFilter() != null && req.getMasteryFilter() == 2, Mistake::getMasteryLevel, 80)
-                .ge(req.getMasteryFilter() != null && req.getMasteryFilter() == 1, Mistake::getMasteryLevel, 60)
-                .lt(req.getMasteryFilter() != null && req.getMasteryFilter() == 1, Mistake::getMasteryLevel, 80)
-                .lt(req.getMasteryFilter() != null && req.getMasteryFilter() == 0, Mistake::getMasteryLevel, 60)
+                .ge(mf != null && mf == 2, Mistake::getMasteryLevel, 80)
+                .ge(mf != null && mf == 1, Mistake::getMasteryLevel, 60)
+                .lt(mf != null && mf == 1, Mistake::getMasteryLevel, 80)
+                .lt(mf != null && mf == 0, Mistake::getMasteryLevel, 60)
                 .orderByDesc(Mistake::getCreatedTime)
                 .page(new Page<>(req.getPageNum(), req.getPageSize()));
 
-        List<MistakeDetailResp> respList = page.getRecords().stream()
-                .map(this::toDetailResp)
+        List<Mistake> records = page.getRecords();
+        if (CollectionUtils.isEmpty(records)) {
+            Page<MistakeDetailResp> respPage = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
+            respPage.setRecords(new ArrayList<>());
+            return respPage;
+        }
+
+        // 批量查询标签关联和标签数据，避免 N+1
+        List<Long> mistakeIds = records.stream().map(Mistake::getId).collect(Collectors.toList());
+        Map<Long, List<Long>> tagIdMap = mistakeTagService.getTagIdMapByMistakeIds(mistakeIds);
+
+        Set<Long> allTagIds = tagIdMap.values().stream().flatMap(List::stream).collect(Collectors.toSet());
+        List<TagResp> allTags = tagService.getByIds(new ArrayList<>(allTagIds));
+        Map<Long, TagResp> tagRespMap = allTags.stream().collect(Collectors.toMap(TagResp::getId, t -> t));
+
+        List<MistakeDetailResp> respList = records.stream()
+                .map(mistake -> {
+                    MistakeDetailResp resp = new MistakeDetailResp();
+                    BeanUtils.copyProperties(mistake, resp);
+                    List<Long> tagIds = tagIdMap.getOrDefault(mistake.getId(), List.of());
+                    List<TagResp> tags = tagIds.stream()
+                            .map(tagRespMap::get)
+                            .filter(t -> t != null)
+                            .collect(Collectors.toList());
+                    resp.setTags(tags);
+                    return resp;
+                })
                 .collect(Collectors.toList());
 
         Page<MistakeDetailResp> respPage = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
@@ -157,7 +186,7 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
         if (req.getImageUrl() != null) {
             mistake.setImageUrl(req.getImageUrl());
         }
-        if (StringUtils.isNotBlank(req.getSubject())) {
+        if (req.getSubject() != null) {
             mistake.setSubject(req.getSubject());
         }
 
@@ -174,6 +203,7 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
     /**
      * 删除错题（软删除，2.9）
      */
+    @Transactional(rollbackFor = Exception.class)
     public void delete(MistakeDeleteReq req) {
 
         Mistake mistake = getMistakeOwnedByCurrentUser(req.getId());
@@ -183,6 +213,8 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
         if (!success) {
             oops("删除错题失败", "Failed to delete mistake.");
         }
+
+        mistakeTagService.removeByMistakeId(mistake.getId());
     }
 
     // ===== 工具方法 =====

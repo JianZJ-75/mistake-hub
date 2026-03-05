@@ -1,26 +1,21 @@
 package com.jianzj.mistake.hub.backend.config.mvc;
 
 import com.alibaba.fastjson2.JSON;
-import com.jianzj.mistake.hub.backend.config.AuthCheckProperties;
 import com.jianzj.mistake.hub.backend.entity.Account;
 import com.jianzj.mistake.hub.backend.entity.Session;
 import com.jianzj.mistake.hub.backend.service.AccountService;
 import com.jianzj.mistake.hub.backend.service.SessionService;
-import com.jianzj.mistake.hub.backend.utils.encryption.EncryptionUtil;
 import com.jianzj.mistake.hub.common.convention.result.BaseResult;
 import com.jianzj.mistake.hub.common.utils.ThreadStorageUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.util.AntPathMatcher;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -35,13 +30,7 @@ import java.util.Map;
 @Slf4j
 public class RequestAuthInterceptor implements HandlerInterceptor {
 
-    private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
-
     private final ThreadStorageUtil threadStorageUtil;
-
-    private final EncryptionUtil encryptionUtil;
-
-    private final AuthCheckProperties authCheckProperties;
 
     private final AccountService accountService;
 
@@ -50,15 +39,11 @@ public class RequestAuthInterceptor implements HandlerInterceptor {
     private final int managementPort;
 
     public RequestAuthInterceptor(ThreadStorageUtil threadStorageUtil,
-                                  EncryptionUtil encryptionUtil,
-                                  AuthCheckProperties authCheckProperties,
                                   AccountService accountService,
                                   SessionService sessionService,
                                   @Value("${management.server.port}") int managementPort) {
 
         this.threadStorageUtil = threadStorageUtil;
-        this.encryptionUtil = encryptionUtil;
-        this.authCheckProperties = authCheckProperties;
         this.accountService = accountService;
         this.sessionService = sessionService;
         this.managementPort = managementPort;
@@ -75,19 +60,6 @@ public class RequestAuthInterceptor implements HandlerInterceptor {
              */
             if (request.getServerPort() == managementPort) {
                 return true;
-            }
-
-            /**
-             * 白名单路径不需要认证
-             */
-            String requestUri = request.getRequestURI();
-            List<String> excludePathList = authCheckProperties.getExcludePathList();
-            if (CollectionUtils.isNotEmpty(excludePathList)) {
-                boolean excluded = excludePathList.stream()
-                        .anyMatch(pattern -> PATH_MATCHER.match(pattern, requestUri));
-                if (excluded) {
-                    return true;
-                }
             }
 
             String authorization = request.getHeader("Authorization");
