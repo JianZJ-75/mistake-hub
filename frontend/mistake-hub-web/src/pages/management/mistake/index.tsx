@@ -1,18 +1,27 @@
 import mistakeService from "@/api/services/mistakeService";
-import type { MistakeDetailResp, TagResp } from "#/entity";
+import tagService from "@/api/services/tagService";
+import userService from "@/api/services/userService";
+import uploadService from "@/api/services/uploadService";
+import type { MistakeDetailResp, TagResp, UserInfo } from "#/entity";
+import { Badge } from "@/ui/badge";
 import { Button } from "@/ui/button";
+import { Checkbox } from "@/ui/checkbox";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/ui/dialog";
 import { Input } from "@/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/ui/popover";
+import { ScrollArea } from "@/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/ui/select";
 import { Textarea } from "@/ui/textarea";
-import { Eye, Loader2, Pencil, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { cascadeToggleTag } from "@/utils/tagCascade";
+import { ChevronDown, ChevronRight, Eye, Loader2, Pencil, Search, Trash2, Upload, X } from "lucide-react";
+import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/ui/command";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 const PAGE_SIZE = 10;
 
 const MASTERY_OPTIONS = [
-	{ label: "全部", value: "all" },
+	{ label: "全部掌握度", value: "all" },
 	{ label: "未掌握（<60）", value: "0" },
 	{ label: "掌握中（60-79）", value: "1" },
 	{ label: "已掌握（≥80）", value: "2" },
@@ -42,14 +51,13 @@ const flattenTags = (tags: TagResp[] | null | undefined): TagResp[] => {
 	return result;
 };
 
-const TYPE_LABEL: Record<string, string> = { SUBJECT: "学科", CHAPTER: "章节", KNOWLEDGE: "知识点" };
+const TYPE_LABEL: Record<string, string> = { SUBJECT: "学科", CHAPTER: "章节", KNOWLEDGE: "知识点", CUSTOM: "自定义" };
 
 interface EditForm {
 	title: string;
 	correctAnswer: string;
 	errorReason: string;
 	imageUrl: string;
-	subject: string;
 	tagIds: number[];
 }
 
@@ -61,16 +69,27 @@ export default function MistakeManagementPage() {
 	const [pageNum, setPageNum] = useState(1);
 
 	// ===== 筛选状态 =====
-	const [subjectFilter, setSubjectFilter] = useState("");
 	const [masteryFilterVal, setMasteryFilterVal] = useState("all");
-	const [tagFilterId, setTagFilterId] = useState<string>("all");
-	const [allTags, setAllTags] = useState<TagResp[]>([]);
+	const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
+	const [tagTree, setTagTree] = useState<TagResp[]>([]);
+	const [customTags, setCustomTags] = useState<TagResp[]>([]);
+	const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
+	const [tagSearchQuery, setTagSearchQuery] = useState("");
+	const [tagExpandedIds, setTagExpandedIds] = useState<Set<number>>(new Set());
+
+	// ===== 学生筛选 Combobox =====
+	const [studentPopoverOpen, setStudentPopoverOpen] = useState(false);
+	const [studentSearchQuery, setStudentSearchQuery] = useState("");
+	const [studentOptions, setStudentOptions] = useState<UserInfo[]>([]);
+	const [studentSearching, setStudentSearching] = useState(false);
+	const [selectedStudent, setSelectedStudent] = useState<{ id: string; label: string } | null>(null);
+	const studentSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	// ===== 详情/编辑弹窗 =====
 	const [detailOpen, setDetailOpen] = useState(false);
 	const [selected, setSelected] = useState<MistakeDetailResp | null>(null);
 	const [editMode, setEditMode] = useState(false);
-	const [editForm, setEditForm] = useState<EditForm>({ title: "", correctAnswer: "", errorReason: "", imageUrl: "", subject: "", tagIds: [] });
+	const [editForm, setEditForm] = useState<EditForm>({ title: "", correctAnswer: "", errorReason: "", imageUrl: "", tagIds: [] });
 	const [saving, setSaving] = useState(false);
 
 	// ===== 删除确认 =====
@@ -78,21 +97,30 @@ export default function MistakeManagementPage() {
 	const [deletingId, setDeletingId] = useState<number | null>(null);
 	const [deleting, setDeleting] = useState(false);
 
+	// ===== 图片上传 =====
+	const [uploading, setUploading] = useState(false);
+	const fileInputRef = useRef<HTMLInputElement>(null);
+
 	useEffect(() => {
-		mistakeService.getTagTree().then(tree => setAllTags(flattenTags(tree))).catch(() => {});
+		tagService.getTagTree().then(data => setTagTree(data || [])).catch(() => {});
+		tagService.listAllCustomTags().then(data => setCustomTags(data || [])).catch(() => {});
 		fetchMistakes(1);
 	}, []);
 
-	const fetchMistakes = async (page: number, overrides?: { mastery?: string; tag?: string }) => {
+	const allFlatTags = [...flattenTags(tagTree), ...customTags];
+
+	const fetchMistakes = async (page: number, overrides?: { mastery?: string; tagIds?: number[]; account?: string }) => {
 		setLoading(true);
 		try {
 			const mVal = overrides?.mastery ?? masteryFilterVal;
-			const tVal = overrides?.tag ?? tagFilterId;
-			const tagId = tVal !== "all" ? Number(tVal) : undefined;
+			const tIds = overrides?.tagIds ?? selectedTagIds;
+			const aVal = overrides?.account ?? (selectedStudent?.id ?? "all");
+			const tagIds = tIds.length > 0 ? tIds.join(",") : undefined;
 			const masteryFilter = mVal !== "all" ? Number(mVal) : undefined;
+			const accountId = aVal !== "all" ? Number(aVal) : undefined;
 			const res = await mistakeService.listMistakes({
-				subject: subjectFilter.trim() || undefined,
-				tagId,
+				accountId,
+				tagIds,
 				masteryFilter,
 				pageNum: page,
 				pageSize: PAGE_SIZE,
@@ -111,6 +139,34 @@ export default function MistakeManagementPage() {
 		fetchMistakes(1);
 	};
 
+	const searchStudents = (query: string) => {
+		if (studentSearchTimer.current) clearTimeout(studentSearchTimer.current);
+		if (!query.trim()) { setStudentOptions([]); return; }
+		studentSearchTimer.current = setTimeout(async () => {
+			setStudentSearching(true);
+			try {
+				const res = await userService.listUsers({ nickname: query.trim(), role: "student", pageNum: 1, pageSize: 20 });
+				setStudentOptions(res.records);
+			} catch { /* apiClient 已 toast */ }
+			finally { setStudentSearching(false); }
+		}, 300);
+	};
+
+	const selectStudent = (student: UserInfo) => {
+		setSelectedStudent({ id: String(student.id), label: student.nickname || student.code || "" });
+		setStudentPopoverOpen(false);
+		setStudentSearchQuery("");
+		setStudentOptions([]);
+		setPageNum(1);
+		fetchMistakes(1, { account: String(student.id) });
+	};
+
+	const clearStudent = () => {
+		setSelectedStudent(null);
+		setPageNum(1);
+		fetchMistakes(1, { account: "all" });
+	};
+
 	const openDetail = (mistake: MistakeDetailResp) => {
 		setSelected(mistake);
 		setEditMode(false);
@@ -124,7 +180,6 @@ export default function MistakeManagementPage() {
 			correctAnswer: selected.correctAnswer || "",
 			errorReason: selected.errorReason || "",
 			imageUrl: selected.imageUrl || "",
-			subject: selected.subject || "",
 			tagIds: selected.tags?.map(t => t.id) || [],
 		});
 		setEditMode(true);
@@ -137,13 +192,12 @@ export default function MistakeManagementPage() {
 		}
 		setSaving(true);
 		try {
-			await mistakeService.updateMistake({
+			await mistakeService.modifyMistake({
 				id: selected.id,
 				title: editForm.title.trim(),
-				correctAnswer: editForm.correctAnswer.trim() || undefined,
-				errorReason: editForm.errorReason.trim() || undefined,
-				imageUrl: editForm.imageUrl.trim() || undefined,
-				subject: editForm.subject.trim() || undefined,
+				correctAnswer: editForm.correctAnswer.trim() || "",
+				errorReason: editForm.errorReason.trim() || "",
+				imageUrl: editForm.imageUrl.trim() || "",
 				tagIds: editForm.tagIds,
 			});
 			toast.success("保存成功");
@@ -186,25 +240,161 @@ export default function MistakeManagementPage() {
 	const toggleEditTag = (id: number) => {
 		setEditForm(prev => ({
 			...prev,
-			tagIds: prev.tagIds.includes(id) ? prev.tagIds.filter(t => t !== id) : [...prev.tagIds, id],
+			tagIds: cascadeToggleTag(tagTree, prev.tagIds, id),
 		}));
+	};
+
+	const toggleFilterTag = (id: number) => {
+		const next = cascadeToggleTag(tagTree, selectedTagIds, id);
+		setSelectedTagIds(next);
+		setPageNum(1);
+		fetchMistakes(1, { tagIds: next });
+	};
+
+	const removeFilterTag = (id: number) => {
+		const next = selectedTagIds.filter(t => t !== id);
+		setSelectedTagIds(next);
+		setPageNum(1);
+		fetchMistakes(1, { tagIds: next });
+	};
+
+	const clearFilterTags = () => {
+		setSelectedTagIds([]);
+		setPageNum(1);
+		fetchMistakes(1, { tagIds: [] });
+	};
+
+	const getTagNameById = (id: number): string => {
+		return allFlatTags.find(t => t.id === id)?.name || String(id);
+	};
+
+	const toggleTagExpand = (id: number) => {
+		setTagExpandedIds(prev => {
+			const next = new Set(prev);
+			if (next.has(id)) next.delete(id);
+			else next.add(id);
+			return next;
+		});
+	};
+
+	const filterTagNodes = (nodes: TagResp[], query: string): TagResp[] => {
+		if (!query) return nodes;
+		const result: TagResp[] = [];
+		for (const node of nodes) {
+			const filteredChildren = node.children?.length ? filterTagNodes(node.children, query) : [];
+			const selfMatch = node.name.toLowerCase().includes(query.toLowerCase());
+			if (selfMatch || filteredChildren.length > 0) {
+				result.push({ ...node, children: selfMatch ? node.children : filteredChildren });
+			}
+		}
+		return result;
+	};
+
+	const renderTagOptions = (nodes: TagResp[], depth: number, checkedIds: number[], onToggle: (id: number) => void): React.ReactNode[] => {
+
+		const rows: React.ReactNode[] = [];
+		for (const node of nodes) {
+			const hasChildren = (node.children?.length ?? 0) > 0;
+			const isNodeExpanded = tagSearchQuery !== "" || tagExpandedIds.has(node.id);
+			rows.push(
+				<div
+					key={node.id}
+					className="flex items-center gap-1 hover:bg-muted/50 px-2 py-1.5 rounded"
+					style={{ paddingLeft: `${8 + depth * 16}px` }}
+				>
+					{hasChildren ? (
+						<button type="button" className="p-0.5 rounded hover:bg-muted" onClick={(e) => { e.stopPropagation(); toggleTagExpand(node.id); }}>
+							{isNodeExpanded ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+						</button>
+					) : <span className="w-5" />}
+					<Checkbox
+						checked={checkedIds.includes(node.id)}
+						onCheckedChange={() => onToggle(node.id)}
+					/>
+					<span className="text-sm flex-1 truncate cursor-pointer" onClick={() => onToggle(node.id)}>{node.name}</span>
+					{node.type && (
+						<span className="text-xs text-muted-foreground">{TYPE_LABEL[node.type] || ""}</span>
+					)}
+				</div>,
+			);
+			if (hasChildren && isNodeExpanded) {
+				rows.push(...renderTagOptions(node.children!, depth + 1, checkedIds, onToggle));
+			}
+		}
+		return rows;
+	};
+
+	const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0];
+		if (!file) return;
+		setUploading(true);
+		try {
+			const url = await uploadService.uploadImage(file);
+			setEditForm(prev => ({ ...prev, imageUrl: url }));
+			toast.success("图片上传成功");
+		} catch {
+			// apiClient 已 toast
+		} finally {
+			setUploading(false);
+			if (fileInputRef.current) fileInputRef.current.value = "";
+		}
 	};
 
 	const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
+	const isFiltering = selectedStudent !== null || masteryFilterVal !== "all" || selectedTagIds.length > 0;
+
 	return (
 		<div className="flex flex-col gap-4 p-2">
-			<h2 className="text-2xl font-bold">错题管理</h2>
+			<div className="flex items-center justify-between">
+				<h2 className="text-2xl font-bold">错题管理</h2>
+			</div>
 
 			{/* 筛选栏 */}
-			<div className="flex flex-wrap gap-2">
-				<Input
-					className="max-w-[140px]"
-					placeholder="学科"
-					value={subjectFilter}
-					onChange={e => setSubjectFilter(e.target.value)}
-					onKeyDown={e => e.key === "Enter" && handleSearch()}
-				/>
+			<div className="flex flex-wrap items-center gap-2">
+				<div className="flex items-center">
+				<Popover open={studentPopoverOpen} onOpenChange={setStudentPopoverOpen}>
+					<PopoverTrigger asChild>
+						<Button variant="outline" className={`justify-between font-normal ${selectedStudent ? "rounded-r-none border-r-0 w-36" : "w-40"}`}>
+							{selectedStudent ? selectedStudent.label : "全部学生"}
+							{!selectedStudent && <ChevronDown className="h-4 w-4 ml-1 opacity-50" />}
+						</Button>
+					</PopoverTrigger>
+					<PopoverContent className="w-64 p-0" align="start">
+						<Command shouldFilter={false}>
+							<CommandInput
+								placeholder="输入昵称搜索学生"
+								value={studentSearchQuery}
+								onValueChange={v => { setStudentSearchQuery(v); searchStudents(v); }}
+							/>
+							<CommandList>
+								{studentSearching && (
+									<div className="flex justify-center py-4">
+										<Loader2 className="h-4 w-4 animate-spin" />
+									</div>
+								)}
+								{!studentSearching && studentSearchQuery.trim() && studentOptions.length === 0 && (
+									<CommandEmpty>无匹配学生</CommandEmpty>
+								)}
+								{!studentSearching && !studentSearchQuery.trim() && (
+									<p className="py-4 text-center text-xs text-muted-foreground">请输入昵称搜索</p>
+								)}
+								{studentOptions.map(s => (
+									<CommandItem key={s.id} onSelect={() => selectStudent(s)}>
+										<span>{s.nickname || s.code}</span>
+										<span className="ml-auto text-xs text-muted-foreground">{s.code}</span>
+									</CommandItem>
+								))}
+							</CommandList>
+						</Command>
+					</PopoverContent>
+				</Popover>
+				{selectedStudent && (
+					<Button variant="outline" size="icon" className="h-9 w-8 rounded-l-none" onClick={clearStudent}>
+						<X className="h-3.5 w-3.5" />
+					</Button>
+				)}
+				</div>
 				<Select value={masteryFilterVal} onValueChange={v => { setMasteryFilterVal(v); setPageNum(1); fetchMistakes(1, { mastery: v }); }}>
 					<SelectTrigger className="w-40">
 						<SelectValue placeholder="掌握度" />
@@ -215,22 +405,89 @@ export default function MistakeManagementPage() {
 						))}
 					</SelectContent>
 				</Select>
-				<Select value={tagFilterId} onValueChange={v => { setTagFilterId(v); setPageNum(1); fetchMistakes(1, { tag: v }); }}>
-					<SelectTrigger className="w-36">
-						<SelectValue placeholder="知识点" />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="all">全部知识点</SelectItem>
-						{allTags.map(t => (
-							<SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
+				<Popover open={tagPopoverOpen} onOpenChange={setTagPopoverOpen}>
+					<PopoverTrigger asChild>
+						<Button variant="outline" className="w-40 justify-between font-normal">
+							{selectedTagIds.length > 0 ? `已选 ${selectedTagIds.length} 个标签` : "全部标签"}
+							<ChevronDown className="h-4 w-4 ml-1 opacity-50" />
+						</Button>
+					</PopoverTrigger>
+					<PopoverContent className="w-72 p-0" align="start">
+						<div className="p-2 border-b">
+							<Input
+								placeholder="搜索标签"
+								value={tagSearchQuery}
+								onChange={e => setTagSearchQuery(e.target.value)}
+								className="h-8"
+							/>
+						</div>
+						<ScrollArea className="max-h-64 overflow-y-auto">
+							<div className="p-1">
+								{/* 全局标签 */}
+								<p className="px-2 py-1.5 text-xs font-medium text-muted-foreground">全局标签</p>
+								{renderTagOptions(filterTagNodes(tagTree, tagSearchQuery), 0, selectedTagIds, toggleFilterTag)}
+								{filterTagNodes(tagTree, tagSearchQuery).length === 0 && (
+									<p className="px-2 py-2 text-xs text-muted-foreground text-center">无匹配全局标签</p>
+								)}
+								{/* 自定义标签 */}
+								{customTags.length > 0 && (
+									<>
+										<div className="border-t my-1" />
+										<p className="px-2 py-1.5 text-xs font-medium text-muted-foreground">自定义标签</p>
+										{customTags
+											.filter(t => !tagSearchQuery || t.name.toLowerCase().includes(tagSearchQuery.toLowerCase()))
+											.map(tag => (
+												<label
+													key={tag.id}
+													className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 px-2 py-1.5 rounded"
+												>
+													<Checkbox
+														checked={selectedTagIds.includes(tag.id)}
+														onCheckedChange={() => toggleFilterTag(tag.id)}
+													/>
+													<span className="text-sm flex-1 truncate">{tag.name}</span>
+													<span className="text-xs text-muted-foreground">自定义</span>
+												</label>
+											))}
+									</>
+								)}
+							</div>
+						</ScrollArea>
+						{selectedTagIds.length > 0 && (
+							<div className="border-t p-2">
+								<Button variant="ghost" size="sm" className="w-full text-xs" onClick={clearFilterTags}>
+									清除全部
+								</Button>
+							</div>
+						)}
+					</PopoverContent>
+				</Popover>
 				<Button onClick={handleSearch} disabled={loading}>
-					{loading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+					{loading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Search className="h-4 w-4 mr-1" />}
 					查询
 				</Button>
 			</div>
+
+			{/* 已选标签 Badge */}
+			{selectedTagIds.length > 0 && (
+				<div className="flex flex-wrap items-center gap-1.5">
+					{selectedTagIds.map(id => (
+						<Badge key={id} variant="secondary" className="gap-1 pr-1">
+							{getTagNameById(id)}
+							<button
+								type="button"
+								className="ml-0.5 rounded-full hover:bg-muted p-0.5"
+								onClick={() => removeFilterTag(id)}
+							>
+								<X className="h-3 w-3" />
+							</button>
+						</Badge>
+					))}
+					<button type="button" className="text-xs text-muted-foreground hover:text-foreground" onClick={clearFilterTags}>
+						清除
+					</button>
+				</div>
+			)}
 
 			{/* 错题列表表格 */}
 			<div className="rounded-xl border overflow-hidden">
@@ -238,8 +495,8 @@ export default function MistakeManagementPage() {
 					<thead className="bg-muted/50">
 						<tr>
 							<th className="px-4 py-3 text-left font-medium text-text-secondary">ID</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary">所属学生</th>
 							<th className="px-4 py-3 text-left font-medium text-text-secondary">题干</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">学科</th>
 							<th className="px-4 py-3 text-left font-medium text-text-secondary">掌握度</th>
 							<th className="px-4 py-3 text-left font-medium text-text-secondary">复习阶段</th>
 							<th className="px-4 py-3 text-left font-medium text-text-secondary">标签</th>
@@ -256,7 +513,9 @@ export default function MistakeManagementPage() {
 							</tr>
 						) : mistakes.length === 0 ? (
 							<tr>
-								<td colSpan={8} className="py-12 text-center text-text-secondary">暂无数据</td>
+								<td colSpan={8} className="py-12 text-center text-text-secondary">
+									{isFiltering ? "无匹配结果，请调整筛选条件" : "暂无数据"}
+								</td>
 							</tr>
 						) : (
 							mistakes.map(m => {
@@ -265,14 +524,9 @@ export default function MistakeManagementPage() {
 								return (
 									<tr key={m.id} className="hover:bg-muted/30 transition-colors">
 										<td className="px-4 py-3 text-text-secondary">{m.id}</td>
+										<td className="px-4 py-3 text-sm">{m.accountNickname || "—"}</td>
 										<td className="px-4 py-3 max-w-[240px]">
 											<span className="line-clamp-2 text-sm">{m.title}</span>
-										</td>
-										<td className="px-4 py-3">
-											{m.subject
-												? <span className="px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-700">{m.subject}</span>
-												: <span className="text-text-secondary">—</span>
-											}
 										</td>
 										<td className="px-4 py-3">
 											<div className="flex items-center gap-2">
@@ -360,9 +614,6 @@ export default function MistakeManagementPage() {
 								<span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getMasteryBadge(selected.masteryLevel || 0).cls}`}>
 									{getMasteryBadge(selected.masteryLevel || 0).label}
 								</span>
-								{selected.subject && (
-									<span className="px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-700">{selected.subject}</span>
-								)}
 								<span className="text-xs text-muted-foreground">
 									第 {selected.reviewStage} 阶段 · 掌握度 {selected.masteryLevel || 0}%
 								</span>
@@ -412,6 +663,7 @@ export default function MistakeManagementPage() {
 
 							{/* 时间信息 */}
 							<div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+								<div>所属学生：{selected.accountNickname || "—"}</div>
 								<div>录入时间：{selected.createdTime?.replace("T", " ").substring(0, 16) || "—"}</div>
 								<div>下次复习：{selected.nextReviewTime?.replace("T", " ").substring(0, 16) || "—"}</div>
 							</div>
@@ -453,45 +705,64 @@ export default function MistakeManagementPage() {
 								/>
 							</div>
 
-							{/* 图片 URL */}
+							{/* 图片上传 */}
 							<div>
-								<label className="text-xs text-muted-foreground mb-1 block">图片 URL</label>
-								<Input
-									value={editForm.imageUrl}
-									onChange={e => setEditForm(prev => ({ ...prev, imageUrl: e.target.value }))}
-									placeholder="留空则清除图片"
-								/>
-							</div>
-
-							{/* 学科 */}
-							<div>
-								<label className="text-xs text-muted-foreground mb-1 block">学科</label>
-								<Input
-									value={editForm.subject}
-									onChange={e => setEditForm(prev => ({ ...prev, subject: e.target.value }))}
-									maxLength={64}
-								/>
+								<label className="text-xs text-muted-foreground mb-1 block">图片</label>
+								{editForm.imageUrl ? (
+									<div className="relative inline-block">
+										<img src={editForm.imageUrl} alt="题目图片" className="max-w-full max-h-40 rounded-lg border" />
+										<button
+											type="button"
+											className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-0.5 hover:bg-destructive/80"
+											onClick={() => setEditForm(prev => ({ ...prev, imageUrl: "" }))}
+										>
+											<X className="h-3 w-3" />
+										</button>
+									</div>
+								) : (
+									<div>
+										<input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+										<Button
+											type="button"
+											variant="outline"
+											size="sm"
+											disabled={uploading}
+											onClick={() => fileInputRef.current?.click()}
+										>
+											{uploading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Upload className="h-4 w-4 mr-1" />}
+											{uploading ? "上传中..." : "选择图片"}
+										</Button>
+									</div>
+								)}
 							</div>
 
 							{/* 标签选择 */}
 							<div>
 								<label className="text-xs text-muted-foreground mb-1 block">标签</label>
-								<div className="max-h-40 overflow-y-auto border rounded-md p-2 space-y-1">
-									{allTags.length === 0 && (
+								<div className="max-h-40 overflow-y-auto border rounded-md p-2">
+									{tagTree.length === 0 && customTags.length === 0 && (
 										<p className="text-xs text-muted-foreground py-2 text-center">暂无标签</p>
 									)}
-									{allTags.map(tag => (
-										<label key={tag.id} className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 px-2 py-1 rounded">
-											<input
-												type="checkbox"
-												checked={editForm.tagIds.includes(tag.id)}
-												onChange={() => toggleEditTag(tag.id)}
-												className="h-4 w-4 rounded border-input"
-											/>
-											<span className="text-sm flex-1">{tag.name}</span>
-											<span className="text-xs text-muted-foreground">{TYPE_LABEL[tag.type] || ""}</span>
-										</label>
-									))}
+									{/* 全局标签（树形展开） */}
+									{renderTagOptions(tagTree, 0, editForm.tagIds, toggleEditTag)}
+									{/* 自定义标签 */}
+									{customTags.length > 0 && (
+										<>
+											<div className="border-t my-1" />
+											<p className="text-xs font-medium text-muted-foreground px-2 py-1">自定义标签</p>
+											{customTags.map(tag => (
+												<div key={tag.id} className="flex items-center gap-1 hover:bg-muted/50 px-2 py-1.5 rounded" style={{ paddingLeft: "8px" }}>
+													<span className="w-5" />
+													<Checkbox
+														checked={editForm.tagIds.includes(tag.id)}
+														onCheckedChange={() => toggleEditTag(tag.id)}
+													/>
+													<span className="text-sm flex-1 truncate cursor-pointer" onClick={() => toggleEditTag(tag.id)}>{tag.name}</span>
+													<span className="text-xs text-muted-foreground">自定义</span>
+												</div>
+											))}
+										</>
+									)}
 								</div>
 							</div>
 						</div>

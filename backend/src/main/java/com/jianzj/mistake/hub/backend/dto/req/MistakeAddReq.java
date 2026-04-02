@@ -39,11 +39,6 @@ public class MistakeAddReq {
     private String imageUrl;
 
     /**
-     * 学科
-     */
-    private String subject;
-
-    /**
      * 标签ID列表
      */
     @Size(max = 20, message = "标签最多选择20个")

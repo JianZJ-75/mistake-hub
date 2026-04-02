@@ -4,8 +4,10 @@ import './app.scss'
 
 class App extends Component<PropsWithChildren> {
 
-  // 小程序启动时静默登录
-  componentDidMount() {
+  constructor(props: PropsWithChildren) {
+    super(props)
+    // 在 constructor 中调用 login()，确保 _pendingLogin 在子页面渲染前已注册
+    // 子页面发起请求时若无 token，会自动等待此 promise 完成后再发出
     login()
   }
 

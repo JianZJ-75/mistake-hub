@@ -1,15 +1,13 @@
 import { useState, useRef } from 'react'
 import Taro, { useLoad } from '@tarojs/taro'
-import { View, Text, Textarea, Input, Image, ScrollView } from '@tarojs/components'
-import { mistakeDetail, mistakeUpdate, mistakeDelete } from '../../service/mistake'
-import { tagTree } from '../../service/tag'
+import { View, Text, Textarea, Image, ScrollView } from '@tarojs/components'
+import { mistakeDetail, mistakeModify, mistakeDelete } from '../../service/mistake'
+import { tagTree, tagCustomList } from '../../service/tag'
 import { uploadImage } from '../../service/upload'
 import { MistakeDetailResp, TagResp } from '../../types'
-import { flattenTags, getMasteryInfo } from '../../utils/mistake'
+import { findTagNamesByIds, getMasteryInfo } from '../../utils/mistake'
+import TagPickerModal from '../../components/TagPickerModal'
 import './index.scss'
-
-const TYPE_LABEL: Record<string, string> = { SUBJECT: '学科', CHAPTER: '章节', KNOWLEDGE: '知识点' }
-const TYPE_INDENT: Record<string, string> = { SUBJECT: '0', CHAPTER: '32rpx', KNOWLEDGE: '64rpx' }
 
 const STAGE_INTERVALS = [0, 1, 2, 4, 7, 15, 30]
 
@@ -18,17 +16,17 @@ interface FormState {
   correctAnswer: string
   errorReason: string
   imageUrl: string
-  subject: string
   tagIds: number[]
 }
 
 const MistakeDetailPage = () => {
+
   const [detail, setDetail] = useState<MistakeDetailResp | null>(null)
   const [editMode, setEditMode] = useState(false)
-  const [form, setForm] = useState<FormState>({ title: '', correctAnswer: '', errorReason: '', imageUrl: '', subject: '', tagIds: [] })
+  const [form, setForm] = useState<FormState>({ title: '', correctAnswer: '', errorReason: '', imageUrl: '', tagIds: [] })
   const [allTags, setAllTags] = useState<TagResp[]>([])
+  const [customTags, setCustomTags] = useState<TagResp[]>([])
   const [showTagModal, setShowTagModal] = useState(false)
-  const [tempTagIds, setTempTagIds] = useState<number[]>([])
   const [uploading, setUploading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const idRef = useRef(0)
@@ -37,10 +35,17 @@ const MistakeDetailPage = () => {
     const id = Number(params.id)
     idRef.current = id
     loadDetail(id)
-    tagTree().then(tree => setAllTags(flattenTags(tree))).catch(() => {})
+    tagTree().then(tree => setAllTags(tree)).catch(() => {})
+    loadCustomTags()
   })
 
+  const loadCustomTags = () => {
+
+    tagCustomList().then(list => setCustomTags(list)).catch(() => {})
+  }
+
   const loadDetail = async (id: number, navigateBackOnError = true) => {
+
     try {
       const res = await mistakeDetail(id)
       setDetail(res)
@@ -50,19 +55,20 @@ const MistakeDetailPage = () => {
   }
 
   const enterEdit = () => {
+
     if (!detail) return
     setForm({
       title: detail.title || '',
       correctAnswer: detail.correctAnswer || '',
       errorReason: detail.errorReason || '',
       imageUrl: detail.imageUrl || '',
-      subject: detail.subject || '',
-      tagIds: detail.tags?.map(t => t.id) || [],
+      tagIds: detail.tags ? detail.tags.map(t => t.id) : [],
     })
     setEditMode(true)
   }
 
   const handleChooseImage = async () => {
+
     if (uploading) return
     try {
       const res = await Taro.chooseMedia({ count: 1, mediaType: ['image'], sizeType: ['compressed'], sourceType: ['album', 'camera'] })
@@ -71,7 +77,7 @@ const MistakeDetailPage = () => {
       const url = await uploadImage(path)
       setForm(prev => ({ ...prev, imageUrl: url }))
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err ?? '')
+      const msg = err instanceof Error ? err.message : String(err !== null && err !== undefined ? err : '')
       if (msg && !msg.includes('cancel')) {
         Taro.showToast({ title: '选择图片失败', icon: 'none' })
       }
@@ -80,34 +86,20 @@ const MistakeDetailPage = () => {
     }
   }
 
-  const openTagModal = () => {
-    setTempTagIds([...form.tagIds])
-    setShowTagModal(true)
-  }
-
-  const toggleTag = (id: number) => {
-    setTempTagIds(prev => prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id])
-  }
-
-  const confirmTags = () => {
-    setForm(prev => ({ ...prev, tagIds: tempTagIds }))
-    setShowTagModal(false)
-  }
-
   const handleSave = async () => {
+
     if (!form.title.trim()) {
       Taro.showToast({ title: '题干不能为空', icon: 'none' })
       return
     }
     setSubmitting(true)
     try {
-      await mistakeUpdate({
+      await mistakeModify({
         id: idRef.current,
         title: form.title.trim(),
-        correctAnswer: form.correctAnswer.trim() || undefined,
-        errorReason: form.errorReason.trim() || undefined,
-        imageUrl: form.imageUrl || undefined,
-        subject: form.subject.trim() || undefined,
+        correctAnswer: form.correctAnswer.trim(),
+        errorReason: form.errorReason.trim(),
+        imageUrl: form.imageUrl,
         tagIds: form.tagIds,
       })
       Taro.showToast({ title: '保存成功', icon: 'success' })
@@ -122,6 +114,7 @@ const MistakeDetailPage = () => {
   }
 
   const handleDelete = () => {
+
     Taro.showModal({
       title: '确认删除',
       content: '删除后无法恢复，确认吗？',
@@ -140,7 +133,8 @@ const MistakeDetailPage = () => {
   }
 
   const getTagNames = (ids: number[]) =>
-    allTags.filter(t => ids.includes(t.id)).map(t => t.name)
+
+    findTagNamesByIds([...allTags, ...customTags], ids)
 
   if (!detail) {
     return (
@@ -209,18 +203,8 @@ const MistakeDetailPage = () => {
             </View>
 
             <View className='form-section'>
-              <Text className='section-label'>学科</Text>
-              <Input
-                className='input'
-                value={form.subject}
-                onInput={e => setForm(prev => ({ ...prev, subject: e.detail.value }))}
-                maxlength={64}
-              />
-            </View>
-
-            <View className='form-section'>
               <Text className='section-label'>标签</Text>
-              <View className='tag-selector' onClick={openTagModal}>
+              <View className='tag-selector' onClick={() => setShowTagModal(true)}>
                 {form.tagIds.length > 0 ? (
                   <View className='tag-chips'>
                     {getTagNames(form.tagIds).map((name, i) => (
@@ -250,8 +234,7 @@ const MistakeDetailPage = () => {
             <View className='detail-header'>
               <View className='status-row'>
                 <Text className={`mastery-badge ${mastery.cls}`}>{mastery.label}</Text>
-                {detail.subject ? <Text className='subject-tag'>{detail.subject}</Text> : null}
-                <Text className='stage-info'>第 {detail.reviewStage} 阶段（间隔 {STAGE_INTERVALS[detail.reviewStage] ?? 30} 天）</Text>
+                <Text className='stage-info'>第 {detail.reviewStage} 阶段（间隔 {STAGE_INTERVALS[detail.reviewStage] !== undefined ? STAGE_INTERVALS[detail.reviewStage] : 30} 天）</Text>
               </View>
               <View className='mastery-row'>
                 <View className='mastery-track'>
@@ -297,7 +280,7 @@ const MistakeDetailPage = () => {
             ) : null}
 
             {/* 标签 */}
-            {(detail.tags?.length ?? 0) > 0 ? (
+            {(detail.tags ? detail.tags.length : 0) > 0 ? (
               <View className='detail-section'>
                 <Text className='detail-label'>标签</Text>
                 <View className='tag-chips'>
@@ -322,43 +305,16 @@ const MistakeDetailPage = () => {
       </ScrollView>
 
       {/* 标签选择弹窗（编辑模式中使用） */}
-      {showTagModal && (
-        <View className='modal-mask' onClick={() => setShowTagModal(false)}>
-          <View className='modal-content' onClick={e => e.stopPropagation()}>
-            <View className='modal-header'>
-              <Text className='modal-title'>选择标签</Text>
-              <Text className='modal-close' onClick={() => setShowTagModal(false)}>×</Text>
-            </View>
-            <ScrollView scrollY className='modal-list'>
-              {allTags.length === 0 && (
-                <View className='modal-empty'>
-                  <Text className='modal-empty-text'>暂无标签，请管理员先添加</Text>
-                </View>
-              )}
-              {allTags.map(tag => (
-                <View
-                  key={tag.id}
-                  className={`tag-row ${tempTagIds.includes(tag.id) ? 'tag-row-active' : ''}`}
-                  style={{ paddingLeft: TYPE_INDENT[tag.type] || '0' }}
-                  onClick={() => toggleTag(tag.id)}
-                >
-                  <View className={`checkbox ${tempTagIds.includes(tag.id) ? 'checkbox-checked' : ''}`} />
-                  <Text className='tag-name'>{tag.name}</Text>
-                  <Text className='tag-type-label'>{TYPE_LABEL[tag.type] || ''}</Text>
-                </View>
-              ))}
-            </ScrollView>
-            <View className='modal-footer'>
-              <View className='modal-btn modal-btn-cancel' onClick={() => setShowTagModal(false)}>
-                <Text>取消</Text>
-              </View>
-              <View className='modal-btn modal-btn-confirm' onClick={confirmTags}>
-                <Text>确认（{tempTagIds.length}）</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-      )}
+      <TagPickerModal
+        visible={showTagModal}
+        tags={allTags}
+        customTags={customTags}
+        mode='multi'
+        selectedIds={form.tagIds}
+        onConfirm={ids => setForm(prev => ({ ...prev, tagIds: ids }))}
+        onClose={() => setShowTagModal(false)}
+        onCustomTagsChange={loadCustomTags}
+      />
     </View>
   )
 }

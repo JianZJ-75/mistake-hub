@@ -5,19 +5,22 @@ import com.jianzj.mistake.hub.backend.annotation.PreAuthorize;
 import com.jianzj.mistake.hub.backend.dto.req.MistakeAddReq;
 import com.jianzj.mistake.hub.backend.dto.req.MistakeDeleteReq;
 import com.jianzj.mistake.hub.backend.dto.req.MistakeDetailReq;
-import com.jianzj.mistake.hub.backend.dto.req.MistakeListReq;
 import com.jianzj.mistake.hub.backend.dto.req.MistakeUpdateReq;
 import com.jianzj.mistake.hub.backend.dto.resp.MistakeDetailResp;
 import com.jianzj.mistake.hub.backend.enums.Role;
 import com.jianzj.mistake.hub.backend.service.MistakeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -48,7 +51,7 @@ public class MistakeController {
     @Operation(summary = "录入错题")
     @PostMapping("/add")
     @PreAuthorize(requiredRole = Role.STUDENT)
-    public void add(@RequestBody @Valid MistakeAddReq req) {
+    public void add(@RequestBody @Validated @NotNull MistakeAddReq req) {
 
         mistakeService.add(req);
     }
@@ -57,11 +60,15 @@ public class MistakeController {
      * 分页查询错题列表
      */
     @Operation(summary = "分页查询错题列表")
-    @PostMapping("/list")
+    @GetMapping("/list")
     @PreAuthorize(requiredRole = Role.STUDENT)
-    public Page<MistakeDetailResp> list(@RequestBody @Valid MistakeListReq req) {
+    public Page<MistakeDetailResp> list(@RequestParam(value = "accountId", required = false) Long accountId,
+                                        @RequestParam(value = "tagIds", required = false) String tagIds,
+                                        @RequestParam(value = "masteryFilter", required = false) @Min(0) @Max(2) Integer masteryFilter,
+                                        @RequestParam(value = "pageNum") @NotNull @Min(1) Long pageNum,
+                                        @RequestParam(value = "pageSize") @NotNull @Min(1) @Max(100) Long pageSize) {
 
-        return mistakeService.listPage(req);
+        return mistakeService.listPage(accountId, tagIds, masteryFilter, pageNum, pageSize);
     }
 
     /**
@@ -70,7 +77,7 @@ public class MistakeController {
     @Operation(summary = "查询错题详情")
     @PostMapping("/detail")
     @PreAuthorize(requiredRole = Role.STUDENT)
-    public MistakeDetailResp detail(@RequestBody @Valid MistakeDetailReq req) {
+    public MistakeDetailResp detail(@RequestBody @Validated @NotNull MistakeDetailReq req) {
 
         return mistakeService.detail(req);
     }
@@ -79,11 +86,11 @@ public class MistakeController {
      * 编辑错题
      */
     @Operation(summary = "编辑错题")
-    @PostMapping("/update")
+    @PostMapping("/modify")
     @PreAuthorize(requiredRole = Role.STUDENT)
-    public void update(@RequestBody @Valid MistakeUpdateReq req) {
+    public void modify(@RequestBody @Validated @NotNull MistakeUpdateReq req) {
 
-        mistakeService.update(req);
+        mistakeService.modify(req);
     }
 
     /**
@@ -92,7 +99,7 @@ public class MistakeController {
     @Operation(summary = "删除错题")
     @PostMapping("/delete")
     @PreAuthorize(requiredRole = Role.STUDENT)
-    public void delete(@RequestBody @Valid MistakeDeleteReq req) {
+    public void delete(@RequestBody @Validated @NotNull MistakeDeleteReq req) {
 
         mistakeService.delete(req);
     }

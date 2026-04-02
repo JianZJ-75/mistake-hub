@@ -24,6 +24,11 @@ public class ThreadStorageUtil {
      */
     private final ThreadLocal<String> accountCodeStorage = new ThreadLocal<>();
 
+    /**
+     * 线程中的 account role
+     */
+    private final ThreadLocal<String> accountRoleStorage = new ThreadLocal<>();
+
     /***********************
      * account id
      ***********************/
@@ -65,11 +70,32 @@ public class ThreadStorageUtil {
     }
 
     /***********************
+     * account role
+     ***********************/
+
+    public void setCurAccountRole(String role) {
+        accountRoleStorage.set(role);
+    }
+
+    public String getCurAccountRole() {
+        String role = accountRoleStorage.get();
+        if (StringUtils.isBlank(role)) {
+            throw new RuntimeException("thread storage account role is empty");
+        }
+        return role;
+    }
+
+    private void removeCurAccountRole() {
+        accountRoleStorage.remove();
+    }
+
+    /***********************
      * 清空
      ***********************/
 
     public void clear() {
         removeCurAccountId();
         removeCurAccountCode();
+        removeCurAccountRole();
     }
 }

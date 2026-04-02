@@ -5,11 +5,12 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.jianzj.mistake.hub.backend.dto.req.MistakeAddReq;
 import com.jianzj.mistake.hub.backend.dto.req.MistakeDeleteReq;
 import com.jianzj.mistake.hub.backend.dto.req.MistakeDetailReq;
-import com.jianzj.mistake.hub.backend.dto.req.MistakeListReq;
 import com.jianzj.mistake.hub.backend.dto.req.MistakeUpdateReq;
 import com.jianzj.mistake.hub.backend.dto.resp.MistakeDetailResp;
 import com.jianzj.mistake.hub.backend.dto.resp.TagResp;
+import com.jianzj.mistake.hub.backend.entity.Account;
 import com.jianzj.mistake.hub.backend.entity.Mistake;
+import com.jianzj.mistake.hub.backend.enums.Role;
 import com.jianzj.mistake.hub.backend.mapper.MistakeMapper;
 import com.jianzj.mistake.hub.common.utils.ThreadStorageUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -48,14 +51,18 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
 
     private final TagService tagService;
 
+    private final AccountService accountService;
+
     private final ThreadStorageUtil threadStorageUtil;
 
     public MistakeService(MistakeTagService mistakeTagService,
                           TagService tagService,
+                          AccountService accountService,
                           ThreadStorageUtil threadStorageUtil) {
 
         this.mistakeTagService = mistakeTagService;
         this.tagService = tagService;
+        this.accountService = accountService;
         this.threadStorageUtil = threadStorageUtil;
     }
 
@@ -75,7 +82,6 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
                 .correctAnswer(req.getCorrectAnswer())
                 .errorReason(req.getErrorReason())
                 .imageUrl(req.getImageUrl())
-                .subject(req.getSubject())
                 .reviewStage(0)
                 .masteryLevel(0)
                 .nextReviewTime(LocalDateTime.now())
@@ -95,33 +101,37 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
     /**
      * 分页查询错题列表（2.8）
      */
-    public Page<MistakeDetailResp> listPage(MistakeListReq req) {
+    public Page<MistakeDetailResp> listPage(Long accountId, String tagIds, Integer masteryFilter, Long pageNum, Long pageSize) {
 
-        Long accountId = threadStorageUtil.getCurAccountId();
+        boolean admin = isAdmin();
 
-        // 标签筛选：先查出符合条件的 mistakeId 集合，再作为 in 条件，保证分页 total 准确
+        // 标签筛选：解析逗号分隔的 tagIds，展开每个标签的所有子孙，再查出符合条件的 mistakeId 集合
         List<Long> tagMistakeIds = null;
-        if (req.getTagId() != null) {
-            tagMistakeIds = mistakeTagService.getMistakeIdsByTagId(req.getTagId());
+        List<Long> parsedTagIds = parseTagIds(tagIds);
+        if (CollectionUtils.isNotEmpty(parsedTagIds)) {
+            Set<Long> expandedTagIds = new HashSet<>();
+            for (Long id : parsedTagIds) {
+                expandedTagIds.addAll(tagService.expandDescendantTagIds(id));
+            }
+            tagMistakeIds = mistakeTagService.getMistakeIdsByTagIds(expandedTagIds);
             if (CollectionUtils.isEmpty(tagMistakeIds)) {
-                return new Page<>(req.getPageNum(), req.getPageSize(), 0);
+                return new Page<>(pageNum, pageSize, 0);
             }
         }
 
         final List<Long> finalTagMistakeIds = tagMistakeIds;
-        Integer mf = req.getMasteryFilter();
 
         Page<Mistake> page = lambdaQuery()
-                .eq(Mistake::getAccountId, accountId)
+                .eq(!admin, Mistake::getAccountId, threadStorageUtil.getCurAccountId())
+                .eq(admin && accountId != null, Mistake::getAccountId, accountId)
                 .eq(Mistake::getStatus, STATUS_VALID)
-                .like(StringUtils.isNotBlank(req.getSubject()), Mistake::getSubject, req.getSubject())
                 .in(finalTagMistakeIds != null, Mistake::getId, finalTagMistakeIds != null ? finalTagMistakeIds : List.of())
-                .ge(mf != null && mf == 2, Mistake::getMasteryLevel, 80)
-                .ge(mf != null && mf == 1, Mistake::getMasteryLevel, 60)
-                .lt(mf != null && mf == 1, Mistake::getMasteryLevel, 80)
-                .lt(mf != null && mf == 0, Mistake::getMasteryLevel, 60)
+                .ge(masteryFilter != null && masteryFilter == 2, Mistake::getMasteryLevel, 80)
+                .ge(masteryFilter != null && masteryFilter == 1, Mistake::getMasteryLevel, 60)
+                .lt(masteryFilter != null && masteryFilter == 1, Mistake::getMasteryLevel, 80)
+                .lt(masteryFilter != null && masteryFilter == 0, Mistake::getMasteryLevel, 60)
                 .orderByDesc(Mistake::getCreatedTime)
-                .page(new Page<>(req.getPageNum(), req.getPageSize()));
+                .page(new Page<>(pageNum, pageSize));
 
         List<Mistake> records = page.getRecords();
         if (CollectionUtils.isEmpty(records)) {
@@ -138,12 +148,18 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
         List<TagResp> allTags = tagService.getByIds(new ArrayList<>(allTagIds));
         Map<Long, TagResp> tagRespMap = allTags.stream().collect(Collectors.toMap(TagResp::getId, t -> t));
 
+        // 批量查询所属用户昵称
+        Set<Long> accountIds = records.stream().map(Mistake::getAccountId).collect(Collectors.toSet());
+        Map<Long, String> nicknameMap = accountService.listByIds(new ArrayList<>(accountIds)).stream()
+                .collect(Collectors.toMap(Account::getId, Account::getNickname));
+
         List<MistakeDetailResp> respList = records.stream()
                 .map(mistake -> {
                     MistakeDetailResp resp = new MistakeDetailResp();
                     BeanUtils.copyProperties(mistake, resp);
-                    List<Long> tagIds = tagIdMap.getOrDefault(mistake.getId(), List.of());
-                    List<TagResp> tags = tagIds.stream()
+                    resp.setAccountNickname(nicknameMap.getOrDefault(mistake.getAccountId(), ""));
+                    List<Long> mistakeTagIds = tagIdMap.getOrDefault(mistake.getId(), List.of());
+                    List<TagResp> tags = mistakeTagIds.stream()
                             .map(tagRespMap::get)
                             .filter(t -> t != null)
                             .collect(Collectors.toList());
@@ -162,7 +178,7 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
      */
     public MistakeDetailResp detail(MistakeDetailReq req) {
 
-        Mistake mistake = getMistakeOwnedByCurrentUser(req.getId());
+        Mistake mistake = isAdmin() ? getMistakeValidById(req.getId()) : getMistakeOwnedByCurrentUser(req.getId());
         return toDetailResp(mistake);
     }
 
@@ -170,26 +186,22 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
      * 编辑错题（2.9）
      */
     @Transactional(rollbackFor = Exception.class)
-    public void update(MistakeUpdateReq req) {
+    public void modify(MistakeUpdateReq req) {
 
-        Mistake mistake = getMistakeOwnedByCurrentUser(req.getId());
+        Mistake mistake = isAdmin() ? getMistakeValidById(req.getId()) : getMistakeOwnedByCurrentUser(req.getId());
 
         if (StringUtils.isNotBlank(req.getTitle())) {
             mistake.setTitle(req.getTitle());
         }
         if (req.getCorrectAnswer() != null) {
-            mistake.setCorrectAnswer(req.getCorrectAnswer());
+            mistake.setCorrectAnswer(req.getCorrectAnswer().isEmpty() ? null : req.getCorrectAnswer());
         }
         if (req.getErrorReason() != null) {
-            mistake.setErrorReason(req.getErrorReason());
+            mistake.setErrorReason(req.getErrorReason().isEmpty() ? null : req.getErrorReason());
         }
         if (req.getImageUrl() != null) {
-            mistake.setImageUrl(req.getImageUrl());
+            mistake.setImageUrl(req.getImageUrl().isEmpty() ? null : req.getImageUrl());
         }
-        if (req.getSubject() != null) {
-            mistake.setSubject(req.getSubject());
-        }
-
         boolean success = updateById(mistake);
         if (!success) {
             oops("编辑错题失败", "Failed to update mistake.");
@@ -206,7 +218,7 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
     @Transactional(rollbackFor = Exception.class)
     public void delete(MistakeDeleteReq req) {
 
-        Mistake mistake = getMistakeOwnedByCurrentUser(req.getId());
+        Mistake mistake = isAdmin() ? getMistakeValidById(req.getId()) : getMistakeOwnedByCurrentUser(req.getId());
         mistake.setStatus(STATUS_DELETED);
 
         boolean success = updateById(mistake);
@@ -218,6 +230,47 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
     }
 
     // ===== 工具方法 =====
+
+    /**
+     * 解析逗号分隔的 tagIds 字符串
+     */
+    private List<Long> parseTagIds(String tagIds) {
+
+        if (StringUtils.isBlank(tagIds)) {
+            return null;
+        }
+        return Arrays.stream(tagIds.split(","))
+                .map(String::trim)
+                .filter(StringUtils::isNotBlank)
+                .map(Long::parseLong)
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 当前用户是否为管理员
+     */
+    private boolean isAdmin() {
+
+        return Role.ADMIN.getCode().equals(threadStorageUtil.getCurAccountRole());
+    }
+
+    /**
+     * 根据ID查询有效错题（不校验归属，管理员专用）
+     */
+    private Mistake getMistakeValidById(Long mistakeId) {
+
+        List<Mistake> mistakes = lambdaQuery()
+                .eq(Mistake::getId, mistakeId)
+                .eq(Mistake::getStatus, STATUS_VALID)
+                .list();
+
+        if (CollectionUtils.isEmpty(mistakes)) {
+            oops("错题不存在", "Mistake does not exist.");
+        }
+
+        return mistakes.get(0);
+    }
 
     /**
      * 查询当前用户的有效错题，不存在则抛出异常
@@ -246,6 +299,9 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
 
         MistakeDetailResp resp = new MistakeDetailResp();
         BeanUtils.copyProperties(mistake, resp);
+
+        Account account = accountService.getById(mistake.getAccountId());
+        resp.setAccountNickname(account != null ? account.getNickname() : "");
 
         List<Long> tagIds = mistakeTagService.getTagIdsByMistakeId(mistake.getId());
         List<TagResp> tags = tagService.getByIds(tagIds);

@@ -105,6 +105,7 @@ public class RequestAuthInterceptor implements HandlerInterceptor {
              */
             threadStorageUtil.setCurAccountId(account.getId());
             threadStorageUtil.setCurAccountCode(account.getCode());
+            threadStorageUtil.setCurAccountRole(account.getRole());
 
             /**
              * 刷新 session 有效期

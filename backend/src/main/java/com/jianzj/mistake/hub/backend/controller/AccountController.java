@@ -15,7 +15,6 @@ import com.jianzj.mistake.hub.backend.enums.Role;
 import com.jianzj.mistake.hub.backend.service.AccountService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
@@ -69,7 +68,7 @@ public class AccountController {
      */
     @Operation(summary = "微信小程序登录")
     @PostMapping("/login-wx")
-    public String loginWx(@RequestBody @Valid AccountLoginWxReq req) {
+    public String loginWx(@RequestBody @Validated @NotNull AccountLoginWxReq req) {
 
         return accountService.loginWx(req);
     }
@@ -78,11 +77,11 @@ public class AccountController {
      * 修改每日复习量
      */
     @Operation(summary = "修改每日复习量")
-    @PostMapping("/update-daily-limit")
+    @PostMapping("/modify-daily-limit")
     @PreAuthorize(requiredRole = Role.STUDENT)
-    public void updateDailyLimit(@RequestBody @Valid AccountUpdateDailyLimitReq req) {
+    public void modifyDailyLimit(@RequestBody @Validated @NotNull AccountUpdateDailyLimitReq req) {
 
-        accountService.updateDailyLimit(req);
+        accountService.modifyDailyLimit(req);
     }
 
     // ==================== 管理端接口 ====================
@@ -107,7 +106,7 @@ public class AccountController {
      */
     @Operation(summary = "Web 管理端登录")
     @PostMapping("/login-web")
-    public String loginWeb(@RequestBody @Valid AccountLoginWebReq req) {
+    public String loginWeb(@RequestBody @Validated @NotNull AccountLoginWebReq req) {
 
         return accountService.loginWeb(req);
     }
@@ -118,7 +117,7 @@ public class AccountController {
     @Operation(summary = "修改用户角色")
     @PostMapping("/change-role")
     @PreAuthorize(requiredRole = Role.ADMIN)
-    public AccountChangeRoleResp changeRole(@RequestBody @Valid AccountChangeRoleReq req) {
+    public AccountChangeRoleResp changeRole(@RequestBody @Validated @NotNull AccountChangeRoleReq req) {
 
         return accountService.changeRole(req);
     }
@@ -129,7 +128,7 @@ public class AccountController {
     @Operation(summary = "重置密码")
     @PostMapping("/reset-password")
     @PreAuthorize(requiredRole = Role.ADMIN)
-    public AccountResetPasswordResp resetPassword(@RequestBody @Valid AccountResetPasswordReq req) {
+    public AccountResetPasswordResp resetPassword(@RequestBody @Validated @NotNull AccountResetPasswordReq req) {
 
         return accountService.resetPassword(req);
     }
@@ -140,7 +139,7 @@ public class AccountController {
     @Operation(summary = "修改密码")
     @PostMapping("/change-password")
     @PreAuthorize(requiredRole = Role.ADMIN)
-    public void changePassword(@RequestBody @Valid AccountChangePasswordReq req) {
+    public void changePassword(@RequestBody @Validated @NotNull AccountChangePasswordReq req) {
 
         accountService.changePassword(req);
     }

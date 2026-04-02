@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { View, Text } from '@tarojs/components'
 import { getToken } from '../../utils/request'
+import '../../styles/placeholder.scss'
 
 const ProfilePage = () => {
 

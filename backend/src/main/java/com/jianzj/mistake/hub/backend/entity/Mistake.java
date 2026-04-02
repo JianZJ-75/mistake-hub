@@ -59,11 +59,6 @@ public class Mistake implements Serializable {
     private String imageUrl;
 
     /**
-     * 学科
-     */
-    private String subject;
-
-    /**
      * 复习阶段 0-6
      */
     private Integer reviewStage;

@@ -30,6 +30,8 @@ public class TagResp {
 
     private Long parentId;
 
+    private Long accountId;
+
     private LocalDateTime createdTime;
 
     /**

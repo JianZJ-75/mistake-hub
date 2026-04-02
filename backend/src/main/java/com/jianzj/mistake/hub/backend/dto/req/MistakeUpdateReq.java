@@ -43,11 +43,6 @@ public class MistakeUpdateReq {
     private String imageUrl;
 
     /**
-     * 学科
-     */
-    private String subject;
-
-    /**
      * 标签ID列表（传 null 表示不修改，传空列表表示清空）
      */
     private List<Long> tagIds;

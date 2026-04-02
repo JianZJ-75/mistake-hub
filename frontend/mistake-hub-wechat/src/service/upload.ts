@@ -37,7 +37,7 @@ export const uploadImage = (filePath: string, isRetry = false): Promise<string> 
           if (body.code === 0) {
             resolve(body.data as string)
           } else {
-            const msg = body.message?.zh_CN || '上传失败'
+            const msg = (body.message && body.message.zh_CN) || '上传失败'
             Taro.showToast({ title: msg, icon: 'none' })
             reject(new Error(msg))
           }
@@ -71,7 +71,7 @@ const silentReLoginForUpload = async (): Promise<void> => {
     header: { 'Content-Type': 'application/json' },
   })
 
-  const token = res.data?.data
+  const token = res.data && res.data.data
   if (token) {
     setToken(token)
   } else {

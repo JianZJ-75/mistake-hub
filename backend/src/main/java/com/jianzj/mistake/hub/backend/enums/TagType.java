@@ -24,7 +24,9 @@ public enum TagType {
 
     CHAPTER("CHAPTER", "章节", "Chapter", 2),
 
-    KNOWLEDGE("KNOWLEDGE", "知识点", "Knowledge", 3)
+    KNOWLEDGE("KNOWLEDGE", "知识点", "Knowledge", 3),
+
+    CUSTOM("CUSTOM", "自定义", "Custom", 4)
 
     ;
 

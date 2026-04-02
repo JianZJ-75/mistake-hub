@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import Taro, { useLoad, useDidShow, useReachBottom, usePullDownRefresh } from '@tarojs/taro'
-import { View, Text, Image, Input, ScrollView } from '@tarojs/components'
+import { View, Text, Image } from '@tarojs/components'
 import { mistakeList } from '../../service/mistake'
-import { tagTree } from '../../service/tag'
+import { tagTree, tagCustomList } from '../../service/tag'
 import { MistakeDetailResp, TagResp } from '../../types'
-import { flattenTags, getMasteryInfo } from '../../utils/mistake'
+import { getMasteryInfo } from '../../utils/mistake'
+import TagPickerModal from '../../components/TagPickerModal'
 import './index.scss'
 
 const PAGE_SIZE = 10
@@ -16,7 +17,19 @@ const MASTERY_FILTERS = [
   { label: '已掌握', value: 2 },
 ]
 
+/** 递归展开标签树为平铺列表 */
+const flattenTags = (tags: TagResp[]): TagResp[] => {
+
+  const result: TagResp[] = []
+  for (const tag of tags) {
+    result.push(tag)
+    if (tag.children && tag.children.length) result.push(...flattenTags(tag.children))
+  }
+  return result
+}
+
 const MistakePage = () => {
+
   // ===== 列表状态 =====
   const [mistakes, setMistakes] = useState<MistakeDetailResp[]>([])
   const [loading, setLoading] = useState(false)
@@ -24,27 +37,33 @@ const MistakePage = () => {
 
   // ===== 筛选状态 =====
   const [activeFilter, setActiveFilter] = useState(0)
-  const [subjectInput, setSubjectInput] = useState('')
-  const [selectedTag, setSelectedTag] = useState<TagResp | null>(null)
-  const [showTagFilter, setShowTagFilter] = useState(false)
-  const [allTags, setAllTags] = useState<TagResp[]>([])
+  const [globalTags, setGlobalTags] = useState<TagResp[]>([])
+  const [customTags, setCustomTags] = useState<TagResp[]>([])
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
+  const [showTagPicker, setShowTagPicker] = useState(false)
 
   // ===== 防双重请求 ref =====
   const loadingRef = useRef(false)
   const pageNumRef = useRef(1)
-  const filterRef = useRef<{ mastery?: number; subject?: string; tagId?: number }>({})
+  const filterRef = useRef<{ mastery?: number; tagIds?: string }>({})
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const handleMistakeChanged = useCallback(() => fetchList(1, true), [])
 
   useEffect(() => {
-    tagTree().then(tree => setAllTags(flattenTags(tree))).catch(() => {})
-    // 监听错题变更事件（新增/编辑/删除后刷新列表）
+    tagTree().then(tree => setGlobalTags(tree)).catch(() => {})
+    loadCustomTags()
     Taro.eventCenter.on('mistakeChanged', handleMistakeChanged)
     return () => { Taro.eventCenter.off('mistakeChanged', handleMistakeChanged) }
   }, [handleMistakeChanged])
 
+  const loadCustomTags = () => {
+
+    tagCustomList().then(list => setCustomTags(list)).catch(() => {})
+  }
+
   const fetchList = async (page: number, reset: boolean) => {
+
     if (loadingRef.current) return
     loadingRef.current = true
     setLoading(true)
@@ -52,8 +71,7 @@ const MistakePage = () => {
       const f = filterRef.current
       const res = await mistakeList({
         masteryFilter: f.mastery,
-        subject: f.subject || undefined,
-        tagId: f.tagId,
+        tagIds: f.tagIds,
         pageNum: page,
         pageSize: PAGE_SIZE,
       })
@@ -94,25 +112,38 @@ const MistakePage = () => {
     }
   })
 
-  const applyFilter = (mastery?: number, subject?: string, tagId?: number) => {
-    filterRef.current = { mastery, subject, tagId }
+  const handleMasteryChange = (index: number, value?: number) => {
+
+    setActiveFilter(index)
+    filterRef.current = { ...filterRef.current, mastery: value }
     fetchList(1, true)
   }
 
-  const handleMasteryChange = (index: number, value?: number) => {
-    setActiveFilter(index)
-    applyFilter(value, filterRef.current.subject, filterRef.current.tagId)
+  /** 弹窗确认选中标签后，应用筛选 */
+  const handleTagConfirm = (ids: number[]) => {
+
+    setSelectedTagIds(ids)
+    const tagIdsStr = ids.length > 0 ? ids.join(',') : undefined
+    filterRef.current = { ...filterRef.current, tagIds: tagIdsStr }
+    fetchList(1, true)
   }
 
-  const handleSubjectSearch = () => {
-    applyFilter(filterRef.current.mastery, subjectInput.trim() || undefined, filterRef.current.tagId)
+  /** 移除某个已选中的标签 */
+  const handleRemoveTag = (id: number) => {
+
+    const newIds = selectedTagIds.filter(t => t !== id)
+    handleTagConfirm(newIds)
   }
 
-  const handleSelectTag = (tag: TagResp | null) => {
-    setSelectedTag(tag)
-    setShowTagFilter(false)
-    applyFilter(filterRef.current.mastery, filterRef.current.subject, tag?.id)
+  /** 清空所有标签筛选 */
+  const handleClearTags = () => {
+
+    handleTagConfirm([])
   }
+
+  /** 根据 ID 找标签名 */
+  const allTagsFlat = [...flattenTags(globalTags), ...customTags]
+  const tagNameMap = new Map(allTagsFlat.map(t => [t.id, t.name]))
 
   return (
     <View className='list-page'>
@@ -129,32 +160,29 @@ const MistakePage = () => {
         ))}
       </View>
 
-      {/* 学科 + 标签筛选行 */}
-      <View className='search-bar'>
-        <View className='subject-input-wrap'>
-          <Input
-            className='subject-input'
-            placeholder='按学科筛选'
-            value={subjectInput}
-            onInput={e => setSubjectInput(e.detail.value)}
-            onConfirm={handleSubjectSearch}
-            confirmType='search'
-          />
-          {subjectInput ? (
-            <Text className='input-clear' onClick={() => { setSubjectInput(''); applyFilter(filterRef.current.mastery, undefined, filterRef.current.tagId) }}>×</Text>
-          ) : null}
-        </View>
-        <View
-          className={`tag-filter-btn ${selectedTag ? 'tag-filter-active' : ''}`}
-          onClick={() => setShowTagFilter(true)}
-        >
-          <Text className='tag-filter-text'>{selectedTag ? selectedTag.name : '知识点'}</Text>
-          {selectedTag ? (
-            <Text
-              className='tag-filter-clear'
-              onClick={e => { e.stopPropagation(); handleSelectTag(null) }}
-            >×</Text>
-          ) : null}
+      {/* 标签筛选栏 */}
+      <View className='tag-filter-bar'>
+        <View className='tag-filter-chips'>
+          {selectedTagIds.length === 0 ? (
+            <View className='tag-filter-add' onClick={() => setShowTagPicker(true)}>
+              <Text className='tag-filter-add-text'>+ 选择标签筛选</Text>
+            </View>
+          ) : (
+            <>
+              {selectedTagIds.map(id => (
+                <View key={id} className='tag-filter-selected'>
+                  <Text className='tag-filter-selected-text'>{tagNameMap.get(id) || id}</Text>
+                  <Text className='tag-filter-selected-remove' onClick={() => handleRemoveTag(id)}>×</Text>
+                </View>
+              ))}
+              <View className='tag-filter-add' onClick={() => setShowTagPicker(true)}>
+                <Text className='tag-filter-add-text'>+</Text>
+              </View>
+              <View className='tag-filter-clear' onClick={handleClearTags}>
+                <Text className='tag-filter-clear-text'>清空</Text>
+              </View>
+            </>
+          )}
         </View>
       </View>
 
@@ -170,7 +198,6 @@ const MistakePage = () => {
             >
               <View className='card-header'>
                 <Text className={`mastery-badge ${mastery.cls}`}>{mastery.label}</Text>
-                {m.subject ? <Text className='subject-tag'>{m.subject}</Text> : null}
               </View>
               <Text className='card-title'>{m.title}</Text>
               {m.imageUrl ? (
@@ -212,40 +239,19 @@ const MistakePage = () => {
         <Text className='fab-text'>+</Text>
       </View>
 
-      {/* 知识点/标签筛选弹窗 */}
-      {showTagFilter && (
-        <View className='modal-mask' onClick={() => setShowTagFilter(false)}>
-          <View className='modal-content' onClick={e => e.stopPropagation()}>
-            <View className='modal-header'>
-              <Text className='modal-title'>按知识点筛选</Text>
-              <Text className='modal-close' onClick={() => setShowTagFilter(false)}>×</Text>
-            </View>
-            <ScrollView scrollY className='modal-list'>
-              <View
-                className={`tag-row ${!selectedTag ? 'tag-row-active' : ''}`}
-                onClick={() => handleSelectTag(null)}
-              >
-                <Text className='tag-name'>全部</Text>
-              </View>
-              {allTags.map(tag => (
-                <View
-                  key={tag.id}
-                  className={`tag-row ${selectedTag?.id === tag.id ? 'tag-row-active' : ''}`}
-                  onClick={() => handleSelectTag(tag)}
-                >
-                  <Text className='tag-name'>{tag.name}</Text>
-                  <Text className='tag-type-label'>{{ SUBJECT: '学科', CHAPTER: '章节', KNOWLEDGE: '知识点' }[tag.type] || ''}</Text>
-                </View>
-              ))}
-              {allTags.length === 0 && (
-                <View className='modal-empty'>
-                  <Text className='modal-empty-text'>暂无标签数据</Text>
-                </View>
-              )}
-            </ScrollView>
-          </View>
-        </View>
-      )}
+      {/* 标签多选弹窗（自动全展开） */}
+      <TagPickerModal
+        visible={showTagPicker}
+        title='选择筛选标签'
+        tags={globalTags}
+        customTags={customTags}
+        mode='multi'
+        autoExpand
+        selectedIds={selectedTagIds}
+        onConfirm={handleTagConfirm}
+        onClose={() => setShowTagPicker(false)}
+        onCustomTagsChange={loadCustomTags}
+      />
     </View>
   )
 }

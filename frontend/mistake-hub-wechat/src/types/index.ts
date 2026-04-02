@@ -3,6 +3,7 @@ export interface TagResp {
   name: string
   type: string
   parentId: number
+  accountId?: number | null
   createdTime: string
   children?: TagResp[]
 }
@@ -13,7 +14,6 @@ export interface MistakeDetailResp {
   correctAnswer?: string
   errorReason?: string
   imageUrl?: string
-  subject?: string
   reviewStage: number
   masteryLevel: number
   lastReviewTime?: string

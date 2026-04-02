@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -85,6 +86,19 @@ public class MistakeTagService extends ServiceImpl<MistakeTagMapper, MistakeTag>
 
         List<MistakeTag> relations = lambdaQuery().eq(MistakeTag::getTagId, tagId).list();
         return relations.stream().map(MistakeTag::getMistakeId).collect(Collectors.toList());
+    }
+
+    /**
+     * 根据多个标签ID查询所有错题ID（层级展开后使用）
+     */
+    public List<Long> getMistakeIdsByTagIds(java.util.Collection<Long> tagIds) {
+
+        if (CollectionUtils.isEmpty(tagIds)) {
+            return new ArrayList<>();
+        }
+
+        List<MistakeTag> relations = lambdaQuery().in(MistakeTag::getTagId, tagIds).list();
+        return relations.stream().map(MistakeTag::getMistakeId).distinct().collect(Collectors.toList());
     }
 
     /**

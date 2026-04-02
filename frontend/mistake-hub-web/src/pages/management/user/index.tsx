@@ -5,7 +5,7 @@ import { Button } from "@/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/ui/dialog";
 import { Input } from "@/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/ui/select";
-import { Copy, Loader2, RotateCcw, ShieldCheck, ShieldOff } from "lucide-react";
+import { Copy, Loader2, RotateCcw, Search, ShieldCheck, ShieldOff } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -104,26 +104,36 @@ export default function UserManagementPage() {
 
 	const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
+	const isFiltering = codeFilter.trim() !== "" || nicknameFilter.trim() !== "" || roleFilter !== "all";
+
 	return (
 		<div className="flex flex-col gap-4 p-2">
-			<h2 className="text-2xl font-bold">用户管理</h2>
+			<div className="flex items-center justify-between">
+				<h2 className="text-2xl font-bold">用户管理</h2>
+			</div>
 
 			{/* 筛选栏 */}
-			<div className="flex flex-wrap gap-2">
-				<Input
-					className="max-w-[160px]"
-					placeholder="code"
-					value={codeFilter}
-					onChange={e => setCodeFilter(e.target.value)}
-					onKeyDown={e => e.key === "Enter" && handleSearch()}
-				/>
-				<Input
-					className="max-w-[160px]"
-					placeholder="昵称"
-					value={nicknameFilter}
-					onChange={e => setNicknameFilter(e.target.value)}
-					onKeyDown={e => e.key === "Enter" && handleSearch()}
-				/>
+			<div className="flex flex-wrap items-center gap-2">
+				<div className="relative w-48">
+					<Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+					<Input
+						className="pl-8"
+						placeholder="code"
+						value={codeFilter}
+						onChange={e => setCodeFilter(e.target.value)}
+						onKeyDown={e => e.key === "Enter" && handleSearch()}
+					/>
+				</div>
+				<div className="relative w-48">
+					<Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+					<Input
+						className="pl-8"
+						placeholder="昵称"
+						value={nicknameFilter}
+						onChange={e => setNicknameFilter(e.target.value)}
+						onKeyDown={e => e.key === "Enter" && handleSearch()}
+					/>
+				</div>
 				<Select value={roleFilter} onValueChange={setRoleFilter}>
 					<SelectTrigger className="w-32">
 						<SelectValue placeholder="角色" />
@@ -135,7 +145,7 @@ export default function UserManagementPage() {
 					</SelectContent>
 				</Select>
 				<Button onClick={handleSearch} disabled={loading}>
-					{loading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Icon icon="solar:magnifer-bold" size={16} className="mr-1" />}
+					{loading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Search className="h-4 w-4 mr-1" />}
 					查询
 				</Button>
 			</div>
@@ -158,13 +168,15 @@ export default function UserManagementPage() {
 					<tbody className="divide-y">
 						{loading ? (
 							<tr>
-								<td colSpan={6} className="py-12 text-center text-text-secondary">
+								<td colSpan={8} className="py-12 text-center text-text-secondary">
 									<Loader2 className="h-6 w-6 animate-spin mx-auto" />
 								</td>
 							</tr>
 						) : users.length === 0 ? (
 							<tr>
-								<td colSpan={6} className="py-12 text-center text-text-secondary">暂无数据</td>
+								<td colSpan={8} className="py-12 text-center text-text-secondary">
+									{isFiltering ? "无匹配结果，请调整筛选条件" : "暂无数据"}
+								</td>
 							</tr>
 						) : (
 							users.map(user => {
@@ -212,7 +224,7 @@ export default function UserManagementPage() {
 														<Button
 															size="sm"
 															variant="ghost"
-															className="h-7 px-2 text-xs"
+															className="h-7 px-2 text-xs text-destructive hover:text-destructive"
 															disabled={actionLoading}
 															onClick={() => openConfirm("downgrade", user)}
 														>
@@ -221,7 +233,7 @@ export default function UserManagementPage() {
 														<Button
 															size="sm"
 															variant="ghost"
-															className="h-7 px-2 text-xs"
+															className="h-7 px-2 text-xs text-destructive hover:text-destructive"
 															disabled={actionLoading}
 															onClick={() => openConfirm("reset", user)}
 														>
@@ -276,7 +288,7 @@ export default function UserManagementPage() {
 					</div>
 					<DialogFooter>
 						<Button variant="outline" onClick={() => setConfirmOpen(false)}>取消</Button>
-						<Button onClick={executeAction}>确认</Button>
+						<Button variant={pendingAction === "upgrade" ? "default" : "destructive"} onClick={executeAction}>确认</Button>
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>

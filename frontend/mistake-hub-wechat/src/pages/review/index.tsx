@@ -1,4 +1,5 @@
 import { View, Text } from '@tarojs/components'
+import '../../styles/placeholder.scss'
 
 const ReviewPage = () => {
 

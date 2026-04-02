@@ -39,7 +39,7 @@ public class Tag implements Serializable {
     private String name;
 
     /**
-     * 类型: SUBJECT/CHAPTER/KNOWLEDGE
+     * 类型: SUBJECT/CHAPTER/KNOWLEDGE/CUSTOM
      */
     private String type;
 
@@ -47,6 +47,11 @@ public class Tag implements Serializable {
      * 父标签ID，0为顶级
      */
     private Long parentId;
+
+    /**
+     * 所属用户ID，NULL为全局标签
+     */
+    private Long accountId;
 
     /**
      * 创建时间

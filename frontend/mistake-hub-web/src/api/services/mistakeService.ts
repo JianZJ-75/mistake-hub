@@ -2,8 +2,8 @@ import type { MistakeDetailResp, PageResult, TagResp } from "#/entity";
 import apiClient from "../apiClient";
 
 export interface ListMistakesParams {
-	subject?: string;
-	tagId?: number;
+	accountId?: number;
+	tagIds?: string;
 	masteryFilter?: number;
 	pageNum: number;
 	pageSize: number;
@@ -15,18 +15,17 @@ export interface UpdateMistakeParams {
 	correctAnswer?: string;
 	errorReason?: string;
 	imageUrl?: string;
-	subject?: string;
 	tagIds?: number[];
 }
 
 const listMistakes = (params: ListMistakesParams): Promise<PageResult<MistakeDetailResp>> =>
-	apiClient.post({ url: "/v1/mistake/list", data: params });
+	apiClient.get({ url: "/v1/mistake/list", params });
 
 const getMistake = (id: number): Promise<MistakeDetailResp> =>
 	apiClient.post({ url: "/v1/mistake/detail", data: { id } });
 
-const updateMistake = (params: UpdateMistakeParams): Promise<void> =>
-	apiClient.post({ url: "/v1/mistake/update", data: params });
+const modifyMistake = (params: UpdateMistakeParams): Promise<void> =>
+	apiClient.post({ url: "/v1/mistake/modify", data: params });
 
 const deleteMistake = (id: number): Promise<void> =>
 	apiClient.post({ url: "/v1/mistake/delete", data: { id } });
@@ -34,4 +33,4 @@ const deleteMistake = (id: number): Promise<void> =>
 const getTagTree = (): Promise<TagResp[]> =>
 	apiClient.get({ url: "/v1/tag/tree" });
 
-export default { listMistakes, getMistake, updateMistake, deleteMistake, getTagTree };
+export default { listMistakes, getMistake, modifyMistake, deleteMistake, getTagTree };

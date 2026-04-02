@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -27,6 +28,17 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+
+    /**
+     * 处理 HTTP 方法不支持的异常，报 405
+     */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    @ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
+    public BaseResult<Object> handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
+
+        log.error("handleMethodNotSupported error: {}", e.getMessage());
+        return BaseResult.error(405, "请求方法不支持：" + e.getMethod(), "Method not allowed: " + e.getMethod());
+    }
 
     /**
      * 处理非业务异常异常，报 500

@@ -24,6 +24,12 @@ public class MistakeDetailResp {
 
     private Long id;
 
+    /** 所属用户ID */
+    private Long accountId;
+
+    /** 所属用户昵称 */
+    private String accountNickname;
+
     private String title;
 
     private String correctAnswer;
@@ -31,8 +37,6 @@ public class MistakeDetailResp {
     private String errorReason;
 
     private String imageUrl;
-
-    private String subject;
 
     private Integer reviewStage;
 

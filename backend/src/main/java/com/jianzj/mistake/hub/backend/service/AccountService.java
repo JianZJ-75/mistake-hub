@@ -296,7 +296,7 @@ public class AccountService extends ServiceImpl<AccountMapper, Account> {
     /**
      * 修改每日复习量
      */
-    public void updateDailyLimit(AccountUpdateDailyLimitReq req) {
+    public void modifyDailyLimit(AccountUpdateDailyLimitReq req) {
 
         Long accountId = threadStorageUtil.getCurAccountId();
         Account account = getById(accountId);

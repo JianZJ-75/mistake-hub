@@ -22,9 +22,8 @@ public class TagAddReq {
     private String name;
 
     /**
-     * 类型：SUBJECT/CHAPTER/KNOWLEDGE
+     * 类型（可选，如 SUBJECT/CHAPTER/KNOWLEDGE）
      */
-    @NotBlank(message = "标签类型不能为空")
     private String type;
 
     /**
