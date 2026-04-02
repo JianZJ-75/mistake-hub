@@ -117,3 +117,45 @@ CREATE TABLE `distributed_lock`
     UNIQUE KEY `uk_lock_name` (`lock_name`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='分布式锁表';
+
+-- ========== 迭代 3：艾宾浩斯复习调度 ==========
+
+/**
+  复习计划表
+ */
+CREATE TABLE `review_plan`
+(
+    `id`           BIGINT      NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `account_id`   BIGINT      NOT NULL COMMENT '所属用户',
+    `mistake_id`   BIGINT      NOT NULL COMMENT '关联错题',
+    `planned_date` DATE        NOT NULL COMMENT '计划复习日期',
+    `status`       VARCHAR(16) NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING/COMPLETED/SKIPPED',
+    `created_time` DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_time` DATETIME             DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE INDEX `uk_account_mistake_date` (`account_id`, `mistake_id`, `planned_date`),
+    INDEX `idx_account_date` (`account_id`, `planned_date`),
+    INDEX `idx_mistake_date` (`mistake_id`, `planned_date`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4 COMMENT ='复习计划表';
+
+/**
+  复习记录表
+ */
+CREATE TABLE `review_record`
+(
+    `id`                  BIGINT   NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `account_id`          BIGINT   NOT NULL COMMENT '所属用户',
+    `mistake_id`          BIGINT   NOT NULL COMMENT '关联错题',
+    `review_plan_id`      BIGINT            DEFAULT NULL COMMENT '关联计划ID',
+    `is_correct`          TINYINT  NOT NULL COMMENT '1-答对 0-答错',
+    `review_stage_before` INT      NOT NULL COMMENT '复习前阶段',
+    `review_stage_after`  INT      NOT NULL COMMENT '复习后阶段',
+    `mastery_before`      INT      NOT NULL COMMENT '复习前掌握度',
+    `mastery_after`       INT      NOT NULL COMMENT '复习后掌握度',
+    `review_time`         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '复习时间',
+    `updated_time`        DATETIME          DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    INDEX `idx_account_time` (`account_id`, `review_time`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4 COMMENT ='复习记录表';

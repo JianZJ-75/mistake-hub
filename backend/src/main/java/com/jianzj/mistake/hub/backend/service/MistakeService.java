@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.jianzj.mistake.hub.common.convention.exception.BaseException.oops;
@@ -308,5 +309,51 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
         resp.setTags(tags);
 
         return resp;
+    }
+
+    /**
+     * 查询某用户到期需要复习的错题列表
+     */
+    public List<Mistake> listDueForReview(Long accountId, LocalDateTime deadline) {
+
+        return lambdaQuery()
+                .eq(Mistake::getAccountId, accountId)
+                .eq(Mistake::getStatus, STATUS_VALID)
+                .le(Mistake::getNextReviewTime, deadline)
+                .list();
+    }
+
+    /**
+     * 批量查询错题详情（含标签），供复习任务组装使用
+     */
+    public Map<Long, MistakeDetailResp> listDetailByIds(List<Long> mistakeIds) {
+
+        if (CollectionUtils.isEmpty(mistakeIds)) {
+            return Map.of();
+        }
+
+        List<Mistake> mistakes = listByIds(mistakeIds);
+        if (CollectionUtils.isEmpty(mistakes)) {
+            return Map.of();
+        }
+
+        Map<Long, List<Long>> tagIdMap = mistakeTagService.getTagIdMapByMistakeIds(mistakeIds);
+        Set<Long> allTagIds = tagIdMap.values().stream().flatMap(List::stream).collect(Collectors.toSet());
+        List<TagResp> allTags = tagService.getByIds(new ArrayList<>(allTagIds));
+        Map<Long, TagResp> tagRespMap = allTags.stream().collect(Collectors.toMap(TagResp::getId, Function.identity()));
+
+        return mistakes.stream()
+                .map(mistake -> {
+                    MistakeDetailResp resp = new MistakeDetailResp();
+                    BeanUtils.copyProperties(mistake, resp);
+                    List<Long> tagIds = tagIdMap.getOrDefault(mistake.getId(), List.of());
+                    List<TagResp> tags = tagIds.stream()
+                            .map(tagRespMap::get)
+                            .filter(t -> t != null)
+                            .collect(Collectors.toList());
+                    resp.setTags(tags);
+                    return resp;
+                })
+                .collect(Collectors.toMap(MistakeDetailResp::getId, Function.identity()));
     }
 }
