@@ -1,0 +1,39 @@
+.page-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  padding: 40rpx;
+  box-sizing: border-box;
+}
+
+.placeholder-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 80rpx 60rpx;
+  gap: 16rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
+  width: 100%;
+  max-width: 600rpx;
+}
+
+.placeholder-icon {
+  font-size: 80rpx;
+  margin-bottom: 12rpx;
+}
+
+.placeholder-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.placeholder-desc {
+  font-size: 26rpx;
+  color: #999;
+  text-align: center;
+  line-height: 1.5;
+}

@@ -51,3 +51,69 @@ CREATE TABLE `nonce`
     PRIMARY KEY (`id`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4 COMMENT ='随机数表';
+
+/**
+  错题表
+ */
+CREATE TABLE `mistake`
+(
+    `id`               BIGINT  NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `account_id`       BIGINT  NOT NULL COMMENT '所属用户',
+    `title`            TEXT    NOT NULL COMMENT '题干内容',
+    `correct_answer`   TEXT COMMENT '正确答案',
+    `error_reason`     TEXT COMMENT '错误原因说明',
+    `image_url`        VARCHAR(512)     DEFAULT NULL COMMENT '错题图片URL',
+    `review_stage`     INT     NOT NULL DEFAULT 0 COMMENT '复习阶段 0-6',
+    `mastery_level`    INT     NOT NULL DEFAULT 0 COMMENT '掌握度 0-100',
+    `last_review_time` DATETIME         DEFAULT NULL COMMENT '最近复习时间',
+    `next_review_time` DATETIME         DEFAULT NULL COMMENT '下次复习时间',
+    `status`           TINYINT NOT NULL DEFAULT 1 COMMENT '1-有效 0-删除',
+    `created_time`     DATETIME         DEFAULT CURRENT_TIMESTAMP NOT NULL COMMENT '创建时间',
+    `updated_time`     DATETIME         DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    INDEX `idx_account_status` (`account_id`, `status`),
+    INDEX `idx_next_review` (`account_id`, `next_review_time`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4 COMMENT ='错题表';
+
+/**
+  标签表
+ */
+CREATE TABLE `tag`
+(
+    `id`           BIGINT                             NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `name`         VARCHAR(128)                       NOT NULL COMMENT '标签名称',
+    `type`         VARCHAR(32)                        NOT NULL COMMENT '类型: SUBJECT/CHAPTER/KNOWLEDGE/CUSTOM',
+    `parent_id`    BIGINT   DEFAULT 0 COMMENT '父标签ID，0为顶级',
+    `account_id`   BIGINT   DEFAULT NULL COMMENT '所属用户ID，NULL为全局标签',
+    `created_time` DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL COMMENT '创建时间',
+    PRIMARY KEY (`id`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4 COMMENT ='标签表';
+
+/**
+  错题-标签关联表
+ */
+CREATE TABLE `mistake_tag`
+(
+    `id`         BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `mistake_id` BIGINT NOT NULL COMMENT '错题ID',
+    `tag_id`     BIGINT NOT NULL COMMENT '标签ID',
+    PRIMARY KEY (`id`),
+    UNIQUE INDEX `uk_mistake_tag` (`mistake_id`, `tag_id`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4 COMMENT ='错题-标签关联表';
+
+/**
+  分布式锁表
+ */
+CREATE TABLE `distributed_lock`
+(
+    `id`           BIGINT                             NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `lock_name`    VARCHAR(255)                       NOT NULL COMMENT '锁名称',
+    `expired_time` DATETIME                           NOT NULL COMMENT '过期时间',
+    `created_time` DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_lock_name` (`lock_name`)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4 COMMENT ='分布式锁表';
