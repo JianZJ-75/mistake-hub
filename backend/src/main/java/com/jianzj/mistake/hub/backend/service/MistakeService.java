@@ -17,9 +17,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -56,15 +58,23 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
 
     private final ThreadStorageUtil threadStorageUtil;
 
+    private final ReviewPlanService reviewPlanService;
+
+    private final ReviewScheduleService reviewScheduleService;
+
     public MistakeService(MistakeTagService mistakeTagService,
                           TagService tagService,
                           AccountService accountService,
-                          ThreadStorageUtil threadStorageUtil) {
+                          ThreadStorageUtil threadStorageUtil,
+                          ReviewPlanService reviewPlanService,
+                          @Lazy ReviewScheduleService reviewScheduleService) {
 
         this.mistakeTagService = mistakeTagService;
         this.tagService = tagService;
         this.accountService = accountService;
         this.threadStorageUtil = threadStorageUtil;
+        this.reviewPlanService = reviewPlanService;
+        this.reviewScheduleService = reviewScheduleService;
     }
 
     // ===== 业务方法 =====
@@ -81,8 +91,8 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
                 .accountId(accountId)
                 .title(req.getTitle())
                 .correctAnswer(req.getCorrectAnswer())
-                .errorReason(req.getErrorReason())
-                .imageUrl(req.getImageUrl())
+                .titleImageUrl(req.getTitleImageUrl())
+                .answerImageUrl(req.getAnswerImageUrl())
                 .reviewStage(0)
                 .masteryLevel(0)
                 .nextReviewTime(LocalDateTime.now())
@@ -197,11 +207,11 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
         if (req.getCorrectAnswer() != null) {
             mistake.setCorrectAnswer(req.getCorrectAnswer().isEmpty() ? null : req.getCorrectAnswer());
         }
-        if (req.getErrorReason() != null) {
-            mistake.setErrorReason(req.getErrorReason().isEmpty() ? null : req.getErrorReason());
+        if (req.getTitleImageUrl() != null) {
+            mistake.setTitleImageUrl(req.getTitleImageUrl().isEmpty() ? null : req.getTitleImageUrl());
         }
-        if (req.getImageUrl() != null) {
-            mistake.setImageUrl(req.getImageUrl().isEmpty() ? null : req.getImageUrl());
+        if (req.getAnswerImageUrl() != null) {
+            mistake.setAnswerImageUrl(req.getAnswerImageUrl().isEmpty() ? null : req.getAnswerImageUrl());
         }
         boolean success = updateById(mistake);
         if (!success) {
@@ -228,6 +238,26 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
         }
 
         mistakeTagService.removeByMistakeId(mistake.getId());
+
+        // 联动：将当天 PENDING 的复习计划标记为 SKIPPED，并清除缓存
+        reviewPlanService.skipPendingPlansByMistake(mistake.getId(), LocalDate.now());
+        reviewScheduleService.evictDailyCache(mistake.getAccountId());
+    }
+
+    /**
+     * 校验错题存在且属于当前用户（供复习模块调用）
+     */
+    public Mistake getValidMistakeForCurrentUser(Long mistakeId) {
+
+        return getMistakeOwnedByCurrentUser(mistakeId);
+    }
+
+    /**
+     * 校验错题有效：管理员可查任意错题，普通用户只能查自己的
+     */
+    public Mistake getValidMistake(Long mistakeId) {
+
+        return isAdmin() ? getMistakeValidById(mistakeId) : getMistakeOwnedByCurrentUser(mistakeId);
     }
 
     // ===== 工具方法 =====

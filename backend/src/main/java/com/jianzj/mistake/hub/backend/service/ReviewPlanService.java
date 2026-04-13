@@ -2,6 +2,7 @@ package com.jianzj.mistake.hub.backend.service;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.jianzj.mistake.hub.backend.entity.ReviewPlan;
+import com.jianzj.mistake.hub.backend.enums.ReviewPlanStatus;
 import com.jianzj.mistake.hub.backend.mapper.ReviewPlanMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -95,6 +96,52 @@ public class ReviewPlanService extends ServiceImpl<ReviewPlanMapper, ReviewPlan>
                 .list();
 
         return CollectionUtils.isEmpty(plans) ? null : plans.get(0);
+    }
+
+    /**
+     * 将指定错题当天的 PENDING 计划标记为 SKIPPED（删除错题联动）
+     */
+    public void skipPendingPlansByMistake(Long mistakeId, LocalDate date) {
+
+        List<ReviewPlan> plans = lambdaQuery()
+                .eq(ReviewPlan::getMistakeId, mistakeId)
+                .eq(ReviewPlan::getPlannedDate, date)
+                .eq(ReviewPlan::getStatus, ReviewPlanStatus.PENDING.getCode())
+                .list();
+
+        if (CollectionUtils.isEmpty(plans)) {
+            return;
+        }
+
+        for (ReviewPlan plan : plans) {
+            plan.setStatus(ReviewPlanStatus.SKIPPED.getCode());
+            boolean success = updateById(plan);
+            if (!success) {
+                oops("跳过复习计划失败", "Failed to skip review plan.");
+            }
+        }
+    }
+
+    /**
+     * 查询某用户有 COMPLETED 记录的日期列表（降序）
+     */
+    public List<LocalDate> listCompletedDates(Long accountId) {
+
+        List<ReviewPlan> plans = lambdaQuery()
+                .eq(ReviewPlan::getAccountId, accountId)
+                .eq(ReviewPlan::getStatus, ReviewPlanStatus.COMPLETED.getCode())
+                .select(ReviewPlan::getPlannedDate)
+                .groupBy(ReviewPlan::getPlannedDate)
+                .orderByDesc(ReviewPlan::getPlannedDate)
+                .list();
+
+        if (CollectionUtils.isEmpty(plans)) {
+            return List.of();
+        }
+
+        return plans.stream()
+                .map(ReviewPlan::getPlannedDate)
+                .collect(Collectors.toList());
     }
 
     // ===== 工具方法 =====

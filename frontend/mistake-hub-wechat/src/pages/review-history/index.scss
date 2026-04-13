@@ -1,0 +1,165 @@
+.history-page {
+  min-height: 100vh;
+  background: #f5f7fa;
+  display: flex;
+  flex-direction: column;
+}
+
+.history-scroll {
+  flex: 1;
+  height: 100vh;
+}
+
+.history-list {
+  padding: 24rpx;
+}
+
+.loading-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 120rpx 0;
+}
+
+.loading-text {
+  font-size: 28rpx;
+  color: #ccc;
+}
+
+.empty-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 160rpx 0;
+}
+
+.empty-text {
+  font-size: 28rpx;
+  color: #999;
+}
+
+/* ===== 记录卡片 ===== */
+.record-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
+}
+
+.record-card-expanded {
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
+}
+
+.record-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.record-header-left {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.record-header-right {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12rpx;
+  flex-shrink: 0;
+}
+
+.record-result {
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.result-correct {
+  color: #4CAF50;
+}
+
+.result-wrong {
+  color: #F44336;
+}
+
+.record-delta {
+  font-size: 24rpx;
+}
+
+.delta-up {
+  color: #4CAF50;
+}
+
+.delta-down {
+  color: #F44336;
+}
+
+.record-time {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.record-arrow {
+  font-size: 24rpx;
+  color: #ccc;
+}
+
+/* ===== 展开详情 ===== */
+.record-detail {
+  margin-top: 20rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.detail-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.detail-label {
+  font-size: 26rpx;
+  color: #999;
+}
+
+.detail-value {
+  font-size: 26rpx;
+  color: #333;
+}
+
+.record-note {
+  padding: 20rpx;
+  background: #f9fafb;
+  border-radius: 12rpx;
+  margin-top: 16rpx;
+}
+
+.note-label {
+  font-size: 22rpx;
+  color: #999;
+  margin-bottom: 8rpx;
+  display: block;
+}
+
+.note-content {
+  font-size: 26rpx;
+  color: #333;
+  line-height: 1.7;
+  display: block;
+}
+
+.note-empty {
+  font-size: 24rpx;
+  color: #ccc;
+}
+
+.note-image {
+  width: 100%;
+  border-radius: 8rpx;
+  margin-top: 16rpx;
+}

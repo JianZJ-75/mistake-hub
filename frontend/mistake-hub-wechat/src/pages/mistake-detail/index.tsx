@@ -14,8 +14,8 @@ const STAGE_INTERVALS = [0, 1, 2, 4, 7, 15, 30]
 interface FormState {
   title: string
   correctAnswer: string
-  errorReason: string
-  imageUrl: string
+  titleImageUrl: string
+  answerImageUrl: string
   tagIds: number[]
 }
 
@@ -23,7 +23,7 @@ const MistakeDetailPage = () => {
 
   const [detail, setDetail] = useState<MistakeDetailResp | null>(null)
   const [editMode, setEditMode] = useState(false)
-  const [form, setForm] = useState<FormState>({ title: '', correctAnswer: '', errorReason: '', imageUrl: '', tagIds: [] })
+  const [form, setForm] = useState<FormState>({ title: '', correctAnswer: '', titleImageUrl: '', answerImageUrl: '', tagIds: [] })
   const [allTags, setAllTags] = useState<TagResp[]>([])
   const [customTags, setCustomTags] = useState<TagResp[]>([])
   const [showTagModal, setShowTagModal] = useState(false)
@@ -60,14 +60,14 @@ const MistakeDetailPage = () => {
     setForm({
       title: detail.title || '',
       correctAnswer: detail.correctAnswer || '',
-      errorReason: detail.errorReason || '',
-      imageUrl: detail.imageUrl || '',
+      titleImageUrl: detail.titleImageUrl || '',
+      answerImageUrl: detail.answerImageUrl || '',
       tagIds: detail.tags ? detail.tags.map(t => t.id) : [],
     })
     setEditMode(true)
   }
 
-  const handleChooseImage = async () => {
+  const handleChooseImage = async (field: keyof Pick<FormState, 'titleImageUrl' | 'answerImageUrl'>) => {
 
     if (uploading) return
     try {
@@ -75,7 +75,7 @@ const MistakeDetailPage = () => {
       const path = res.tempFiles[0].tempFilePath
       setUploading(true)
       const url = await uploadImage(path)
-      setForm(prev => ({ ...prev, imageUrl: url }))
+      setForm(prev => ({ ...prev, [field]: url }))
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err !== null && err !== undefined ? err : '')
       if (msg && !msg.includes('cancel')) {
@@ -98,8 +98,8 @@ const MistakeDetailPage = () => {
         id: idRef.current,
         title: form.title.trim(),
         correctAnswer: form.correctAnswer.trim(),
-        errorReason: form.errorReason.trim(),
-        imageUrl: form.imageUrl,
+        titleImageUrl: form.titleImageUrl,
+        answerImageUrl: form.answerImageUrl,
         tagIds: form.tagIds,
       })
       Taro.showToast({ title: '保存成功', icon: 'success' })
@@ -165,15 +165,15 @@ const MistakeDetailPage = () => {
 
             <View className='form-section'>
               <Text className='section-label'>题目图片</Text>
-              {form.imageUrl ? (
+              {form.titleImageUrl ? (
                 <View className='img-preview-wrap'>
-                  <Image className='img-preview' src={form.imageUrl} mode='widthFix' />
-                  <View className='img-remove' onClick={() => setForm(prev => ({ ...prev, imageUrl: '' }))}>
+                  <Image className='img-preview' src={form.titleImageUrl} mode='widthFix' />
+                  <View className='img-remove' onClick={() => setForm(prev => ({ ...prev, titleImageUrl: '' }))}>
                     <Text className='img-remove-text'>×</Text>
                   </View>
                 </View>
               ) : (
-                <View className={`img-picker ${uploading ? 'img-picker-loading' : ''}`} onClick={handleChooseImage}>
+                <View className={`img-picker ${uploading ? 'img-picker-loading' : ''}`} onClick={() => handleChooseImage('titleImageUrl')}>
                   <Text className='img-picker-icon'>{uploading ? '上传中…' : '+'}</Text>
                   <Text className='img-picker-hint'>{uploading ? '' : '拍照 / 相册'}</Text>
                 </View>
@@ -192,14 +192,20 @@ const MistakeDetailPage = () => {
             </View>
 
             <View className='form-section'>
-              <Text className='section-label'>错误原因</Text>
-              <Textarea
-                className='textarea'
-                value={form.errorReason}
-                onInput={e => setForm(prev => ({ ...prev, errorReason: e.detail.value }))}
-                autoHeight
-                maxlength={2000}
-              />
+              <Text className='section-label'>答案图片</Text>
+              {form.answerImageUrl ? (
+                <View className='img-preview-wrap'>
+                  <Image className='img-preview' src={form.answerImageUrl} mode='widthFix' />
+                  <View className='img-remove' onClick={() => setForm(prev => ({ ...prev, answerImageUrl: '' }))}>
+                    <Text className='img-remove-text'>×</Text>
+                  </View>
+                </View>
+              ) : (
+                <View className={`img-picker ${uploading ? 'img-picker-loading' : ''}`} onClick={() => handleChooseImage('answerImageUrl')}>
+                  <Text className='img-picker-icon'>{uploading ? '上传中…' : '+'}</Text>
+                  <Text className='img-picker-hint'>{uploading ? '' : '拍照 / 相册'}</Text>
+                </View>
+              )}
             </View>
 
             <View className='form-section'>
@@ -250,15 +256,15 @@ const MistakeDetailPage = () => {
               <Text className='detail-text'>{detail.title}</Text>
             </View>
 
-            {/* 图片 */}
-            {detail.imageUrl ? (
+            {/* 题目图片 */}
+            {detail.titleImageUrl ? (
               <View className='detail-section'>
-                <Text className='detail-label'>图片</Text>
+                <Text className='detail-label'>题目图片</Text>
                 <Image
                   className='detail-img'
-                  src={detail.imageUrl}
+                  src={detail.titleImageUrl}
                   mode='widthFix'
-                  onClick={() => Taro.previewImage({ urls: [detail.imageUrl!], current: detail.imageUrl })}
+                  onClick={() => Taro.previewImage({ urls: [detail.titleImageUrl!], current: detail.titleImageUrl })}
                 />
               </View>
             ) : null}
@@ -271,11 +277,16 @@ const MistakeDetailPage = () => {
               </View>
             ) : null}
 
-            {/* 错误原因 */}
-            {detail.errorReason ? (
+            {/* 答案图片 */}
+            {detail.answerImageUrl ? (
               <View className='detail-section'>
-                <Text className='detail-label'>错误原因</Text>
-                <Text className='detail-text'>{detail.errorReason}</Text>
+                <Text className='detail-label'>答案图片</Text>
+                <Image
+                  className='detail-img'
+                  src={detail.answerImageUrl}
+                  mode='widthFix'
+                  onClick={() => Taro.previewImage({ urls: [detail.answerImageUrl!], current: detail.answerImageUrl })}
+                />
               </View>
             ) : null}
 
@@ -295,6 +306,9 @@ const MistakeDetailPage = () => {
             <View className='view-actions'>
               <View className='btn-edit' onClick={enterEdit}>
                 <Text>编辑</Text>
+              </View>
+              <View className='btn-history' onClick={() => Taro.navigateTo({ url: `/pages/review-history/index?mistakeId=${idRef.current}` })}>
+                <Text>复习历史</Text>
               </View>
               <View className='btn-delete' onClick={handleDelete}>
                 <Text>删除</Text>

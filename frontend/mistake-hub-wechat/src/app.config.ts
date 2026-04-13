@@ -6,6 +6,7 @@ export default defineAppConfig({
     'pages/profile/index',
     'pages/mistake-add/index',
     'pages/mistake-detail/index',
+    'pages/review-history/index',
   ],
   window: {
     backgroundTextStyle: 'light',

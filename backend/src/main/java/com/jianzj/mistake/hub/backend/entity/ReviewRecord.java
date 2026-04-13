@@ -74,6 +74,16 @@ public class ReviewRecord implements Serializable {
     private Integer masteryAfter;
 
     /**
+     * 答题备注
+     */
+    private String note;
+
+    /**
+     * 答题图片URL
+     */
+    private String noteImageUrl;
+
+    /**
      * 复习时间
      */
     private LocalDateTime reviewTime;

@@ -2,13 +2,21 @@ package com.jianzj.mistake.hub.backend.service;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.TypeReference;
+import com.jianzj.mistake.hub.backend.dto.req.ReviewHistoryReq;
+import com.jianzj.mistake.hub.backend.dto.req.ReviewSkipReq;
+import com.jianzj.mistake.hub.backend.dto.req.ReviewSubmitReq;
 import com.jianzj.mistake.hub.backend.dto.resp.MistakeDetailResp;
+import com.jianzj.mistake.hub.backend.dto.resp.ReviewProgressResp;
+import com.jianzj.mistake.hub.backend.dto.resp.ReviewRecordResp;
+import com.jianzj.mistake.hub.backend.dto.resp.ReviewSubmitResp;
 import com.jianzj.mistake.hub.backend.dto.resp.ReviewTaskResp;
 import com.jianzj.mistake.hub.backend.entity.Account;
 import com.jianzj.mistake.hub.backend.entity.Mistake;
 import com.jianzj.mistake.hub.backend.entity.ReviewPlan;
+import com.jianzj.mistake.hub.backend.entity.ReviewRecord;
 import com.jianzj.mistake.hub.backend.enums.ReviewPlanStatus;
 import com.jianzj.mistake.hub.backend.enums.ReviewStage;
+import com.jianzj.mistake.hub.common.utils.ThreadStorageUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -23,6 +31,7 @@ import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -51,17 +60,25 @@ public class ReviewScheduleService {
 
     private final ReviewPlanService reviewPlanService;
 
+    private final ReviewRecordService reviewRecordService;
+
     private final RedissonClient redissonClient;
+
+    private final ThreadStorageUtil threadStorageUtil;
 
     public ReviewScheduleService(MistakeService mistakeService,
                                  AccountService accountService,
                                  ReviewPlanService reviewPlanService,
-                                 RedissonClient redissonClient) {
+                                 ReviewRecordService reviewRecordService,
+                                 RedissonClient redissonClient,
+                                 ThreadStorageUtil threadStorageUtil) {
 
         this.mistakeService = mistakeService;
         this.accountService = accountService;
         this.reviewPlanService = reviewPlanService;
+        this.reviewRecordService = reviewRecordService;
         this.redissonClient = redissonClient;
+        this.threadStorageUtil = threadStorageUtil;
     }
 
     // ===== 业务方法 =====
@@ -158,9 +175,6 @@ public class ReviewScheduleService {
         if (!success) {
             oops("更新错题复习状态失败", "Failed to update mistake review status.");
         }
-
-        // 失效当天缓存
-        evictDailyCache(mistake.getAccountId());
     }
 
     /**
@@ -250,6 +264,158 @@ public class ReviewScheduleService {
                 accountIds.size(), failCount, totalTasks, elapsed);
     }
 
+    /**
+     * 获取当前用户今日复习任务列表
+     */
+    public List<ReviewTaskResp> todayTasks() {
+
+        Long accountId = threadStorageUtil.getCurAccountId();
+
+        // 优先读缓存
+        List<ReviewTaskResp> cached = getCachedDaily(accountId);
+        if (cached != null) {
+            return cached;
+        }
+
+        // 缓存 miss → 生成（内含写缓存）
+        return generateDailyTasks(accountId);
+    }
+
+    /**
+     * 提交复习结果
+     */
+    public ReviewSubmitResp submitReview(ReviewSubmitReq req) {
+
+        Long accountId = threadStorageUtil.getCurAccountId();
+        Long mistakeId = req.getMistakeId();
+        LocalDate today = LocalDate.now();
+
+        // 校验错题存在且属于当前用户
+        mistakeService.getValidMistakeForCurrentUser(mistakeId);
+
+        // 查今日计划
+        ReviewPlan plan = reviewPlanService.getByMistakeAndDate(accountId, mistakeId, today);
+        if (plan == null) {
+            oops("该题今日无复习计划", "No review plan for this mistake today.");
+        }
+        if (ReviewPlanStatus.COMPLETED.getCode().equals(plan.getStatus())) {
+            oops("该题今日已完成复习", "This mistake has already been reviewed today.");
+        }
+
+        // 记录 before 快照
+        Mistake before = mistakeService.getById(mistakeId);
+        int stageBefore = before.getReviewStage() != null ? before.getReviewStage() : 0;
+        int masteryBefore = before.getMasteryLevel() != null ? before.getMasteryLevel() : 0;
+
+        // 更新错题复习状态
+        updateMistakeAfterReview(mistakeId, req.getIsCorrect());
+
+        // 获取 after 快照
+        Mistake after = mistakeService.getById(mistakeId);
+        int stageAfter = after.getReviewStage() != null ? after.getReviewStage() : 0;
+        int masteryAfter = after.getMasteryLevel() != null ? after.getMasteryLevel() : 0;
+
+        // 创建复习记录
+        ReviewRecord record = ReviewRecord.builder()
+                .accountId(accountId)
+                .mistakeId(mistakeId)
+                .reviewPlanId(plan.getId())
+                .isCorrect(req.getIsCorrect() ? 1 : 0)
+                .reviewStageBefore(stageBefore)
+                .reviewStageAfter(stageAfter)
+                .masteryBefore(masteryBefore)
+                .masteryAfter(masteryAfter)
+                .note(req.getNote())
+                .noteImageUrl(req.getNoteImageUrl())
+                .reviewTime(LocalDateTime.now())
+                .build();
+        reviewRecordService.createRecord(record);
+
+        // 更新计划状态为 COMPLETED
+        reviewPlanService.updateStatus(plan.getId(), ReviewPlanStatus.COMPLETED.getCode());
+
+        // 精确更新缓存
+        updateCachedTaskStatus(accountId, mistakeId, ReviewPlanStatus.COMPLETED.getCode());
+
+        return ReviewSubmitResp.builder()
+                .reviewStageBefore(stageBefore)
+                .reviewStageAfter(stageAfter)
+                .masteryBefore(masteryBefore)
+                .masteryAfter(masteryAfter)
+                .nextReviewTime(after.getNextReviewTime())
+                .build();
+    }
+
+    /**
+     * 跳过复习
+     */
+    public void skipReview(ReviewSkipReq req) {
+
+        Long accountId = threadStorageUtil.getCurAccountId();
+        Long mistakeId = req.getMistakeId();
+        LocalDate today = LocalDate.now();
+
+        ReviewPlan plan = reviewPlanService.getByMistakeAndDate(accountId, mistakeId, today);
+        if (plan == null) {
+            oops("该题今日无复习计划", "No review plan for this mistake today.");
+        }
+        if (ReviewPlanStatus.COMPLETED.getCode().equals(plan.getStatus())) {
+            oops("该题今日已完成复习，无法跳过", "This mistake has already been reviewed today.");
+        }
+        // 幂等：已 SKIPPED 直接返回
+        if (ReviewPlanStatus.SKIPPED.getCode().equals(plan.getStatus())) {
+            return;
+        }
+
+        reviewPlanService.updateStatus(plan.getId(), ReviewPlanStatus.SKIPPED.getCode());
+        updateCachedTaskStatus(accountId, mistakeId, ReviewPlanStatus.SKIPPED.getCode());
+    }
+
+    /**
+     * 获取当前用户今日复习进度
+     */
+    public ReviewProgressResp getProgress() {
+
+        Long accountId = threadStorageUtil.getCurAccountId();
+        LocalDate today = LocalDate.now();
+
+        List<ReviewPlan> plans = reviewPlanService.listByAccountAndDate(accountId, today);
+
+        int total = CollectionUtils.isNotEmpty(plans) ? plans.size() : 0;
+        int completed = 0;
+        int skipped = 0;
+
+        if (CollectionUtils.isNotEmpty(plans)) {
+            for (ReviewPlan plan : plans) {
+                if (ReviewPlanStatus.COMPLETED.getCode().equals(plan.getStatus())) {
+                    completed++;
+                } else if (ReviewPlanStatus.SKIPPED.getCode().equals(plan.getStatus())) {
+                    skipped++;
+                }
+            }
+        }
+
+        int streakDays = calculateStreakDays(accountId, today);
+
+        return ReviewProgressResp.builder()
+                .totalToday(total)
+                .completedToday(completed)
+                .skippedToday(skipped)
+                .streakDays(streakDays)
+                .build();
+    }
+
+    /**
+     * 查询某道错题的复习历史记录
+     */
+    public List<ReviewRecordResp> getReviewHistory(ReviewHistoryReq req) {
+
+        // 管理员可查任意错题，普通用户只能查自己的
+        Mistake mistake = mistakeService.getValidMistake(req.getMistakeId());
+
+        return reviewRecordService.listByMistake(mistake.getAccountId(), req.getMistakeId());
+    }
+
     // ===== 工具方法 =====
 
     /**
@@ -312,7 +478,9 @@ public class ReviewScheduleService {
                     return ReviewTaskResp.builder()
                             .mistakeId(plan.getMistakeId())
                             .title(detail.getTitle())
-                            .imageUrl(detail.getImageUrl())
+                            .titleImageUrl(detail.getTitleImageUrl())
+                            .correctAnswer(detail.getCorrectAnswer())
+                            .answerImageUrl(detail.getAnswerImageUrl())
                             .reviewStage(detail.getReviewStage())
                             .masteryLevel(detail.getMasteryLevel())
                             .overdueDays(overdueDays)
@@ -333,5 +501,49 @@ public class ReviewScheduleService {
     private String buildCacheKey(Long accountId) {
 
         return CACHE_KEY_PREFIX + accountId + ":" + LocalDate.now();
+    }
+
+    /**
+     * 精确更新缓存中指定错题的计划状态（避免 evict 重建）
+     */
+    private void updateCachedTaskStatus(Long accountId, Long mistakeId, String newStatus) {
+
+        List<ReviewTaskResp> cached = getCachedDaily(accountId);
+        if (cached == null) {
+            return;
+        }
+
+        for (ReviewTaskResp task : cached) {
+            if (mistakeId.equals(task.getMistakeId())) {
+                task.setPlanStatus(newStatus);
+                break;
+            }
+        }
+
+        cacheDaily(accountId, cached);
+    }
+
+    /**
+     * 计算连续复习天数
+     */
+    private int calculateStreakDays(Long accountId, LocalDate today) {
+
+        List<LocalDate> completedDates = reviewPlanService.listCompletedDates(accountId);
+        if (CollectionUtils.isEmpty(completedDates)) {
+            return 0;
+        }
+
+        Set<LocalDate> dateSet = new HashSet<>(completedDates);
+
+        // 起始日：今天在集合中 → 从今天算；否则从昨天算
+        LocalDate current = dateSet.contains(today) ? today : today.minusDays(1);
+
+        int streak = 0;
+        while (dateSet.contains(current)) {
+            streak++;
+            current = current.minusDays(1);
+        }
+
+        return streak;
     }
 }

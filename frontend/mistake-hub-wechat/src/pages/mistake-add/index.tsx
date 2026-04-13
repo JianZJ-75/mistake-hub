@@ -13,8 +13,8 @@ const MistakeAddPage = () => {
   // ===== 表���状态 =====
   const [title, setTitle] = useState('')
   const [correctAnswer, setCorrectAnswer] = useState('')
-  const [errorReason, setErrorReason] = useState('')
-  const [imageUrl, setImageUrl] = useState('')
+  const [titleImageUrl, setTitleImageUrl] = useState('')
+  const [answerImageUrl, setAnswerImageUrl] = useState('')
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
 
   // ===== 弹窗 / 加载状态 =====
@@ -33,14 +33,14 @@ const MistakeAddPage = () => {
     tagCustomList().then(list => setCustomTags(list)).catch(() => {})
   }
 
-  const handleChooseImage = async () => {
+  const handleChooseImage = async (setter: (url: string) => void) => {
     if (uploading) return
     try {
       const res = await Taro.chooseMedia({ count: 1, mediaType: ['image'], sizeType: ['compressed'], sourceType: ['album', 'camera'] })
       const path = res.tempFiles[0].tempFilePath
       setUploading(true)
       const url = await uploadImage(path)
-      setImageUrl(url)
+      setter(url)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err !== null && err !== undefined ? err : '')
       if (msg && !msg.includes('cancel')) {
@@ -66,8 +66,8 @@ const MistakeAddPage = () => {
       await mistakeAdd({
         title: title.trim(),
         correctAnswer: correctAnswer.trim() || undefined,
-        errorReason: errorReason.trim() || undefined,
-        imageUrl: imageUrl || undefined,
+        titleImageUrl: titleImageUrl || undefined,
+        answerImageUrl: answerImageUrl || undefined,
         tagIds: selectedTagIds.length ? selectedTagIds : undefined,
       })
       Taro.showToast({ title: '录入成功', icon: 'success' })
@@ -95,25 +95,25 @@ const MistakeAddPage = () => {
           />
         </View>
 
-        {/* 图片上传 */}
+        {/* 题目图片 */}
         <View className='form-section'>
           <Text className='section-label'>题目图片</Text>
-          {imageUrl ? (
+          {titleImageUrl ? (
             <View className='img-preview-wrap'>
-              <Image className='img-preview' src={imageUrl} mode='widthFix' />
-              <View className='img-remove' onClick={() => setImageUrl('')}>
+              <Image className='img-preview' src={titleImageUrl} mode='widthFix' />
+              <View className='img-remove' onClick={() => setTitleImageUrl('')}>
                 <Text className='img-remove-text'>×</Text>
               </View>
             </View>
           ) : (
-            <View className={`img-picker ${uploading ? 'img-picker-loading' : ''}`} onClick={handleChooseImage}>
+            <View className={`img-picker ${uploading ? 'img-picker-loading' : ''}`} onClick={() => handleChooseImage(setTitleImageUrl)}>
               <Text className='img-picker-icon'>{uploading ? '上传中…' : '+'}</Text>
               <Text className='img-picker-hint'>{uploading ? '' : '拍照 / 相册'}</Text>
             </View>
           )}
         </View>
 
-        {/* 正��答案 */}
+        {/* 正确答案 */}
         <View className='form-section'>
           <Text className='section-label'>正确答案</Text>
           <Textarea
@@ -126,17 +126,22 @@ const MistakeAddPage = () => {
           />
         </View>
 
-        {/* 错误原因 */}
+        {/* 答案图片 */}
         <View className='form-section'>
-          <Text className='section-label'>错误原因</Text>
-          <Textarea
-            className='textarea'
-            placeholder='分析错误原因或知识点漏洞（选填）'
-            value={errorReason}
-            onInput={e => setErrorReason(e.detail.value)}
-            autoHeight
-            maxlength={2000}
-          />
+          <Text className='section-label'>答案图片</Text>
+          {answerImageUrl ? (
+            <View className='img-preview-wrap'>
+              <Image className='img-preview' src={answerImageUrl} mode='widthFix' />
+              <View className='img-remove' onClick={() => setAnswerImageUrl('')}>
+                <Text className='img-remove-text'>×</Text>
+              </View>
+            </View>
+          ) : (
+            <View className={`img-picker ${uploading ? 'img-picker-loading' : ''}`} onClick={() => handleChooseImage(setAnswerImageUrl)}>
+              <Text className='img-picker-icon'>{uploading ? '上传中…' : '+'}</Text>
+              <Text className='img-picker-hint'>{uploading ? '' : '拍照 / 相册'}</Text>
+            </View>
+          )}
         </View>
 
         {/* 标签 */}

@@ -49,14 +49,14 @@ public class Mistake implements Serializable {
     private String correctAnswer;
 
     /**
-     * 错误原因说明
+     * 题目图片URL
      */
-    private String errorReason;
+    private String titleImageUrl;
 
     /**
-     * 错题图片URL
+     * 答案图片URL
      */
-    private String imageUrl;
+    private String answerImageUrl;
 
     /**
      * 复习阶段 0-6
