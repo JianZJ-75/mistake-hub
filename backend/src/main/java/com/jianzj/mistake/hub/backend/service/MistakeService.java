@@ -91,8 +91,8 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
                 .accountId(accountId)
                 .title(req.getTitle())
                 .correctAnswer(req.getCorrectAnswer())
-                .errorReason(req.getErrorReason())
-                .imageUrl(req.getImageUrl())
+                .titleImageUrl(req.getTitleImageUrl())
+                .answerImageUrl(req.getAnswerImageUrl())
                 .reviewStage(0)
                 .masteryLevel(0)
                 .nextReviewTime(LocalDateTime.now())
@@ -207,11 +207,11 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
         if (req.getCorrectAnswer() != null) {
             mistake.setCorrectAnswer(req.getCorrectAnswer().isEmpty() ? null : req.getCorrectAnswer());
         }
-        if (req.getErrorReason() != null) {
-            mistake.setErrorReason(req.getErrorReason().isEmpty() ? null : req.getErrorReason());
+        if (req.getTitleImageUrl() != null) {
+            mistake.setTitleImageUrl(req.getTitleImageUrl().isEmpty() ? null : req.getTitleImageUrl());
         }
-        if (req.getImageUrl() != null) {
-            mistake.setImageUrl(req.getImageUrl().isEmpty() ? null : req.getImageUrl());
+        if (req.getAnswerImageUrl() != null) {
+            mistake.setAnswerImageUrl(req.getAnswerImageUrl().isEmpty() ? null : req.getAnswerImageUrl());
         }
         boolean success = updateById(mistake);
         if (!success) {
@@ -250,6 +250,14 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
     public Mistake getValidMistakeForCurrentUser(Long mistakeId) {
 
         return getMistakeOwnedByCurrentUser(mistakeId);
+    }
+
+    /**
+     * 校验错题有效：管理员可查任意错题，普通用户只能查自己的
+     */
+    public Mistake getValidMistake(Long mistakeId) {
+
+        return isAdmin() ? getMistakeValidById(mistakeId) : getMistakeOwnedByCurrentUser(mistakeId);
     }
 
     // ===== 工具方法 =====

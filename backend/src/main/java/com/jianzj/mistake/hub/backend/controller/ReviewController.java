@@ -2,9 +2,11 @@ package com.jianzj.mistake.hub.backend.controller;
 
 import com.jianzj.mistake.hub.backend.annotation.PreAuthorize;
 import com.jianzj.mistake.hub.backend.dto.req.ReviewGenerateDailyReq;
+import com.jianzj.mistake.hub.backend.dto.req.ReviewHistoryReq;
 import com.jianzj.mistake.hub.backend.dto.req.ReviewSkipReq;
 import com.jianzj.mistake.hub.backend.dto.req.ReviewSubmitReq;
 import com.jianzj.mistake.hub.backend.dto.resp.ReviewProgressResp;
+import com.jianzj.mistake.hub.backend.dto.resp.ReviewRecordResp;
 import com.jianzj.mistake.hub.backend.dto.resp.ReviewSubmitResp;
 import com.jianzj.mistake.hub.backend.dto.resp.ReviewTaskResp;
 import com.jianzj.mistake.hub.backend.enums.Role;
@@ -44,7 +46,7 @@ public class ReviewController {
     }
 
     /**
-     * 手动生成每日复习任务
+     * 手动生成每日复习任务（管理员调试接口，正式环境由 ReviewScheduler 凌晨 2 点定时触发）
      */
     @Operation(summary = "手动生成每日复习任务")
     @PostMapping("/generate-daily")
@@ -96,5 +98,16 @@ public class ReviewController {
     public ReviewProgressResp progress() {
 
         return reviewScheduleService.getProgress();
+    }
+
+    /**
+     * 查询错题的复习历史记录
+     */
+    @Operation(summary = "查询复习历史")
+    @PostMapping("/history")
+    @PreAuthorize(requiredRole = Role.STUDENT)
+    public List<ReviewRecordResp> history(@RequestBody @Validated @NotNull ReviewHistoryReq req) {
+
+        return reviewScheduleService.getReviewHistory(req);
     }
 }

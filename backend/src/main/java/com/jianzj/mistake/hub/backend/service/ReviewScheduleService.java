@@ -2,10 +2,12 @@ package com.jianzj.mistake.hub.backend.service;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.TypeReference;
+import com.jianzj.mistake.hub.backend.dto.req.ReviewHistoryReq;
 import com.jianzj.mistake.hub.backend.dto.req.ReviewSkipReq;
 import com.jianzj.mistake.hub.backend.dto.req.ReviewSubmitReq;
 import com.jianzj.mistake.hub.backend.dto.resp.MistakeDetailResp;
 import com.jianzj.mistake.hub.backend.dto.resp.ReviewProgressResp;
+import com.jianzj.mistake.hub.backend.dto.resp.ReviewRecordResp;
 import com.jianzj.mistake.hub.backend.dto.resp.ReviewSubmitResp;
 import com.jianzj.mistake.hub.backend.dto.resp.ReviewTaskResp;
 import com.jianzj.mistake.hub.backend.entity.Account;
@@ -323,6 +325,8 @@ public class ReviewScheduleService {
                 .reviewStageAfter(stageAfter)
                 .masteryBefore(masteryBefore)
                 .masteryAfter(masteryAfter)
+                .note(req.getNote())
+                .noteImageUrl(req.getNoteImageUrl())
                 .reviewTime(LocalDateTime.now())
                 .build();
         reviewRecordService.createRecord(record);
@@ -401,6 +405,17 @@ public class ReviewScheduleService {
                 .build();
     }
 
+    /**
+     * 查询某道错题的复习历史记录
+     */
+    public List<ReviewRecordResp> getReviewHistory(ReviewHistoryReq req) {
+
+        // 管理员可查任意错题，普通用户只能查自己的
+        Mistake mistake = mistakeService.getValidMistake(req.getMistakeId());
+
+        return reviewRecordService.listByMistake(mistake.getAccountId(), req.getMistakeId());
+    }
+
     // ===== 工具方法 =====
 
     /**
@@ -463,7 +478,9 @@ public class ReviewScheduleService {
                     return ReviewTaskResp.builder()
                             .mistakeId(plan.getMistakeId())
                             .title(detail.getTitle())
-                            .imageUrl(detail.getImageUrl())
+                            .titleImageUrl(detail.getTitleImageUrl())
+                            .correctAnswer(detail.getCorrectAnswer())
+                            .answerImageUrl(detail.getAnswerImageUrl())
                             .reviewStage(detail.getReviewStage())
                             .masteryLevel(detail.getMasteryLevel())
                             .overdueDays(overdueDays)

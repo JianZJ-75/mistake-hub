@@ -14,7 +14,9 @@ export interface UpdateMistakeParams {
 	title?: string;
 	correctAnswer?: string;
 	errorReason?: string;
-	imageUrl?: string;
+	titleImageUrl?: string;
+	answerImageUrl?: string;
+	reasonImageUrl?: string;
 	tagIds?: number[];
 }
 

@@ -90,6 +90,26 @@
             <artifactId>mistake-hub-common</artifactId>
         </dependency>
 
+        <!-- 测试：JUnit 5 + Mockito 5 + AssertJ -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
+
+    <build>
+        <plugins>
+            <!-- 覆盖根 pom 的 skipTests=true，允许 backend 模块运行单元测试 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <skipTests>false</skipTests>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

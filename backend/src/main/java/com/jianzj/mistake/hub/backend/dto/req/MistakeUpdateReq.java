@@ -33,14 +33,14 @@ public class MistakeUpdateReq {
     private String correctAnswer;
 
     /**
-     * 错误原因说明
+     * 题目图片URL
      */
-    private String errorReason;
+    private String titleImageUrl;
 
     /**
-     * 错题图片URL
+     * 答案图片URL
      */
-    private String imageUrl;
+    private String answerImageUrl;
 
     /**
      * 标签ID列表（传 null 表示不修改，传空列表表示清空）

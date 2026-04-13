@@ -1,8 +1,9 @@
 import mistakeService from "@/api/services/mistakeService";
+import reviewService from "@/api/services/reviewService";
 import tagService from "@/api/services/tagService";
 import userService from "@/api/services/userService";
 import uploadService from "@/api/services/uploadService";
-import type { MistakeDetailResp, TagResp, UserInfo } from "#/entity";
+import type { MistakeDetailResp, ReviewRecordResp, TagResp, UserInfo } from "#/entity";
 import { Badge } from "@/ui/badge";
 import { Button } from "@/ui/button";
 import { Checkbox } from "@/ui/checkbox";
@@ -13,7 +14,7 @@ import { ScrollArea } from "@/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/ui/select";
 import { Textarea } from "@/ui/textarea";
 import { cascadeToggleTag } from "@/utils/tagCascade";
-import { ChevronDown, ChevronRight, Eye, Loader2, Pencil, Search, Trash2, Upload, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Eye, History, Loader2, Pencil, Search, Trash2, Upload, X } from "lucide-react";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/ui/command";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -57,7 +58,9 @@ interface EditForm {
 	title: string;
 	correctAnswer: string;
 	errorReason: string;
-	imageUrl: string;
+	titleImageUrl: string;
+	answerImageUrl: string;
+	reasonImageUrl: string;
 	tagIds: number[];
 }
 
@@ -89,7 +92,7 @@ export default function MistakeManagementPage() {
 	const [detailOpen, setDetailOpen] = useState(false);
 	const [selected, setSelected] = useState<MistakeDetailResp | null>(null);
 	const [editMode, setEditMode] = useState(false);
-	const [editForm, setEditForm] = useState<EditForm>({ title: "", correctAnswer: "", errorReason: "", imageUrl: "", tagIds: [] });
+	const [editForm, setEditForm] = useState<EditForm>({ title: "", correctAnswer: "", errorReason: "", titleImageUrl: "", answerImageUrl: "", reasonImageUrl: "", tagIds: [] });
 	const [saving, setSaving] = useState(false);
 
 	// ===== 删除确认 =====
@@ -99,7 +102,13 @@ export default function MistakeManagementPage() {
 
 	// ===== 图片上传 =====
 	const [uploading, setUploading] = useState(false);
+	const [uploadTarget, setUploadTarget] = useState<"titleImageUrl" | "answerImageUrl" | "reasonImageUrl">("titleImageUrl");
 	const fileInputRef = useRef<HTMLInputElement>(null);
+
+	// ===== 复习历史弹窗 =====
+	const [historyOpen, setHistoryOpen] = useState(false);
+	const [historyRecords, setHistoryRecords] = useState<ReviewRecordResp[]>([]);
+	const [historyLoading, setHistoryLoading] = useState(false);
 
 	useEffect(() => {
 		tagService.getTagTree().then(data => setTagTree(data || [])).catch(() => {});
@@ -179,7 +188,9 @@ export default function MistakeManagementPage() {
 			title: selected.title || "",
 			correctAnswer: selected.correctAnswer || "",
 			errorReason: selected.errorReason || "",
-			imageUrl: selected.imageUrl || "",
+			titleImageUrl: selected.titleImageUrl || "",
+			answerImageUrl: selected.answerImageUrl || "",
+			reasonImageUrl: selected.reasonImageUrl || "",
 			tagIds: selected.tags?.map(t => t.id) || [],
 		});
 		setEditMode(true);
@@ -197,7 +208,9 @@ export default function MistakeManagementPage() {
 				title: editForm.title.trim(),
 				correctAnswer: editForm.correctAnswer.trim() || "",
 				errorReason: editForm.errorReason.trim() || "",
-				imageUrl: editForm.imageUrl.trim() || "",
+				titleImageUrl: editForm.titleImageUrl.trim() || "",
+				answerImageUrl: editForm.answerImageUrl.trim() || "",
+				reasonImageUrl: editForm.reasonImageUrl.trim() || "",
 				tagIds: editForm.tagIds,
 			});
 			toast.success("保存成功");
@@ -330,13 +343,31 @@ export default function MistakeManagementPage() {
 		setUploading(true);
 		try {
 			const url = await uploadService.uploadImage(file);
-			setEditForm(prev => ({ ...prev, imageUrl: url }));
+			setEditForm(prev => ({ ...prev, [uploadTarget]: url }));
 			toast.success("图片上传成功");
 		} catch {
 			// apiClient 已 toast
 		} finally {
 			setUploading(false);
 			if (fileInputRef.current) fileInputRef.current.value = "";
+		}
+	};
+
+	const triggerUpload = (target: "titleImageUrl" | "answerImageUrl" | "reasonImageUrl") => {
+		setUploadTarget(target);
+		fileInputRef.current?.click();
+	};
+
+	const openHistory = async (mistakeId: number) => {
+		setHistoryOpen(true);
+		setHistoryLoading(true);
+		try {
+			const records = await reviewService.getReviewHistory(mistakeId);
+			setHistoryRecords(records);
+		} catch {
+			// apiClient 已 toast
+		} finally {
+			setHistoryLoading(false);
 		}
 	};
 
@@ -625,11 +656,11 @@ export default function MistakeManagementPage() {
 								<p className="text-sm leading-relaxed">{selected.title}</p>
 							</div>
 
-							{/* 图片 */}
-							{selected.imageUrl && (
+							{/* 题目图片 */}
+							{selected.titleImageUrl && (
 								<div>
-									<p className="text-xs text-muted-foreground mb-1">图片</p>
-									<img src={selected.imageUrl} alt="题目图片" className="max-w-full rounded-lg border" />
+									<p className="text-xs text-muted-foreground mb-1">题目图片</p>
+									<img src={selected.titleImageUrl} alt="题目图片" className="max-w-full rounded-lg border" />
 								</div>
 							)}
 
@@ -641,11 +672,27 @@ export default function MistakeManagementPage() {
 								</div>
 							)}
 
+							{/* 答案图片 */}
+							{selected.answerImageUrl && (
+								<div>
+									<p className="text-xs text-muted-foreground mb-1">答案图片</p>
+									<img src={selected.answerImageUrl} alt="答案图片" className="max-w-full rounded-lg border" />
+								</div>
+							)}
+
 							{/* 错误原因 */}
 							{selected.errorReason && (
 								<div>
 									<p className="text-xs text-muted-foreground mb-1">错误原因</p>
 									<p className="text-sm leading-relaxed">{selected.errorReason}</p>
+								</div>
+							)}
+
+							{/* 错因图片 */}
+							{selected.reasonImageUrl && (
+								<div>
+									<p className="text-xs text-muted-foreground mb-1">错因图片</p>
+									<img src={selected.reasonImageUrl} alt="错因图片" className="max-w-full rounded-lg border" />
 								</div>
 							)}
 
@@ -707,27 +754,85 @@ export default function MistakeManagementPage() {
 
 							{/* 图片上传 */}
 							<div>
-								<label className="text-xs text-muted-foreground mb-1 block">图片</label>
-								{editForm.imageUrl ? (
-									<div className="relative inline-block">
-										<img src={editForm.imageUrl} alt="题目图片" className="max-w-full max-h-40 rounded-lg border" />
+								<input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+
+								{/* 题目图片 */}
+								<label className="text-xs text-muted-foreground mb-1 block">题目图片</label>
+								{editForm.titleImageUrl ? (
+									<div className="relative inline-block mb-3">
+										<img src={editForm.titleImageUrl} alt="题目图片" className="max-w-full max-h-40 rounded-lg border" />
 										<button
 											type="button"
 											className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-0.5 hover:bg-destructive/80"
-											onClick={() => setEditForm(prev => ({ ...prev, imageUrl: "" }))}
+											onClick={() => setEditForm(prev => ({ ...prev, titleImageUrl: "" }))}
+										>
+											<X className="h-3 w-3" />
+										</button>
+									</div>
+								) : (
+									<div className="mb-3">
+										<Button
+											type="button"
+											variant="outline"
+											size="sm"
+											disabled={uploading}
+											onClick={() => triggerUpload("titleImageUrl")}
+										>
+											{uploading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Upload className="h-4 w-4 mr-1" />}
+											{uploading ? "上传中..." : "选择图片"}
+										</Button>
+									</div>
+								)}
+
+								{/* 答案图片 */}
+								<label className="text-xs text-muted-foreground mb-1 block">答案图片</label>
+								{editForm.answerImageUrl ? (
+									<div className="relative inline-block mb-3">
+										<img src={editForm.answerImageUrl} alt="答案图片" className="max-w-full max-h-40 rounded-lg border" />
+										<button
+											type="button"
+											className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-0.5 hover:bg-destructive/80"
+											onClick={() => setEditForm(prev => ({ ...prev, answerImageUrl: "" }))}
+										>
+											<X className="h-3 w-3" />
+										</button>
+									</div>
+								) : (
+									<div className="mb-3">
+										<Button
+											type="button"
+											variant="outline"
+											size="sm"
+											disabled={uploading}
+											onClick={() => triggerUpload("answerImageUrl")}
+										>
+											{uploading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Upload className="h-4 w-4 mr-1" />}
+											{uploading ? "上传中..." : "选择图片"}
+										</Button>
+									</div>
+								)}
+
+								{/* 错因图片 */}
+								<label className="text-xs text-muted-foreground mb-1 block">错因图片</label>
+								{editForm.reasonImageUrl ? (
+									<div className="relative inline-block">
+										<img src={editForm.reasonImageUrl} alt="错因图片" className="max-w-full max-h-40 rounded-lg border" />
+										<button
+											type="button"
+											className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-0.5 hover:bg-destructive/80"
+											onClick={() => setEditForm(prev => ({ ...prev, reasonImageUrl: "" }))}
 										>
 											<X className="h-3 w-3" />
 										</button>
 									</div>
 								) : (
 									<div>
-										<input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
 										<Button
 											type="button"
 											variant="outline"
 											size="sm"
 											disabled={uploading}
-											onClick={() => fileInputRef.current?.click()}
+											onClick={() => triggerUpload("reasonImageUrl")}
 										>
 											{uploading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Upload className="h-4 w-4 mr-1" />}
 											{uploading ? "上传中..." : "选择图片"}
@@ -774,6 +879,12 @@ export default function MistakeManagementPage() {
 								<Button variant="outline" onClick={() => { setDetailOpen(false); setEditMode(false); }}>关闭</Button>
 								<Button
 									variant="outline"
+									onClick={() => { if (selected) openHistory(selected.id); }}
+								>
+									<History className="h-4 w-4 mr-1" />复习历史
+								</Button>
+								<Button
+									variant="outline"
 									className="text-destructive border-destructive hover:bg-destructive/10"
 									onClick={() => { setDetailOpen(false); if (selected) openDelete(selected.id); }}
 								>
@@ -810,6 +921,66 @@ export default function MistakeManagementPage() {
 							{deleting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
 							确认删除
 						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			{/* 复习历史弹窗 */}
+			<Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
+				<DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+					<DialogHeader>
+						<DialogTitle>复习历史</DialogTitle>
+					</DialogHeader>
+					<div className="rounded-xl border overflow-hidden">
+						<table className="w-full text-sm">
+							<thead className="bg-muted/50">
+								<tr>
+									<th className="px-3 py-2 text-left font-medium text-text-secondary">时间</th>
+									<th className="px-3 py-2 text-left font-medium text-text-secondary">结果</th>
+									<th className="px-3 py-2 text-left font-medium text-text-secondary">阶段变化</th>
+									<th className="px-3 py-2 text-left font-medium text-text-secondary">掌握度变化</th>
+									<th className="px-3 py-2 text-left font-medium text-text-secondary">备注</th>
+								</tr>
+							</thead>
+							<tbody className="divide-y">
+								{historyLoading ? (
+									<tr>
+										<td colSpan={5} className="py-8 text-center text-text-secondary">
+											<Loader2 className="h-5 w-5 animate-spin mx-auto" />
+										</td>
+									</tr>
+								) : historyRecords.length === 0 ? (
+									<tr>
+										<td colSpan={5} className="py-8 text-center text-text-secondary">暂无复习记录</td>
+									</tr>
+								) : (
+									historyRecords.map(r => (
+										<tr key={r.id} className="hover:bg-muted/30">
+											<td className="px-3 py-2 text-xs whitespace-nowrap">
+												{r.reviewTime?.replace("T", " ").substring(0, 16) || "—"}
+											</td>
+											<td className="px-3 py-2">
+												<span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${r.isCorrect === 1 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+													{r.isCorrect === 1 ? "答对" : "答错"}
+												</span>
+											</td>
+											<td className="px-3 py-2 text-xs">
+												{r.reviewStageBefore} → {r.reviewStageAfter}
+											</td>
+											<td className="px-3 py-2 text-xs">
+												{r.masteryBefore}% → {r.masteryAfter}%
+											</td>
+											<td className="px-3 py-2 text-xs max-w-[160px]">
+												<span className="line-clamp-2">{r.note || "—"}</span>
+											</td>
+										</tr>
+									))
+								)}
+							</tbody>
+						</table>
+					</div>
+					<DialogFooter>
+						<Button variant="outline" onClick={() => setHistoryOpen(false)}>关闭</Button>
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>

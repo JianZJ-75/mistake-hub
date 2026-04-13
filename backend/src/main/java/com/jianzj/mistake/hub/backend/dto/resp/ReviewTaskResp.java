@@ -27,8 +27,14 @@ public class ReviewTaskResp {
     /** 题干内容 */
     private String title;
 
-    /** 错题图片URL */
-    private String imageUrl;
+    /** 题目图片URL */
+    private String titleImageUrl;
+
+    /** 正确答案 */
+    private String correctAnswer;
+
+    /** 答案图片URL */
+    private String answerImageUrl;
 
     /** 复习阶段 0-6 */
     private Integer reviewStage;

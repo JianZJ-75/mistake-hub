@@ -123,7 +123,9 @@ export interface MistakeDetailResp {
 	title: string;
 	correctAnswer?: string;
 	errorReason?: string;
-	imageUrl?: string;
+	titleImageUrl?: string;
+	answerImageUrl?: string;
+	reasonImageUrl?: string;
 	reviewStage: number;
 	masteryLevel: number;
 	lastReviewTime?: string;
@@ -131,4 +133,17 @@ export interface MistakeDetailResp {
 	createdTime?: string;
 	updatedTime?: string;
 	tags?: TagResp[];
+}
+
+/** 对应后端 ReviewRecordResp */
+export interface ReviewRecordResp {
+	id: number;
+	isCorrect: number;
+	reviewStageBefore: number;
+	reviewStageAfter: number;
+	masteryBefore: number;
+	masteryAfter: number;
+	note?: string;
+	noteImageUrl?: string;
+	reviewTime: string;
 }

@@ -200,8 +200,8 @@ const MistakePage = () => {
                 <Text className={`mastery-badge ${mastery.cls}`}>{mastery.label}</Text>
               </View>
               <Text className='card-title'>{m.title}</Text>
-              {m.imageUrl ? (
-                <Image className='card-img' src={m.imageUrl} mode='widthFix' />
+              {m.titleImageUrl ? (
+                <Image className='card-img' src={m.titleImageUrl} mode='widthFix' />
               ) : null}
               <View className='card-footer'>
                 <View className='mastery-track'>

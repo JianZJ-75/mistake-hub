@@ -12,8 +12,8 @@ export interface MistakeDetailResp {
   id: number
   title: string
   correctAnswer?: string
-  errorReason?: string
-  imageUrl?: string
+  titleImageUrl?: string
+  answerImageUrl?: string
   reviewStage: number
   masteryLevel: number
   lastReviewTime?: string
@@ -29,4 +29,46 @@ export interface PageResult<T> {
   size: number
   current: number
   pages: number
+}
+
+export interface ReviewTaskResp {
+  mistakeId: number
+  title: string
+  titleImageUrl?: string
+  correctAnswer?: string
+  answerImageUrl?: string
+  reviewStage: number
+  masteryLevel: number
+  overdueDays: number
+  priority: number
+  tags?: TagResp[]
+  planStatus: string
+  reviewPlanId: number
+}
+
+export interface ReviewSubmitResp {
+  reviewStageBefore: number
+  reviewStageAfter: number
+  masteryBefore: number
+  masteryAfter: number
+  nextReviewTime: string
+}
+
+export interface ReviewProgressResp {
+  totalToday: number
+  completedToday: number
+  skippedToday: number
+  streakDays: number
+}
+
+export interface ReviewRecordResp {
+  id: number
+  isCorrect: number
+  reviewStageBefore: number
+  reviewStageAfter: number
+  masteryBefore: number
+  masteryAfter: number
+  note?: string
+  noteImageUrl?: string
+  reviewTime: string
 }

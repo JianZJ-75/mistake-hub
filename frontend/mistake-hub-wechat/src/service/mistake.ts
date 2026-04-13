@@ -11,8 +11,8 @@ export interface MistakeListReq {
 export interface MistakeAddReq {
   title: string
   correctAnswer?: string
-  errorReason?: string
-  imageUrl?: string
+  titleImageUrl?: string
+  answerImageUrl?: string
   tagIds?: number[]
 }
 
@@ -20,8 +20,8 @@ export interface MistakeUpdateReq {
   id: number
   title?: string
   correctAnswer?: string
-  errorReason?: string
-  imageUrl?: string
+  titleImageUrl?: string
+  answerImageUrl?: string
   tagIds?: number[]
 }
 

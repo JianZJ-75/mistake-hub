@@ -17,4 +17,10 @@ public class ReviewSubmitReq {
 
     @NotNull(message = "作答结果不能为空")
     private Boolean isCorrect;
+
+    /** 答题备注（可选） */
+    private String note;
+
+    /** 答题图片URL（可选） */
+    private String noteImageUrl;
 }

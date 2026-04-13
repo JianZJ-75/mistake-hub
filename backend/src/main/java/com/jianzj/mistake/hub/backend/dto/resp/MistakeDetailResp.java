@@ -34,9 +34,9 @@ public class MistakeDetailResp {
 
     private String correctAnswer;
 
-    private String errorReason;
+    private String titleImageUrl;
 
-    private String imageUrl;
+    private String answerImageUrl;
 
     private Integer reviewStage;
 

@@ -1,0 +1,457 @@
+.review-page {
+  min-height: 100vh;
+  background: #f5f7fa;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== 顶部进度条 ===== */
+.progress-bar-section {
+  background: #fff;
+  padding: 24rpx 32rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.progress-info {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.progress-text {
+  font-size: 26rpx;
+  color: #666;
+}
+
+.progress-num {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #4A7CF8;
+}
+
+.progress-track {
+  height: 10rpx;
+  background: #E3E8F0;
+  border-radius: 5rpx;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #4CAF50;
+  border-radius: 5rpx;
+  transition: width 0.3s ease;
+}
+
+/* ===== 任务滚动区 ===== */
+.task-scroll {
+  flex: 1;
+  padding: 24rpx;
+}
+
+/* ===== 加载状态 ===== */
+.loading-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 120rpx 0;
+}
+
+.loading-text {
+  font-size: 28rpx;
+  color: #ccc;
+}
+
+/* ===== 空状态 ===== */
+.empty-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 160rpx 0;
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  margin-bottom: 20rpx;
+}
+
+.empty-title {
+  font-size: 32rpx;
+  color: #333;
+  margin-bottom: 12rpx;
+}
+
+.empty-desc {
+  font-size: 26rpx;
+  color: #999;
+}
+
+/* ===== 完成总结卡片 ===== */
+.summary-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 40rpx 32rpx;
+  margin-bottom: 24rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
+}
+
+.summary-icon {
+  font-size: 64rpx;
+  margin-bottom: 16rpx;
+}
+
+.summary-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 28rpx;
+}
+
+.summary-stats {
+  display: flex;
+  flex-direction: row;
+  gap: 40rpx;
+}
+
+.summary-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.summary-stat-num {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #4A7CF8;
+}
+
+.summary-stat-label {
+  font-size: 22rpx;
+  color: #999;
+  margin-top: 4rpx;
+}
+
+/* ===== 任务卡片 ===== */
+.task-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
+}
+
+.task-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.task-done {
+  opacity: 0.7;
+}
+
+.task-skipped {
+  opacity: 0.5;
+}
+
+.task-header-left {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.status-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 8rpx;
+  margin-right: 16rpx;
+  flex-shrink: 0;
+}
+
+.dot-pending { background: #4A7CF8; }
+.dot-done { background: #4CAF50; }
+.dot-skipped { background: #C0C4CC; }
+
+.task-title {
+  font-size: 28rpx;
+  color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-title-muted {
+  color: #999;
+}
+
+.task-header-right {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12rpx;
+  flex-shrink: 0;
+  margin-left: 16rpx;
+}
+
+/* 复用错题列表页 badge */
+.mastery-badge {
+  font-size: 22rpx;
+  padding: 4rpx 16rpx;
+  border-radius: 20rpx;
+  color: #fff;
+}
+
+.badge-high { background: #4CAF50; }
+.badge-mid { background: #FF9800; }
+.badge-low { background: #F44336; }
+
+.status-tag {
+  font-size: 20rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+}
+
+.tag-done {
+  background: #E8F5E9;
+  color: #4CAF50;
+}
+
+.tag-skipped {
+  background: #F5F5F5;
+  color: #999;
+}
+
+/* ===== 标签 ===== */
+.task-tags {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-top: 12rpx;
+  padding-left: 32rpx;
+}
+
+.tag-chip {
+  font-size: 22rpx;
+  color: #4A7CF8;
+  background: #eef2ff;
+  padding: 6rpx 20rpx;
+  border-radius: 20rpx;
+}
+
+/* ===== 展开详情区 ===== */
+.task-detail {
+  margin-top: 20rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.detail-title {
+  font-size: 28rpx;
+  color: #333;
+  line-height: 1.6;
+  margin-bottom: 16rpx;
+}
+
+.detail-img {
+  width: 100%;
+  border-radius: 8rpx;
+  margin-bottom: 16rpx;
+}
+
+.detail-mastery {
+  margin-bottom: 24rpx;
+}
+
+.detail-mastery-label {
+  font-size: 24rpx;
+  color: #666;
+  margin-bottom: 8rpx;
+}
+
+.mastery-track {
+  height: 8rpx;
+  background: #f0f0f0;
+  border-radius: 4rpx;
+  overflow: hidden;
+}
+
+.mastery-fill {
+  height: 100%;
+  border-radius: 4rpx;
+}
+
+.mastery-fill.badge-high { background: #4CAF50; }
+.mastery-fill.badge-mid { background: #FF9800; }
+.mastery-fill.badge-low { background: #F44336; }
+
+/* ===== 作答按钮 ===== */
+.action-row {
+  display: flex;
+  flex-direction: row;
+  gap: 24rpx;
+}
+
+.answer-btn {
+  flex: 1;
+  height: 80rpx;
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-correct {
+  background: #4CAF50;
+}
+
+.btn-wrong {
+  background: #F44336;
+}
+
+.answer-btn-text {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #fff;
+}
+
+.skip-row {
+  display: flex;
+  justify-content: center;
+  padding: 20rpx 0 8rpx;
+}
+
+.skip-link {
+  font-size: 26rpx;
+  color: #999;
+}
+
+/* ===== 提交反馈 ===== */
+.feedback-row {
+  margin-top: 12rpx;
+  padding-top: 12rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.feedback-text {
+  font-size: 24rpx;
+  color: #4CAF50;
+}
+
+/* ===== 查看答案按钮 ===== */
+.reveal-btn {
+  margin-top: 20rpx;
+  height: 80rpx;
+  border-radius: 12rpx;
+  background: #4A7CF8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reveal-btn-text {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* ===== 答案展示区 ===== */
+.answer-section {
+  margin-top: 20rpx;
+}
+
+.answer-block {
+  margin-bottom: 16rpx;
+}
+
+.answer-label {
+  font-size: 24rpx;
+  color: #999;
+  margin-bottom: 8rpx;
+}
+
+.answer-content {
+  font-size: 28rpx;
+  color: #333;
+  line-height: 1.6;
+}
+
+.answer-correct {
+  color: #4CAF50;
+}
+
+.history-link {
+  display: inline-block;
+  font-size: 24rpx;
+  color: #4A7CF8;
+  margin: 8rpx 0 20rpx;
+}
+
+/* ===== 备注输入区 ===== */
+.note-section {
+  margin-bottom: 20rpx;
+  padding: 20rpx;
+  background: #f9fafb;
+  border-radius: 12rpx;
+}
+
+.note-label {
+  font-size: 24rpx;
+  color: #999;
+  margin-bottom: 12rpx;
+}
+
+.note-textarea {
+  width: 100%;
+  min-height: 60rpx;
+  font-size: 28rpx;
+  background: #fff;
+  border: 1rpx solid #e5e7eb;
+  border-radius: 8rpx;
+  padding: 16rpx;
+  box-sizing: border-box;
+}
+
+.note-img-wrap {
+  position: relative;
+  display: inline-block;
+  margin-top: 12rpx;
+}
+
+.note-img {
+  width: 300rpx;
+  border-radius: 8rpx;
+}
+
+.note-img-remove {
+  position: absolute;
+  top: -12rpx;
+  right: -12rpx;
+  width: 36rpx;
+  height: 36rpx;
+  background: #F44336;
+  border-radius: 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.note-img-remove-text {
+  color: #fff;
+  font-size: 24rpx;
+  line-height: 1;
+}
+
+.note-upload-link {
+  display: inline-block;
+  font-size: 24rpx;
+  color: #4A7CF8;
+  margin-top: 12rpx;
+}
