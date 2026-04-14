@@ -32,6 +32,8 @@ export default function ConfigManagementPage() {
 				values[c.configKey] = c.configValue;
 			}
 			setEditValues(values);
+		} catch {
+			// apiClient 已 toast
 		} finally {
 			setLoading(false);
 		}
