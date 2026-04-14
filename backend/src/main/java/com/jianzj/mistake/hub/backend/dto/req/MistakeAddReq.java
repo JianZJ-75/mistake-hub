@@ -43,4 +43,14 @@ public class MistakeAddReq {
      */
     @Size(max = 20, message = "标签最多选择20个")
     private List<Long> tagIds;
+
+    /**
+     * 录入备注（可选，非空时自动创建初始复习记录）
+     */
+    private String note;
+
+    /**
+     * 备注图片URL（可选）
+     */
+    private String noteImageUrl;
 }

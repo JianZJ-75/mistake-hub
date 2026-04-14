@@ -8,6 +8,7 @@ import com.jianzj.mistake.hub.backend.dto.req.MistakeDetailReq;
 import com.jianzj.mistake.hub.backend.dto.req.MistakeUpdateReq;
 import com.jianzj.mistake.hub.backend.dto.resp.MistakeDetailResp;
 import com.jianzj.mistake.hub.backend.enums.Role;
+import com.jianzj.mistake.hub.backend.manager.MistakeManager;
 import com.jianzj.mistake.hub.backend.service.MistakeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -40,9 +41,13 @@ public class MistakeController {
 
     private final MistakeService mistakeService;
 
-    public MistakeController(MistakeService mistakeService) {
+    private final MistakeManager mistakeManager;
+
+    public MistakeController(MistakeService mistakeService,
+                             MistakeManager mistakeManager) {
 
         this.mistakeService = mistakeService;
+        this.mistakeManager = mistakeManager;
     }
 
     /**
@@ -53,7 +58,7 @@ public class MistakeController {
     @PreAuthorize(requiredRole = Role.STUDENT)
     public void add(@RequestBody @Validated @NotNull MistakeAddReq req) {
 
-        mistakeService.add(req);
+        mistakeManager.add(req);
     }
 
     /**
@@ -101,6 +106,6 @@ public class MistakeController {
     @PreAuthorize(requiredRole = Role.STUDENT)
     public void delete(@RequestBody @Validated @NotNull MistakeDeleteReq req) {
 
-        mistakeService.delete(req);
+        mistakeManager.delete(req);
     }
 }
