@@ -118,6 +118,41 @@ public class MistakeTagService extends ServiceImpl<MistakeTagMapper, MistakeTag>
                 ));
     }
 
+    /**
+     * 查询错题关联的 SUBJECT 标签名映射（mistakeId -> subjectName）
+     */
+    public Map<Long, String> getSubjectNamesByMistakeIds(List<Long> mistakeIds) {
+
+        if (CollectionUtils.isEmpty(mistakeIds)) {
+            return Map.of();
+        }
+
+        Map<Long, List<Long>> tagIdMap = getTagIdMapByMistakeIds(mistakeIds);
+        Set<Long> allTagIds = tagIdMap.values().stream().flatMap(List::stream).collect(Collectors.toSet());
+
+        if (CollectionUtils.isEmpty(allTagIds)) {
+            return Map.of();
+        }
+
+        // 查出所有关联标签，过滤出 SUBJECT 类型
+        List<Tag> allTags = tagService.listByIds(new ArrayList<>(allTagIds));
+        Map<Long, String> subjectTagNameMap = allTags.stream()
+                .filter(tag -> "SUBJECT".equals(tag.getType()))
+                .collect(Collectors.toMap(Tag::getId, Tag::getName));
+
+        // 为每个 mistakeId 找到第一个 SUBJECT 标签名
+        return tagIdMap.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> entry.getValue().stream()
+                                .map(subjectTagNameMap::get)
+                                .filter(name -> name != null)
+                                .findFirst()
+                                .orElse("未分类"),
+                        (a, b) -> a
+                ));
+    }
+
     // ===== 工具方法 =====
 
     /**

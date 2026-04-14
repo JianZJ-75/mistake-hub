@@ -1,13 +1,41 @@
 import { useState } from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
-import { View, Text, Canvas } from '@tarojs/components'
+import { View, Text } from '@tarojs/components'
 import { reviewProgress } from '../../service/review'
-import { ReviewProgressResp } from '../../types'
+import { statsSubject } from '../../service/stats'
+import { ReviewProgressResp, SubjectStatsResp } from '../../types'
 import './index.scss'
+
+/** 生成 conic-gradient 色段，用于纯 CSS 进度环 */
+const buildConicGradient = (data: ReviewProgressResp): string => {
+
+  const total = data.totalToday || 1
+  const completedDeg = (data.completedToday / total) * 360
+  const skippedDeg = (data.skippedToday / total) * 360
+
+  // 从 12 点方向（-90deg）开始：已完成(绿) → 已跳过(灰) → 待复习(底色)
+  const p1 = completedDeg
+  const p2 = p1 + skippedDeg
+
+  if (completedDeg === 0 && skippedDeg === 0) {
+    return '#E3E8F0'
+  }
+
+  return `conic-gradient(from -90deg, #4CAF50 0deg ${p1}deg, #C0C4CC ${p1}deg ${p2}deg, #E3E8F0 ${p2}deg 360deg)`
+}
+
+/** 条形颜色按 avgMastery 三段 */
+const getBarColor = (avgMastery: number): string => {
+
+  if (avgMastery < 60) return '#F44336'
+  if (avgMastery < 80) return '#FF9800'
+  return '#4CAF50'
+}
 
 const IndexPage = () => {
 
   const [progress, setProgress] = useState<ReviewProgressResp | null>(null)
+  const [subjectList, setSubjectList] = useState<SubjectStatsResp[]>([])
   const [loading, setLoading] = useState(true)
 
   useDidShow(() => {
@@ -18,74 +46,14 @@ const IndexPage = () => {
 
     setLoading(true)
     try {
-      const res = await reviewProgress()
+      const [res, subjects] = await Promise.all([reviewProgress(), statsSubject()])
       setProgress(res)
-      drawRing(res)
+      setSubjectList(subjects || [])
     } catch {
       // request.ts 已处理 toast
     } finally {
       setLoading(false)
     }
-  }
-
-  const drawRing = (data: ReviewProgressResp) => {
-
-    const query = Taro.createSelectorQuery()
-    query.select('#progressCanvas')
-      .fields({ node: true, size: true })
-      .exec((results) => {
-        if (!results || !results[0]) return
-        const canvas = results[0].node
-        if (!canvas) return
-        const ctx = canvas.getContext('2d')
-        const dpr = Taro.getSystemInfoSync().pixelRatio
-        const width = results[0].width
-        const height = results[0].height
-        canvas.width = width * dpr
-        canvas.height = height * dpr
-        ctx.scale(dpr, dpr)
-
-        const cx = width / 2
-        const cy = height / 2
-        const radius = Math.min(cx, cy) - 12
-        const lineWidth = 10
-        const startAngle = -Math.PI / 2
-
-        const total = data.totalToday || 1
-        const completedRatio = data.completedToday / total
-        const skippedRatio = data.skippedToday / total
-
-        // 底色（待复习）
-        ctx.beginPath()
-        ctx.arc(cx, cy, radius, 0, Math.PI * 2)
-        ctx.strokeStyle = '#E3E8F0'
-        ctx.lineWidth = lineWidth
-        ctx.lineCap = 'round'
-        ctx.stroke()
-
-        // 已跳过（灰色），画在已完成之后
-        if (skippedRatio > 0) {
-          const skipStart = startAngle + Math.PI * 2 * completedRatio
-          const skipEnd = skipStart + Math.PI * 2 * skippedRatio
-          ctx.beginPath()
-          ctx.arc(cx, cy, radius, skipStart, skipEnd)
-          ctx.strokeStyle = '#C0C4CC'
-          ctx.lineWidth = lineWidth
-          ctx.lineCap = 'round'
-          ctx.stroke()
-        }
-
-        // 已完成（绿色）
-        if (completedRatio > 0) {
-          const completedEnd = startAngle + Math.PI * 2 * completedRatio
-          ctx.beginPath()
-          ctx.arc(cx, cy, radius, startAngle, completedEnd)
-          ctx.strokeStyle = '#4CAF50'
-          ctx.lineWidth = lineWidth
-          ctx.lineCap = 'round'
-          ctx.stroke()
-        }
-      })
   }
 
   const pending = progress
@@ -94,16 +62,17 @@ const IndexPage = () => {
 
   const hasTask = progress && progress.totalToday > 0
 
+  const ringBg = progress ? buildConicGradient(progress) : '#E3E8F0'
+
+  const maxCount = subjectList.length > 0 ? Math.max(...subjectList.map(s => s.count)) : 0
+
   return (
     <View className='index-page'>
-      {/* 进度环 */}
+      {/* 进度环（纯 CSS，避免 Canvas 原生组件层级问题） */}
       <View className='ring-section'>
         <View className='ring-wrap'>
-          <Canvas
-            type='2d'
-            id='progressCanvas'
-            className='ring-canvas'
-          />
+          <View className='ring-outer' style={{ background: ringBg }} />
+          <View className='ring-mask' />
           <View className='ring-inner'>
             {loading ? (
               <Text className='ring-loading'>加载中</Text>
@@ -132,6 +101,48 @@ const IndexPage = () => {
         <View className='stat-card'>
           <Text className='stat-num stat-orange'>{progress?.streakDays ?? 0}</Text>
           <Text className='stat-label'>连续天数</Text>
+        </View>
+      </View>
+
+      {/* 学科分布 */}
+      <View className='subject-section'>
+        <Text className='subject-title'>学科分布</Text>
+        <View className='subject-card'>
+          {subjectList.length > 0 ? (
+            <>
+              {subjectList.map(item => (
+                <View className='subject-row' key={item.subject}>
+                  <Text className='subject-label'>{item.subject}</Text>
+                  <View className='subject-bar-bg'>
+                    <View
+                      className='subject-bar'
+                      style={{
+                        width: `${(item.count / maxCount) * 100}%`,
+                        background: getBarColor(item.avgMastery)
+                      }}
+                    />
+                  </View>
+                  <Text className='subject-count'>{item.count}</Text>
+                </View>
+              ))}
+              <View className='subject-legend'>
+                <View className='subject-legend-item'>
+                  <View className='subject-legend-dot' style={{ background: '#F44336' }} />
+                  <Text className='subject-legend-text'>低掌握</Text>
+                </View>
+                <View className='subject-legend-item'>
+                  <View className='subject-legend-dot' style={{ background: '#FF9800' }} />
+                  <Text className='subject-legend-text'>中掌握</Text>
+                </View>
+                <View className='subject-legend-item'>
+                  <View className='subject-legend-dot' style={{ background: '#4CAF50' }} />
+                  <Text className='subject-legend-text'>高掌握</Text>
+                </View>
+              </View>
+            </>
+          ) : (
+            <Text className='subject-empty'>暂无学科数据</Text>
+          )}
         </View>
       </View>
 

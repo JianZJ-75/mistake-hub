@@ -122,10 +122,8 @@ export interface MistakeDetailResp {
 	accountNickname?: string;
 	title: string;
 	correctAnswer?: string;
-	errorReason?: string;
 	titleImageUrl?: string;
 	answerImageUrl?: string;
-	reasonImageUrl?: string;
 	reviewStage: number;
 	masteryLevel: number;
 	lastReviewTime?: string;
@@ -146,4 +144,44 @@ export interface ReviewRecordResp {
 	note?: string;
 	noteImageUrl?: string;
 	reviewTime: string;
+}
+
+/** 对应后端 AdminOverviewResp */
+export interface AdminOverviewResp {
+	totalUsers: number;
+	activeUsersToday: number;
+	totalMistakes: number;
+	avgCompletionRate: number;
+}
+
+/** 对应后端 ReviewRecordAdminResp */
+export interface ReviewRecordAdminResp {
+	id: number;
+	accountCode: string;
+	accountNickname: string;
+	mistakeId: number;
+	mistakeTitle: string;
+	isCorrect: number;
+	reviewStageBefore: number;
+	reviewStageAfter: number;
+	masteryBefore: number;
+	masteryAfter: number;
+	note?: string;
+	noteImageUrl?: string;
+	reviewTime: string;
+}
+
+/** 对应后端 DailyCompletionResp */
+export interface DailyCompletionResp {
+	date: string;
+	totalPlanned: number;
+	completed: number;
+	completionRate: number | null;
+}
+
+/** 对应后端 SubjectStatsResp */
+export interface SubjectStatsResp {
+	subject: string;
+	count: number;
+	avgMastery: number;
 }

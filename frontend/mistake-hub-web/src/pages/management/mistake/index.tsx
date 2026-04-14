@@ -16,6 +16,7 @@ import { Textarea } from "@/ui/textarea";
 import { cascadeToggleTag } from "@/utils/tagCascade";
 import { ChevronDown, ChevronRight, Eye, History, Loader2, Pencil, Search, Trash2, Upload, X } from "lucide-react";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/ui/command";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/ui/tooltip";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -57,10 +58,8 @@ const TYPE_LABEL: Record<string, string> = { SUBJECT: "学科", CHAPTER: "章节
 interface EditForm {
 	title: string;
 	correctAnswer: string;
-	errorReason: string;
 	titleImageUrl: string;
 	answerImageUrl: string;
-	reasonImageUrl: string;
 	tagIds: number[];
 }
 
@@ -92,7 +91,7 @@ export default function MistakeManagementPage() {
 	const [detailOpen, setDetailOpen] = useState(false);
 	const [selected, setSelected] = useState<MistakeDetailResp | null>(null);
 	const [editMode, setEditMode] = useState(false);
-	const [editForm, setEditForm] = useState<EditForm>({ title: "", correctAnswer: "", errorReason: "", titleImageUrl: "", answerImageUrl: "", reasonImageUrl: "", tagIds: [] });
+	const [editForm, setEditForm] = useState<EditForm>({ title: "", correctAnswer: "", titleImageUrl: "", answerImageUrl: "", tagIds: [] });
 	const [saving, setSaving] = useState(false);
 
 	// ===== 删除确认 =====
@@ -102,7 +101,7 @@ export default function MistakeManagementPage() {
 
 	// ===== 图片上传 =====
 	const [uploading, setUploading] = useState(false);
-	const [uploadTarget, setUploadTarget] = useState<"titleImageUrl" | "answerImageUrl" | "reasonImageUrl">("titleImageUrl");
+	const [uploadTarget, setUploadTarget] = useState<"titleImageUrl" | "answerImageUrl">("titleImageUrl");
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	// ===== 复习历史弹窗 =====
@@ -187,10 +186,8 @@ export default function MistakeManagementPage() {
 		setEditForm({
 			title: selected.title || "",
 			correctAnswer: selected.correctAnswer || "",
-			errorReason: selected.errorReason || "",
 			titleImageUrl: selected.titleImageUrl || "",
 			answerImageUrl: selected.answerImageUrl || "",
-			reasonImageUrl: selected.reasonImageUrl || "",
 			tagIds: selected.tags?.map(t => t.id) || [],
 		});
 		setEditMode(true);
@@ -207,10 +204,8 @@ export default function MistakeManagementPage() {
 				id: selected.id,
 				title: editForm.title.trim(),
 				correctAnswer: editForm.correctAnswer.trim() || "",
-				errorReason: editForm.errorReason.trim() || "",
 				titleImageUrl: editForm.titleImageUrl.trim() || "",
 				answerImageUrl: editForm.answerImageUrl.trim() || "",
-				reasonImageUrl: editForm.reasonImageUrl.trim() || "",
 				tagIds: editForm.tagIds,
 			});
 			toast.success("保存成功");
@@ -353,7 +348,7 @@ export default function MistakeManagementPage() {
 		}
 	};
 
-	const triggerUpload = (target: "titleImageUrl" | "answerImageUrl" | "reasonImageUrl") => {
+	const triggerUpload = (target: "titleImageUrl" | "answerImageUrl") => {
 		setUploadTarget(target);
 		fileInputRef.current?.click();
 	};
@@ -576,14 +571,29 @@ export default function MistakeManagementPage() {
 											</span>
 										</td>
 										<td className="px-4 py-3">
-											<div className="flex flex-wrap gap-1">
-												{m.tags?.slice(0, 2).map(t => (
-													<span key={t.id} className="px-1.5 py-0.5 text-xs bg-muted rounded">{t.name}</span>
-												))}
-												{(m.tags?.length ?? 0) > 2 && (
-													<span className="text-xs text-text-secondary">+{m.tags!.length - 2}</span>
-												)}
-											</div>
+											{(m.tags?.length ?? 0) > 0 ? (
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<div className="flex flex-wrap gap-1 cursor-default">
+															{m.tags?.slice(0, 2).map(t => (
+																<span key={t.id} className="px-1.5 py-0.5 text-xs bg-muted rounded">{t.name}</span>
+															))}
+															{(m.tags?.length ?? 0) > 2 && (
+																<span className="text-xs text-text-secondary">+{m.tags!.length - 2}</span>
+															)}
+														</div>
+													</TooltipTrigger>
+													<TooltipContent side="top" className="max-w-64">
+														<div className="flex flex-wrap gap-1">
+															{m.tags!.map(t => (
+																<span key={t.id} className="px-1.5 py-0.5 text-xs bg-white/20 rounded">{t.name}</span>
+															))}
+														</div>
+													</TooltipContent>
+												</Tooltip>
+											) : (
+												<span className="text-xs text-text-secondary">—</span>
+											)}
 										</td>
 										<td className="px-4 py-3 text-text-secondary text-xs whitespace-nowrap">
 											{m.createdTime?.replace("T", " ").substring(0, 16) || "—"}
@@ -680,22 +690,6 @@ export default function MistakeManagementPage() {
 								</div>
 							)}
 
-							{/* 错误原因 */}
-							{selected.errorReason && (
-								<div>
-									<p className="text-xs text-muted-foreground mb-1">错误原因</p>
-									<p className="text-sm leading-relaxed">{selected.errorReason}</p>
-								</div>
-							)}
-
-							{/* 错因图片 */}
-							{selected.reasonImageUrl && (
-								<div>
-									<p className="text-xs text-muted-foreground mb-1">错因图片</p>
-									<img src={selected.reasonImageUrl} alt="错因图片" className="max-w-full rounded-lg border" />
-								</div>
-							)}
-
 							{/* 标签 */}
 							{(selected.tags?.length ?? 0) > 0 && (
 								<div>
@@ -737,17 +731,6 @@ export default function MistakeManagementPage() {
 									className="min-h-[60px] resize-none"
 									value={editForm.correctAnswer}
 									onChange={e => setEditForm(prev => ({ ...prev, correctAnswer: e.target.value }))}
-									maxLength={2000}
-								/>
-							</div>
-
-							{/* 错误原因 */}
-							<div>
-								<label className="text-xs text-muted-foreground mb-1 block">错误原因</label>
-								<Textarea
-									className="min-h-[60px] resize-none"
-									value={editForm.errorReason}
-									onChange={e => setEditForm(prev => ({ ...prev, errorReason: e.target.value }))}
 									maxLength={2000}
 								/>
 							</div>
@@ -805,34 +788,6 @@ export default function MistakeManagementPage() {
 											size="sm"
 											disabled={uploading}
 											onClick={() => triggerUpload("answerImageUrl")}
-										>
-											{uploading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Upload className="h-4 w-4 mr-1" />}
-											{uploading ? "上传中..." : "选择图片"}
-										</Button>
-									</div>
-								)}
-
-								{/* 错因图片 */}
-								<label className="text-xs text-muted-foreground mb-1 block">错因图片</label>
-								{editForm.reasonImageUrl ? (
-									<div className="relative inline-block">
-										<img src={editForm.reasonImageUrl} alt="错因图片" className="max-w-full max-h-40 rounded-lg border" />
-										<button
-											type="button"
-											className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-0.5 hover:bg-destructive/80"
-											onClick={() => setEditForm(prev => ({ ...prev, reasonImageUrl: "" }))}
-										>
-											<X className="h-3 w-3" />
-										</button>
-									</div>
-								) : (
-									<div>
-										<Button
-											type="button"
-											variant="outline"
-											size="sm"
-											disabled={uploading}
-											onClick={() => triggerUpload("reasonImageUrl")}
 										>
 											{uploading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Upload className="h-4 w-4 mr-1" />}
 											{uploading ? "上传中..." : "选择图片"}

@@ -148,9 +148,13 @@ const changePassword = async (oldPassword: string, newPassword: string): Promise
 	});
 };
 
+/** 修改个人资料 */
+const modifyProfile = (data: { nickname?: string; avatarUrl?: string }) =>
+	apiClient.post<void>({ url: "/v1/account/modify-profile", data });
+
 /** 注册（暂未实现，保留签名供模板页面编译通过） */
 const signup = (_data: { username: string; password: string; email: string }): Promise<never> => {
 	return Promise.reject(new Error("暂不支持注册"));
 };
 
-export default { loginWeb, currentDetail, listUsers, changeRole, resetPassword, changePassword, signup };
+export default { loginWeb, currentDetail, listUsers, changeRole, resetPassword, changePassword, modifyProfile, signup };

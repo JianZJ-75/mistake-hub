@@ -144,6 +144,29 @@ public class ReviewPlanService extends ServiceImpl<ReviewPlanMapper, ReviewPlan>
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 查询某用户日期范围内的复习计划
+     */
+    public List<ReviewPlan> listByAccountAndDateRange(Long accountId, LocalDate start, LocalDate end) {
+
+        return lambdaQuery()
+                .eq(ReviewPlan::getAccountId, accountId)
+                .ge(ReviewPlan::getPlannedDate, start)
+                .le(ReviewPlan::getPlannedDate, end)
+                .list();
+    }
+
+    /**
+     * 查询全平台日期范围内的复习计划
+     */
+    public List<ReviewPlan> listAllByDateRange(LocalDate start, LocalDate end) {
+
+        return lambdaQuery()
+                .ge(ReviewPlan::getPlannedDate, start)
+                .le(ReviewPlan::getPlannedDate, end)
+                .list();
+    }
+
     // ===== 工具方法 =====
 
     /**

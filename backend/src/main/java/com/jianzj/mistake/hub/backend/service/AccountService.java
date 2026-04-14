@@ -11,6 +11,7 @@ import com.jianzj.mistake.hub.backend.dto.req.AccountChangeRoleReq;
 import com.jianzj.mistake.hub.backend.dto.req.AccountLoginWebReq;
 import com.jianzj.mistake.hub.backend.dto.req.AccountLoginWxReq;
 import com.jianzj.mistake.hub.backend.dto.req.AccountResetPasswordReq;
+import com.jianzj.mistake.hub.backend.dto.req.AccountModifyProfileReq;
 import com.jianzj.mistake.hub.backend.dto.req.AccountUpdateDailyLimitReq;
 import com.jianzj.mistake.hub.backend.dto.resp.AccountChangeRoleResp;
 import com.jianzj.mistake.hub.backend.dto.resp.AccountDetailResp;
@@ -291,6 +292,31 @@ public class AccountService extends ServiceImpl<AccountMapper, Account> {
         }
 
         return toDetailResp(account);
+    }
+
+    /**
+     * 修改个人资料（昵称、头像）
+     */
+    public void modifyProfile(AccountModifyProfileReq req) {
+
+        Long accountId = threadStorageUtil.getCurAccountId();
+        Account account = getById(accountId);
+        if (account == null) {
+            oops("用户不存在", "Account does not exist.");
+        }
+
+        if (StringUtils.isNotBlank(req.getNickname())) {
+            account.setNickname(req.getNickname());
+        }
+
+        if (req.getAvatarUrl() != null) {
+            account.setAvatarUrl(req.getAvatarUrl().isEmpty() ? null : req.getAvatarUrl());
+        }
+
+        boolean success = updateById(account);
+        if (!success) {
+            oops("修改个人资料失败", "Failed to update profile.");
+        }
     }
 
     /**

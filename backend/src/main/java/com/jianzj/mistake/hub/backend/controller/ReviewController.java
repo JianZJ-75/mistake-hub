@@ -1,15 +1,19 @@
 package com.jianzj.mistake.hub.backend.controller;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.jianzj.mistake.hub.backend.annotation.PreAuthorize;
 import com.jianzj.mistake.hub.backend.dto.req.ReviewGenerateDailyReq;
 import com.jianzj.mistake.hub.backend.dto.req.ReviewHistoryReq;
+import com.jianzj.mistake.hub.backend.dto.req.ReviewRecordAdminReq;
 import com.jianzj.mistake.hub.backend.dto.req.ReviewSkipReq;
 import com.jianzj.mistake.hub.backend.dto.req.ReviewSubmitReq;
 import com.jianzj.mistake.hub.backend.dto.resp.ReviewProgressResp;
+import com.jianzj.mistake.hub.backend.dto.resp.ReviewRecordAdminResp;
 import com.jianzj.mistake.hub.backend.dto.resp.ReviewRecordResp;
 import com.jianzj.mistake.hub.backend.dto.resp.ReviewSubmitResp;
 import com.jianzj.mistake.hub.backend.dto.resp.ReviewTaskResp;
 import com.jianzj.mistake.hub.backend.enums.Role;
+import com.jianzj.mistake.hub.backend.service.ReviewRecordService;
 import com.jianzj.mistake.hub.backend.service.ReviewScheduleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -40,9 +44,13 @@ public class ReviewController {
 
     private final ReviewScheduleService reviewScheduleService;
 
-    public ReviewController(ReviewScheduleService reviewScheduleService) {
+    private final ReviewRecordService reviewRecordService;
+
+    public ReviewController(ReviewScheduleService reviewScheduleService,
+                            ReviewRecordService reviewRecordService) {
 
         this.reviewScheduleService = reviewScheduleService;
+        this.reviewRecordService = reviewRecordService;
     }
 
     /**
@@ -109,5 +117,16 @@ public class ReviewController {
     public List<ReviewRecordResp> history(@RequestBody @Validated @NotNull ReviewHistoryReq req) {
 
         return reviewScheduleService.getReviewHistory(req);
+    }
+
+    /**
+     * 管理员分页查询复习记录
+     */
+    @Operation(summary = "管理员查询复习记录")
+    @PostMapping("/admin-records")
+    @PreAuthorize(requiredRole = Role.ADMIN)
+    public Page<ReviewRecordAdminResp> adminRecords(@RequestBody @Validated @NotNull ReviewRecordAdminReq req) {
+
+        return reviewRecordService.listPageForAdmin(req);
     }
 }

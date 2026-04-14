@@ -72,3 +72,49 @@ export interface ReviewRecordResp {
   noteImageUrl?: string
   reviewTime: string
 }
+
+export interface StatsOverviewResp {
+  totalMistakes: number
+  masteredCount: number
+  pendingReviewCount: number
+  newThisWeek: number
+}
+
+export interface SubjectStatsResp {
+  subject: string
+  count: number
+  avgMastery: number
+}
+
+export interface MasteryDistributionResp {
+  notMastered: number
+  learning: number
+  mastered: number
+}
+
+export interface DailyCompletionResp {
+  date: string
+  totalPlanned: number
+  completed: number
+  completionRate: number | null
+}
+
+export interface StreakResp {
+  currentStreak: number
+  longestStreak: number
+}
+
+export interface MasteryTrendResp {
+  date: string
+  avgMastery: number
+}
+
+export interface AccountDetailResp {
+  id: number
+  code: string
+  nickname: string
+  avatarUrl?: string
+  role: string
+  dailyLimit: number
+  createdTime: string
+}

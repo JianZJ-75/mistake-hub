@@ -17,11 +17,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -58,32 +56,24 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
 
     private final ThreadStorageUtil threadStorageUtil;
 
-    private final ReviewPlanService reviewPlanService;
-
-    private final ReviewScheduleService reviewScheduleService;
-
     public MistakeService(MistakeTagService mistakeTagService,
                           TagService tagService,
                           AccountService accountService,
-                          ThreadStorageUtil threadStorageUtil,
-                          ReviewPlanService reviewPlanService,
-                          @Lazy ReviewScheduleService reviewScheduleService) {
+                          ThreadStorageUtil threadStorageUtil) {
 
         this.mistakeTagService = mistakeTagService;
         this.tagService = tagService;
         this.accountService = accountService;
         this.threadStorageUtil = threadStorageUtil;
-        this.reviewPlanService = reviewPlanService;
-        this.reviewScheduleService = reviewScheduleService;
     }
 
     // ===== 业务方法 =====
 
     /**
-     * 录入错题（2.5 + 2.10：自动初始化复习状态）
+     * 录入错题（2.5 + 2.10：自动初始化复习状态），返回错题ID
      */
     @Transactional(rollbackFor = Exception.class)
-    public void add(MistakeAddReq req) {
+    public Long add(MistakeAddReq req) {
 
         Long accountId = threadStorageUtil.getCurAccountId();
 
@@ -107,6 +97,8 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
         if (CollectionUtils.isNotEmpty(req.getTagIds())) {
             mistakeTagService.saveTagIds(mistake.getId(), req.getTagIds());
         }
+
+        return mistake.getId();
     }
 
     /**
@@ -224,10 +216,10 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
     }
 
     /**
-     * 删除错题（软删除，2.9）
+     * 删除错题（软删除 + 标签清理），返回被删除的 Mistake
      */
     @Transactional(rollbackFor = Exception.class)
-    public void delete(MistakeDeleteReq req) {
+    public Mistake delete(MistakeDeleteReq req) {
 
         Mistake mistake = isAdmin() ? getMistakeValidById(req.getId()) : getMistakeOwnedByCurrentUser(req.getId());
         mistake.setStatus(STATUS_DELETED);
@@ -239,9 +231,7 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
 
         mistakeTagService.removeByMistakeId(mistake.getId());
 
-        // 联动：将当天 PENDING 的复习计划标记为 SKIPPED，并清除缓存
-        reviewPlanService.skipPendingPlansByMistake(mistake.getId(), LocalDate.now());
-        reviewScheduleService.evictDailyCache(mistake.getAccountId());
+        return mistake;
     }
 
     /**
@@ -385,5 +375,116 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
                     return resp;
                 })
                 .collect(Collectors.toMap(MistakeDetailResp::getId, Function.identity()));
+    }
+
+    /**
+     * 统计某用户有效错题总数
+     */
+    public long countValidByAccountId(Long accountId) {
+
+        return lambdaQuery()
+                .eq(Mistake::getAccountId, accountId)
+                .eq(Mistake::getStatus, STATUS_VALID)
+                .count();
+    }
+
+    /**
+     * 统计某用户掌握度 >= threshold 的错题数
+     */
+    public long countMasteredByAccountId(Long accountId, int threshold) {
+
+        return lambdaQuery()
+                .eq(Mistake::getAccountId, accountId)
+                .eq(Mistake::getStatus, STATUS_VALID)
+                .ge(Mistake::getMasteryLevel, threshold)
+                .count();
+    }
+
+    /**
+     * 统计某用户待复习错题数（nextReviewTime <= deadline）
+     */
+    public long countPendingReview(Long accountId, LocalDateTime deadline) {
+
+        return lambdaQuery()
+                .eq(Mistake::getAccountId, accountId)
+                .eq(Mistake::getStatus, STATUS_VALID)
+                .le(Mistake::getNextReviewTime, deadline)
+                .count();
+    }
+
+    /**
+     * 统计某用户本周新增错题数
+     */
+    public long countNewThisWeek(Long accountId, LocalDateTime weekStart) {
+
+        return lambdaQuery()
+                .eq(Mistake::getAccountId, accountId)
+                .eq(Mistake::getStatus, STATUS_VALID)
+                .ge(Mistake::getCreatedTime, weekStart)
+                .count();
+    }
+
+    /**
+     * 统计某用户掌握度在 [min, max) 区间的错题数，max 为 null 则无上限
+     */
+    public long countByMasteryRange(Long accountId, int min, Integer max) {
+
+        return lambdaQuery()
+                .eq(Mistake::getAccountId, accountId)
+                .eq(Mistake::getStatus, STATUS_VALID)
+                .ge(Mistake::getMasteryLevel, min)
+                .lt(max != null, Mistake::getMasteryLevel, max)
+                .count();
+    }
+
+    /**
+     * 查询某用户所有有效错题ID列表
+     */
+    public List<Long> listValidMistakeIds(Long accountId) {
+
+        List<Mistake> mistakes = lambdaQuery()
+                .eq(Mistake::getAccountId, accountId)
+                .eq(Mistake::getStatus, STATUS_VALID)
+                .select(Mistake::getId)
+                .list();
+
+        if (CollectionUtils.isEmpty(mistakes)) {
+            return new ArrayList<>();
+        }
+
+        return mistakes.stream().map(Mistake::getId).collect(Collectors.toList());
+    }
+
+    /**
+     * 统计全平台有效错题总数
+     */
+    public long countAllValid() {
+
+        return lambdaQuery()
+                .eq(Mistake::getStatus, STATUS_VALID)
+                .count();
+    }
+
+    /**
+     * 查询某用户所有有效错题（供统计学科分布使用）
+     */
+    public List<Mistake> listValidByAccountId(Long accountId) {
+
+        return lambdaQuery()
+                .eq(Mistake::getAccountId, accountId)
+                .eq(Mistake::getStatus, STATUS_VALID)
+                .select(Mistake::getId, Mistake::getMasteryLevel)
+                .list();
+    }
+
+    /**
+     * 查询全平台所有有效错题的 id + masteryLevel（供管理端学科统计使用）
+     */
+    public List<Mistake> listAllValidIdAndMastery() {
+
+        return lambdaQuery()
+                .eq(Mistake::getStatus, STATUS_VALID)
+                .select(Mistake::getId, Mistake::getMasteryLevel)
+                .list();
     }
 }
