@@ -283,6 +283,86 @@ public class StatsService {
     }
 
     /**
+     * 5.8 管理端每日复习完成率（近30天，全平台）
+     */
+    public List<DailyCompletionResp> adminDailyCompletion() {
+
+        LocalDate today = LocalDate.now();
+        LocalDate start = today.minusDays(29);
+
+        List<ReviewPlan> plans = reviewPlanService.listAllByDateRange(start, today);
+
+        Map<LocalDate, List<ReviewPlan>> groupedByDate = plans.stream()
+                .collect(Collectors.groupingBy(ReviewPlan::getPlannedDate));
+
+        List<DailyCompletionResp> result = new ArrayList<>();
+        for (LocalDate date = start; !date.isAfter(today); date = date.plusDays(1)) {
+            List<ReviewPlan> dayPlans = groupedByDate.get(date);
+
+            if (CollectionUtils.isEmpty(dayPlans)) {
+                result.add(DailyCompletionResp.builder()
+                        .date(date.format(DATE_FMT))
+                        .totalPlanned(0)
+                        .completed(0)
+                        .completionRate(null)
+                        .build());
+                continue;
+            }
+
+            int totalPlanned = dayPlans.size();
+            long completed = dayPlans.stream()
+                    .filter(p -> ReviewPlanStatus.COMPLETED.getCode().equals(p.getStatus()))
+                    .count();
+            double rate = totalPlanned > 0 ? Math.round((double) completed / totalPlanned * 10000.0) / 10000.0 : 0.0;
+
+            result.add(DailyCompletionResp.builder()
+                    .date(date.format(DATE_FMT))
+                    .totalPlanned(totalPlanned)
+                    .completed((int) completed)
+                    .completionRate(rate)
+                    .build());
+        }
+
+        return result;
+    }
+
+    /**
+     * 5.9 管理端学科分布统计（全平台）
+     */
+    public List<SubjectStatsResp> adminSubject() {
+
+        List<Mistake> mistakes = mistakeService.listAllValidIdAndMastery();
+        if (CollectionUtils.isEmpty(mistakes)) {
+            return new ArrayList<>();
+        }
+
+        List<Long> mistakeIds = mistakes.stream().map(Mistake::getId).collect(Collectors.toList());
+        Map<Long, Integer> masteryMap = mistakes.stream()
+                .collect(Collectors.toMap(Mistake::getId, Mistake::getMasteryLevel));
+
+        Map<Long, String> subjectMap = mistakeTagService.getSubjectNamesByMistakeIds(mistakeIds);
+
+        Map<String, List<Long>> grouped = mistakeIds.stream()
+                .collect(Collectors.groupingBy(id -> subjectMap.getOrDefault(id, "未分类")));
+
+        return grouped.entrySet().stream()
+                .map(entry -> {
+                    List<Long> ids = entry.getValue();
+                    double avgMastery = ids.stream()
+                            .mapToInt(id -> masteryMap.getOrDefault(id, 0))
+                            .average()
+                            .orElse(0.0);
+                    return SubjectStatsResp.builder()
+                            .subject(entry.getKey())
+                            .count(ids.size())
+                            .avgMastery(Math.round(avgMastery * 100.0) / 100.0)
+                            .build();
+                })
+                .sorted(Comparator.comparingInt(SubjectStatsResp::getCount).reversed())
+                .collect(Collectors.toList());
+    }
+
+    /**
      * 5.7 管理端全局统计
      */
     public AdminOverviewResp adminOverview() {

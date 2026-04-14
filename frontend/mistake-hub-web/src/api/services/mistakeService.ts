@@ -13,10 +13,8 @@ export interface UpdateMistakeParams {
 	id: number;
 	title?: string;
 	correctAnswer?: string;
-	errorReason?: string;
 	titleImageUrl?: string;
 	answerImageUrl?: string;
-	reasonImageUrl?: string;
 	tagIds?: number[];
 }
 

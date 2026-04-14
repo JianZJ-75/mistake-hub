@@ -30,6 +30,11 @@ export const frontendNavData: NavProps["data"] = [
 				path: "/management/tag",
 				icon: <Icon icon="solar:tag-bold-duotone" size="24" />,
 			},
+			{
+				title: "复习记录",
+				path: "/management/review-record",
+				icon: <Icon icon="solar:clipboard-list-bold-duotone" size="24" />,
+			},
 		],
 	},
 ];

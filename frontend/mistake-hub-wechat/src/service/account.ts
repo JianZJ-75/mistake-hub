@@ -1,5 +1,6 @@
 import Taro from '@tarojs/taro'
 import request, { BASE_URL, setToken, getToken, setPendingLogin, ApiResponse } from '../utils/request'
+import { AccountDetailResp } from '../types'
 
 // ===== 登录逻辑 =====
 
@@ -58,6 +59,24 @@ export const refreshLogin = async (): Promise<void> => {
 }
 
 // ===== 工具方法 =====
+
+/**
+ * 获取当前用户详情
+ */
+export const currentDetail = (): Promise<AccountDetailResp> =>
+  request({ url: '/v1/account/current-detail' })
+
+/**
+ * 修改每日复习量
+ */
+export const modifyDailyLimit = (dailyLimit: number): Promise<void> =>
+  request({ url: '/v1/account/modify-daily-limit', data: { dailyLimit } })
+
+/**
+ * 修改个人资料（昵称、头像）
+ */
+export const modifyProfile = (data: { nickname?: string; avatarUrl?: string }): Promise<void> =>
+  request({ url: '/v1/account/modify-profile', data })
 
 /**
  * 封装 wx.login，返回 Promise

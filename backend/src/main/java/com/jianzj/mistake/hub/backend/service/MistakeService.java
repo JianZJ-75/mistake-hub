@@ -476,4 +476,15 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
                 .select(Mistake::getId, Mistake::getMasteryLevel)
                 .list();
     }
+
+    /**
+     * 查询全平台所有有效错题的 id + masteryLevel（供管理端学科统计使用）
+     */
+    public List<Mistake> listAllValidIdAndMastery() {
+
+        return lambdaQuery()
+                .eq(Mistake::getStatus, STATUS_VALID)
+                .select(Mistake::getId, Mistake::getMasteryLevel)
+                .list();
+    }
 }

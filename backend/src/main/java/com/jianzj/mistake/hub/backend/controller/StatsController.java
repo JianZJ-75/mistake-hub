@@ -107,6 +107,28 @@ public class StatsController {
     }
 
     /**
+     * 管理端每日复习完成率（全平台）
+     */
+    @Operation(summary = "管理端每日复习完成率")
+    @PostMapping("/admin-daily-completion")
+    @PreAuthorize(requiredRole = Role.ADMIN)
+    public List<DailyCompletionResp> adminDailyCompletion() {
+
+        return statsService.adminDailyCompletion();
+    }
+
+    /**
+     * 管理端学科分布统计（全平台）
+     */
+    @Operation(summary = "管理端学科分布统计")
+    @PostMapping("/admin-subject")
+    @PreAuthorize(requiredRole = Role.ADMIN)
+    public List<SubjectStatsResp> adminSubject() {
+
+        return statsService.adminSubject();
+    }
+
+    /**
      * 管理端全局统计
      */
     @Operation(summary = "管理端全局统计")

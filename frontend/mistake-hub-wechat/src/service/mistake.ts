@@ -14,6 +14,8 @@ export interface MistakeAddReq {
   titleImageUrl?: string
   answerImageUrl?: string
   tagIds?: number[]
+  note?: string
+  noteImageUrl?: string
 }
 
 export interface MistakeUpdateReq {

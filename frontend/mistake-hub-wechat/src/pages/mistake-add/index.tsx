@@ -16,6 +16,8 @@ const MistakeAddPage = () => {
   const [titleImageUrl, setTitleImageUrl] = useState('')
   const [answerImageUrl, setAnswerImageUrl] = useState('')
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
+  const [note, setNote] = useState('')
+  const [noteImageUrl, setNoteImageUrl] = useState('')
 
   // ===== 弹窗 / 加载状态 =====
   const [allTags, setAllTags] = useState<TagResp[]>([])
@@ -69,6 +71,8 @@ const MistakeAddPage = () => {
         titleImageUrl: titleImageUrl || undefined,
         answerImageUrl: answerImageUrl || undefined,
         tagIds: selectedTagIds.length ? selectedTagIds : undefined,
+        note: note.trim() || undefined,
+        noteImageUrl: noteImageUrl || undefined,
       })
       Taro.showToast({ title: '录入成功', icon: 'success' })
       Taro.eventCenter.trigger('mistakeChanged')
@@ -162,6 +166,37 @@ const MistakeAddPage = () => {
             })()}
             <Text className='tag-arrow'>›</Text>
           </View>
+        </View>
+
+        {/* 录入备注 */}
+        <View className='form-section'>
+          <Text className='section-label'>录入备注</Text>
+          <Textarea
+            className='textarea'
+            placeholder='记录本次对该题的分析（选填）'
+            value={note}
+            onInput={e => setNote(e.detail.value)}
+            autoHeight
+            maxlength={2000}
+          />
+        </View>
+
+        {/* 备注图片 */}
+        <View className='form-section'>
+          <Text className='section-label'>备注图片</Text>
+          {noteImageUrl ? (
+            <View className='img-preview-wrap'>
+              <Image className='img-preview' src={noteImageUrl} mode='widthFix' />
+              <View className='img-remove' onClick={() => setNoteImageUrl('')}>
+                <Text className='img-remove-text'>×</Text>
+              </View>
+            </View>
+          ) : (
+            <View className={`img-picker ${uploading ? 'img-picker-loading' : ''}`} onClick={() => handleChooseImage(setNoteImageUrl)}>
+              <Text className='img-picker-icon'>{uploading ? '上传中…' : '+'}</Text>
+              <Text className='img-picker-hint'>{uploading ? '' : '拍照 / 相册'}</Text>
+            </View>
+          )}
         </View>
 
         {/* 提交按钮 */}
