@@ -41,4 +41,16 @@ public class AccountDetailResp {
 
     /** 注册时间 */
     private LocalDateTime createdTime;
+
+    /** 错题总数 */
+    private Integer totalMistakes;
+
+    /** 已掌握数（masteryLevel >= 80） */
+    private Integer masteredCount;
+
+    /** 当前连续复习天数 */
+    private Integer currentStreak;
+
+    /** 最后活跃时间（最新 review_record.review_time） */
+    private LocalDateTime lastActiveTime;
 }

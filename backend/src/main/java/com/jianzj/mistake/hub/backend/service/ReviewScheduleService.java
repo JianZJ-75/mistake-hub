@@ -54,6 +54,16 @@ public class ReviewScheduleService {
 
     private static final String CACHE_KEY_PREFIX = "review:daily:";
 
+    private static final String CFG_INTERVALS = "review.intervals";
+
+    private static final String CFG_MASTERY_CORRECT_DELTA = "review.mastery_correct_delta";
+
+    private static final String CFG_MASTERY_WRONG_DELTA = "review.mastery_wrong_delta";
+
+    private static final String CFG_STAGE_WRONG_BACK = "review.stage_wrong_back";
+
+    private static final String DEFAULT_INTERVALS = "0,1,2,4,7,15,30";
+
     private final MistakeService mistakeService;
 
     private final AccountService accountService;
@@ -61,6 +71,8 @@ public class ReviewScheduleService {
     private final ReviewPlanService reviewPlanService;
 
     private final ReviewRecordService reviewRecordService;
+
+    private final SystemConfigService systemConfigService;
 
     private final RedissonClient redissonClient;
 
@@ -70,6 +82,7 @@ public class ReviewScheduleService {
                                  AccountService accountService,
                                  ReviewPlanService reviewPlanService,
                                  ReviewRecordService reviewRecordService,
+                                 SystemConfigService systemConfigService,
                                  RedissonClient redissonClient,
                                  ThreadStorageUtil threadStorageUtil) {
 
@@ -77,6 +90,7 @@ public class ReviewScheduleService {
         this.accountService = accountService;
         this.reviewPlanService = reviewPlanService;
         this.reviewRecordService = reviewRecordService;
+        this.systemConfigService = systemConfigService;
         this.redissonClient = redissonClient;
         this.threadStorageUtil = threadStorageUtil;
     }
@@ -140,7 +154,7 @@ public class ReviewScheduleService {
     }
 
     /**
-     * 答对/答错后更新错题复习状态
+     * 答对/答错后更新错题复习状态（参数从 system_config 动态读取）
      */
     public void updateMistakeAfterReview(Long mistakeId, boolean isCorrect) {
 
@@ -152,18 +166,22 @@ public class ReviewScheduleService {
         int currentStage = mistake.getReviewStage() != null ? mistake.getReviewStage() : 0;
         int currentMastery = mistake.getMasteryLevel() != null ? mistake.getMasteryLevel() : 0;
 
+        int masteryCorrectDelta = systemConfigService.getIntByKey(CFG_MASTERY_CORRECT_DELTA, 20);
+        int masteryWrongDelta = systemConfigService.getIntByKey(CFG_MASTERY_WRONG_DELTA, 15);
+        int stageWrongBack = systemConfigService.getIntByKey(CFG_STAGE_WRONG_BACK, 2);
+
         int newStage;
         int newMastery;
 
         if (isCorrect) {
-            newStage = ReviewStage.nextStageOnCorrect(currentStage);
-            newMastery = Math.min(currentMastery + 20, 100);
+            newStage = Math.min(currentStage + 1, 6);
+            newMastery = Math.min(currentMastery + masteryCorrectDelta, 100);
         } else {
-            newStage = ReviewStage.nextStageOnWrong(currentStage);
-            newMastery = Math.max(currentMastery - 15, 0);
+            newStage = Math.max(currentStage - stageWrongBack, 0);
+            newMastery = Math.max(currentMastery - masteryWrongDelta, 0);
         }
 
-        int intervalDays = ReviewStage.getIntervalByStage(newStage);
+        int intervalDays = getIntervalByStage(newStage);
         LocalDateTime now = LocalDateTime.now();
 
         mistake.setReviewStage(newStage);
@@ -417,6 +435,25 @@ public class ReviewScheduleService {
     }
 
     // ===== 工具方法 =====
+
+    /**
+     * 根据阶段序号获取间隔天数（从 system_config 动态读取）
+     */
+    private int getIntervalByStage(int stageIndex) {
+
+        String intervalsStr = systemConfigService.getByKey(CFG_INTERVALS, DEFAULT_INTERVALS);
+        String[] parts = intervalsStr.split(",");
+
+        if (stageIndex >= 0 && stageIndex < parts.length) {
+            try {
+                return Integer.parseInt(parts[stageIndex].trim());
+            } catch (NumberFormatException e) {
+                log.warn("复习间隔配置解析失败，stageIndex={}，使用枚举默认值", stageIndex);
+            }
+        }
+
+        return ReviewStage.getIntervalByStage(stageIndex);
+    }
 
     /**
      * 计算错题优先级分数（Mistake 入参版本，供排序用）

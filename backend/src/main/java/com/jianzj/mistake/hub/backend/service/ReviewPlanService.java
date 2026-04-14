@@ -9,7 +9,12 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -165,6 +170,50 @@ public class ReviewPlanService extends ServiceImpl<ReviewPlanMapper, ReviewPlan>
                 .ge(ReviewPlan::getPlannedDate, start)
                 .le(ReviewPlan::getPlannedDate, end)
                 .list();
+    }
+
+    /**
+     * 批量计算每个用户的当前连续复习天数
+     */
+    public Map<Long, Integer> calculateStreakByAccountIds(Collection<Long> accountIds) {
+
+        if (CollectionUtils.isEmpty(accountIds)) {
+            return Collections.emptyMap();
+        }
+
+        List<ReviewPlan> completedPlans = lambdaQuery()
+                .in(ReviewPlan::getAccountId, accountIds)
+                .eq(ReviewPlan::getStatus, ReviewPlanStatus.COMPLETED.getCode())
+                .select(ReviewPlan::getAccountId, ReviewPlan::getPlannedDate)
+                .list();
+
+        if (CollectionUtils.isEmpty(completedPlans)) {
+            return Collections.emptyMap();
+        }
+
+        // 按 accountId 分组，每个用户有一个 Set<LocalDate>
+        Map<Long, Set<LocalDate>> datesByAccount = new HashMap<>();
+        for (ReviewPlan plan : completedPlans) {
+            datesByAccount.computeIfAbsent(plan.getAccountId(), k -> new HashSet<>())
+                    .add(plan.getPlannedDate());
+        }
+
+        LocalDate today = LocalDate.now();
+        Map<Long, Integer> result = new HashMap<>();
+
+        for (Map.Entry<Long, Set<LocalDate>> entry : datesByAccount.entrySet()) {
+            Set<LocalDate> dateSet = entry.getValue();
+            LocalDate current = dateSet.contains(today) ? today : today.minusDays(1);
+
+            int streak = 0;
+            while (dateSet.contains(current)) {
+                streak++;
+                current = current.minusDays(1);
+            }
+            result.put(entry.getKey(), streak);
+        }
+
+        return result;
     }
 
     // ===== 工具方法 =====

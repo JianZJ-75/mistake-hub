@@ -33,12 +33,18 @@ class ReviewRecordServiceTest {
     @Mock
     private ReviewRecordMapper mockReviewRecordMapper;
 
+    @Mock
+    private AccountService accountService;
+
+    @Mock
+    private MistakeService mistakeService;
+
     private ReviewRecordService reviewRecordService;
 
     @BeforeEach
     void setUp() {
 
-        reviewRecordService = spy(new ReviewRecordService());
+        reviewRecordService = spy(new ReviewRecordService(accountService, mistakeService));
         ReflectionTestUtils.setField(reviewRecordService, "baseMapper", mockReviewRecordMapper);
     }
 

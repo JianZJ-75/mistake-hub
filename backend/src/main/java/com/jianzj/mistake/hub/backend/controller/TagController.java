@@ -1,5 +1,6 @@
 package com.jianzj.mistake.hub.backend.controller;
 
+import com.jianzj.mistake.hub.backend.annotation.OperationLogAnno;
 import com.jianzj.mistake.hub.backend.annotation.PreAuthorize;
 import com.jianzj.mistake.hub.backend.dto.req.TagAddReq;
 import com.jianzj.mistake.hub.backend.dto.req.TagCustomAddReq;
@@ -60,6 +61,7 @@ public class TagController {
     @Operation(summary = "新增全局标签")
     @PostMapping("/add")
     @PreAuthorize(requiredRole = Role.ADMIN)
+    @OperationLogAnno(action = "tag/add", targetType = "TAG")
     public void add(@RequestBody @Validated @NotNull TagAddReq req) {
 
         tagService.add(req);
@@ -71,6 +73,7 @@ public class TagController {
     @Operation(summary = "编辑全局标签")
     @PostMapping("/modify")
     @PreAuthorize(requiredRole = Role.ADMIN)
+    @OperationLogAnno(action = "tag/update", targetType = "TAG")
     public void modify(@RequestBody @Validated @NotNull TagUpdateReq req) {
 
         tagService.modify(req);
@@ -82,6 +85,7 @@ public class TagController {
     @Operation(summary = "删除全局标签")
     @PostMapping("/delete")
     @PreAuthorize(requiredRole = Role.ADMIN)
+    @OperationLogAnno(action = "tag/delete", targetType = "TAG")
     public void delete(@RequestBody @Validated @NotNull TagDeleteReq req) {
 
         tagService.delete(req);

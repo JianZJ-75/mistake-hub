@@ -1,6 +1,7 @@
 package com.jianzj.mistake.hub.backend.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.jianzj.mistake.hub.backend.annotation.OperationLogAnno;
 import com.jianzj.mistake.hub.backend.annotation.PreAuthorize;
 import com.jianzj.mistake.hub.backend.dto.req.AccountChangePasswordReq;
 import com.jianzj.mistake.hub.backend.dto.req.AccountChangeRoleReq;
@@ -13,6 +14,7 @@ import com.jianzj.mistake.hub.backend.dto.resp.AccountChangeRoleResp;
 import com.jianzj.mistake.hub.backend.dto.resp.AccountDetailResp;
 import com.jianzj.mistake.hub.backend.dto.resp.AccountResetPasswordResp;
 import com.jianzj.mistake.hub.backend.enums.Role;
+import com.jianzj.mistake.hub.backend.manager.AccountManager;
 import com.jianzj.mistake.hub.backend.service.AccountService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -44,9 +46,13 @@ public class AccountController {
 
     private final AccountService accountService;
 
-    public AccountController(AccountService accountService) {
+    private final AccountManager accountManager;
+
+    public AccountController(AccountService accountService,
+                             AccountManager accountManager) {
 
         this.accountService = accountService;
+        this.accountManager = accountManager;
     }
 
     // ==================== 通用接口 ====================
@@ -110,7 +116,7 @@ public class AccountController {
                                         @RequestParam(value = "pageNum") @NotNull @Min(1) Long pageNum,
                                         @RequestParam(value = "pageSize") @NotNull @Min(1) Long pageSize) {
 
-        return accountService.list(code, nickname, role, pageNum, pageSize);
+        return accountManager.listWithStats(code, nickname, role, pageNum, pageSize);
     }
 
     /**
@@ -129,6 +135,7 @@ public class AccountController {
     @Operation(summary = "修改用户角色")
     @PostMapping("/change-role")
     @PreAuthorize(requiredRole = Role.ADMIN)
+    @OperationLogAnno(action = "changeRole", targetType = "ACCOUNT")
     public AccountChangeRoleResp changeRole(@RequestBody @Validated @NotNull AccountChangeRoleReq req) {
 
         return accountService.changeRole(req);
@@ -140,6 +147,7 @@ public class AccountController {
     @Operation(summary = "重置密码")
     @PostMapping("/reset-password")
     @PreAuthorize(requiredRole = Role.ADMIN)
+    @OperationLogAnno(action = "resetPassword", targetType = "ACCOUNT")
     public AccountResetPasswordResp resetPassword(@RequestBody @Validated @NotNull AccountResetPasswordReq req) {
 
         return accountService.resetPassword(req);
