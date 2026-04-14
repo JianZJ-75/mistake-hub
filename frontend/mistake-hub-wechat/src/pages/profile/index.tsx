@@ -205,7 +205,7 @@ const ProfilePage = () => {
 
       {/* 学习数据概览 */}
       <Text className='section-title'>学习概览</Text>
-      <View className='stats-grid'>
+      <View className='stats-row'>
         <View className='stats-item'>
           <Text className='stats-item-value color-blue'>{overview?.totalMistakes ?? '—'}</Text>
           <Text className='stats-item-label'>总错题</Text>
@@ -214,6 +214,8 @@ const ProfilePage = () => {
           <Text className='stats-item-value color-green'>{overview?.masteredCount ?? '—'}</Text>
           <Text className='stats-item-label'>已掌握</Text>
         </View>
+      </View>
+      <View className='stats-row'>
         <View className='stats-item'>
           <Text className='stats-item-value color-orange'>{overview?.pendingReviewCount ?? '—'}</Text>
           <Text className='stats-item-label'>待复习</Text>

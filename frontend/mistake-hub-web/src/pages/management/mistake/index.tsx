@@ -16,6 +16,7 @@ import { Textarea } from "@/ui/textarea";
 import { cascadeToggleTag } from "@/utils/tagCascade";
 import { ChevronDown, ChevronRight, Eye, History, Loader2, Pencil, Search, Trash2, Upload, X } from "lucide-react";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/ui/command";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/ui/tooltip";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -570,14 +571,29 @@ export default function MistakeManagementPage() {
 											</span>
 										</td>
 										<td className="px-4 py-3">
-											<div className="flex flex-wrap gap-1">
-												{m.tags?.slice(0, 2).map(t => (
-													<span key={t.id} className="px-1.5 py-0.5 text-xs bg-muted rounded">{t.name}</span>
-												))}
-												{(m.tags?.length ?? 0) > 2 && (
-													<span className="text-xs text-text-secondary">+{m.tags!.length - 2}</span>
-												)}
-											</div>
+											{(m.tags?.length ?? 0) > 0 ? (
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<div className="flex flex-wrap gap-1 cursor-default">
+															{m.tags?.slice(0, 2).map(t => (
+																<span key={t.id} className="px-1.5 py-0.5 text-xs bg-muted rounded">{t.name}</span>
+															))}
+															{(m.tags?.length ?? 0) > 2 && (
+																<span className="text-xs text-text-secondary">+{m.tags!.length - 2}</span>
+															)}
+														</div>
+													</TooltipTrigger>
+													<TooltipContent side="top" className="max-w-64">
+														<div className="flex flex-wrap gap-1">
+															{m.tags!.map(t => (
+																<span key={t.id} className="px-1.5 py-0.5 text-xs bg-white/20 rounded">{t.name}</span>
+															))}
+														</div>
+													</TooltipContent>
+												</Tooltip>
+											) : (
+												<span className="text-xs text-text-secondary">—</span>
+											)}
 										</td>
 										<td className="px-4 py-3 text-text-secondary text-xs whitespace-nowrap">
 											{m.createdTime?.replace("T", " ").substring(0, 16) || "—"}

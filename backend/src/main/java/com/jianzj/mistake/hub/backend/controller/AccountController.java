@@ -7,6 +7,7 @@ import com.jianzj.mistake.hub.backend.dto.req.AccountChangeRoleReq;
 import com.jianzj.mistake.hub.backend.dto.req.AccountLoginWebReq;
 import com.jianzj.mistake.hub.backend.dto.req.AccountLoginWxReq;
 import com.jianzj.mistake.hub.backend.dto.req.AccountResetPasswordReq;
+import com.jianzj.mistake.hub.backend.dto.req.AccountModifyProfileReq;
 import com.jianzj.mistake.hub.backend.dto.req.AccountUpdateDailyLimitReq;
 import com.jianzj.mistake.hub.backend.dto.resp.AccountChangeRoleResp;
 import com.jianzj.mistake.hub.backend.dto.resp.AccountDetailResp;
@@ -71,6 +72,17 @@ public class AccountController {
     public String loginWx(@RequestBody @Validated @NotNull AccountLoginWxReq req) {
 
         return accountService.loginWx(req);
+    }
+
+    /**
+     * 修改个人资料
+     */
+    @Operation(summary = "修改个人资料")
+    @PostMapping("/modify-profile")
+    @PreAuthorize(requiredRole = Role.STUDENT)
+    public void modifyProfile(@RequestBody @Validated @NotNull AccountModifyProfileReq req) {
+
+        accountService.modifyProfile(req);
     }
 
     /**
