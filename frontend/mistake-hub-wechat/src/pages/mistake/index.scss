@@ -1,6 +1,9 @@
+@import '../../styles/variables';
+@import '../../styles/mixins';
+
 .list-page {
   min-height: 100vh;
-  background: #f5f7fa;
+  background: $color-bg-page;
   padding-bottom: 120rpx;
 }
 
@@ -9,29 +12,29 @@
   display: flex;
   flex-direction: row;
   padding: 20rpx 24rpx 16rpx;
-  background: #fff;
-  border-bottom: 1rpx solid #f0f0f0;
+  background: $color-bg-card;
+  border-bottom: 1rpx solid $color-border;
   gap: 16rpx;
 }
 
 .filter-chip {
   padding: 10rpx 28rpx;
   border-radius: 32rpx;
-  background: #f0f0f0;
+  background: $color-border;
   font-size: 26rpx;
-  color: #666;
+  color: $color-text-secondary;
   white-space: nowrap;
 }
 
 .chip-active {
-  background: #4A7CF8;
+  background: $color-primary;
   color: #fff;
 }
 
 /* 标签筛选栏 */
 .tag-filter-bar {
-  background: #fff;
-  border-bottom: 1rpx solid #f0f0f0;
+  background: $color-bg-card;
+  border-bottom: 1rpx solid $color-border;
   padding: 16rpx 24rpx;
 }
 
@@ -50,7 +53,7 @@
   gap: 6rpx;
   padding: 8rpx 20rpx;
   border-radius: 32rpx;
-  background: #4A7CF8;
+  background: $color-primary;
 }
 
 .tag-filter-selected-text {
@@ -69,13 +72,13 @@
   align-items: center;
   padding: 8rpx 20rpx;
   border-radius: 32rpx;
-  border: 1rpx dashed #ccc;
-  background: #fafafa;
+  border: 1rpx dashed $color-text-placeholder;
+  background: $color-bg-input;
 }
 
 .tag-filter-add-text {
   font-size: 24rpx;
-  color: #999;
+  color: $color-text-muted;
 }
 
 .tag-filter-clear {
@@ -86,7 +89,7 @@
 
 .tag-filter-clear-text {
   font-size: 24rpx;
-  color: #999;
+  color: $color-text-muted;
 }
 
 /* 错题列表 */
@@ -95,11 +98,9 @@
 }
 
 .mistake-card {
-  background: #fff;
-  border-radius: 16rpx;
+  @include card-base;
   padding: 24rpx;
   margin-bottom: 20rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
 }
 
 .card-header {
@@ -111,19 +112,16 @@
 }
 
 .mastery-badge {
-  font-size: 22rpx;
-  padding: 4rpx 16rpx;
-  border-radius: 20rpx;
-  color: #fff;
+  @include mastery-badge;
 }
 
-.badge-high { background: #4CAF50; }
-.badge-mid  { background: #FF9800; }
-.badge-low  { background: #F44336; }
+.badge-high { background: $color-mastery-high; }
+.badge-mid  { background: $color-mastery-mid; }
+.badge-low  { background: $color-mastery-low; }
 
 .card-title {
   font-size: 28rpx;
-  color: #333;
+  color: $color-text-primary;
   line-height: 1.6;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -148,7 +146,7 @@
 .mastery-track {
   flex: 1;
   height: 8rpx;
-  background: #f0f0f0;
+  background: $color-track;
   border-radius: 4rpx;
   overflow: hidden;
 }
@@ -158,22 +156,20 @@
   border-radius: 4rpx;
 }
 
-.mastery-fill.badge-high { background: #4CAF50; }
-.mastery-fill.badge-mid  { background: #FF9800; }
-.mastery-fill.badge-low  { background: #F44336; }
+.mastery-fill.badge-high { background: $color-mastery-high; }
+.mastery-fill.badge-mid  { background: $color-mastery-mid; }
+.mastery-fill.badge-low  { background: $color-mastery-low; }
 
 .mastery-pct {
   font-size: 24rpx;
-  color: #999;
+  color: $color-text-muted;
   min-width: 72rpx;
   text-align: right;
 }
 
 /* 空状态 */
 .empty-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  @include empty-state;
   padding: 120rpx 0;
 }
 
@@ -184,13 +180,13 @@
 
 .empty-text {
   font-size: 32rpx;
-  color: #333;
+  color: $color-text-primary;
   margin-bottom: 12rpx;
 }
 
 .empty-hint {
   font-size: 26rpx;
-  color: #999;
+  color: $color-text-muted;
 }
 
 /* 底部提示 */
@@ -202,7 +198,7 @@
 
 .footer-text {
   font-size: 24rpx;
-  color: #ccc;
+  color: $color-text-placeholder;
 }
 
 /* 悬浮按钮 */
@@ -213,11 +209,11 @@
   width: 96rpx;
   height: 96rpx;
   border-radius: 48rpx;
-  background: #4A7CF8;
+  background: $color-primary;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4rpx 20rpx rgba(74, 124, 248, 0.4);
+  box-shadow: 0 4rpx 20rpx rgba(79, 134, 247, 0.4);
 }
 
 .fab-text {

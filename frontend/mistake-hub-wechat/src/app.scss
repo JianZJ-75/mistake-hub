@@ -1,8 +1,10 @@
+@import './styles/variables';
+
 page {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background-color: #f5f7fa;
-  color: #333333;
+  background-color: $color-bg-page;
+  color: $color-text-primary;
   font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Segoe UI, Arial, Roboto, 'PingFang SC', 'miui', 'Hiragino Sans GB', 'Microsoft Yahei', sans-serif;
 }

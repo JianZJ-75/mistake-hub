@@ -1,12 +1,15 @@
+@import '../../styles/variables';
+@import '../../styles/mixins';
+
 .profile-page {
   min-height: 100vh;
-  background: #f5f7fa;
+  background: $color-bg-page;
   padding: 0 0 40rpx;
 }
 
 /* ===== 用户信息卡片 ===== */
 .user-card {
-  background: linear-gradient(135deg, #4A7CF8 0%, #6B8FFF 100%);
+  background: $gradient-profile;
   padding: 60rpx 40rpx 48rpx;
   display: flex;
   flex-direction: row;
@@ -78,7 +81,7 @@
 
 .avatar-edit-icon {
   font-size: 20rpx;
-  color: #4A7CF8;
+  color: $color-primary;
   line-height: 1;
 }
 
@@ -129,15 +132,15 @@
 
 .modal-content {
   width: 560rpx;
-  background: #fff;
-  border-radius: 20rpx;
+  background: $color-bg-card;
+  border-radius: $radius-modal;
   padding: 40rpx;
 }
 
 .modal-title {
   font-size: 32rpx;
   font-weight: 600;
-  color: #333;
+  color: $color-text-primary;
   display: block;
   text-align: center;
   margin-bottom: 32rpx;
@@ -146,11 +149,11 @@
 .modal-input {
   width: 100%;
   height: 80rpx;
-  border: 2rpx solid #e0e0e0;
+  border: 2rpx solid $color-border;
   border-radius: 12rpx;
   padding: 0 20rpx;
   font-size: 30rpx;
-  color: #333;
+  color: $color-text-primary;
   margin-bottom: 32rpx;
 }
 
@@ -170,11 +173,11 @@
 }
 
 .modal-btn-cancel {
-  background: #f5f5f5;
+  background: $color-bg-input;
 }
 
 .modal-btn-confirm {
-  background: #4A7CF8;
+  background: $color-primary;
 }
 
 .modal-btn-disabled {
@@ -183,7 +186,7 @@
 
 .modal-btn-text {
   font-size: 28rpx;
-  color: #666;
+  color: $color-text-secondary;
 }
 
 .modal-btn-text-confirm {
@@ -196,7 +199,7 @@
 .section-title {
   font-size: 30rpx;
   font-weight: 600;
-  color: #333;
+  color: $color-text-primary;
   margin: 32rpx 32rpx 16rpx;
   display: block;
 }
@@ -210,13 +213,11 @@
 
 .stats-row .stats-item {
   flex: 1;
-  background: #fff;
-  border-radius: 16rpx;
+  @include card-base;
   padding: 24rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
   margin-right: 16rpx;
 }
 
@@ -232,14 +233,14 @@
 
 .stats-item-label {
   font-size: 24rpx;
-  color: #999;
+  color: $color-text-muted;
   margin-top: 8rpx;
 }
 
-.color-blue { color: #4A7CF8; }
-.color-green { color: #4CAF50; }
-.color-orange { color: #FF9800; }
-.color-purple { color: #9C27B0; }
+.color-blue { color: $color-primary; }
+.color-green { color: $color-success; }
+.color-orange { color: $color-warning; }
+.color-purple { color: $color-stat-purple; }
 
 /* ===== 连续天数 ===== */
 .streak-row {
@@ -251,41 +252,37 @@
 
 .streak-card {
   flex: 1;
-  background: #fff;
-  border-radius: 16rpx;
+  @include card-base;
   padding: 24rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 }
 
 .streak-value {
   font-size: 44rpx;
   font-weight: 700;
-  color: #FF5722;
+  color: $color-streak;
   line-height: 1.2;
 }
 
 .streak-label {
   font-size: 24rpx;
-  color: #999;
+  color: $color-text-muted;
   margin-top: 8rpx;
 }
 
 /* ===== 掌握度分布 ===== */
 .mastery-card {
   margin: 16rpx 32rpx 0;
-  background: #fff;
-  border-radius: 16rpx;
+  @include card-base;
   padding: 28rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 }
 
 .mastery-bar-bg {
   height: 24rpx;
   border-radius: 12rpx;
-  background: #f0f0f0;
+  background: $color-track;
   overflow: hidden;
   display: flex;
   flex-direction: row;
@@ -293,17 +290,17 @@
 }
 
 .mastery-bar-red {
-  background: #F44336;
+  background: $color-mastery-low;
   height: 100%;
 }
 
 .mastery-bar-orange {
-  background: #FF9800;
+  background: $color-mastery-mid;
   height: 100%;
 }
 
 .mastery-bar-green {
-  background: #4CAF50;
+  background: $color-mastery-high;
   height: 100%;
 }
 
@@ -326,35 +323,33 @@
   margin-bottom: 8rpx;
 }
 
-.dot-red { background: #F44336; }
-.dot-orange { background: #FF9800; }
-.dot-green { background: #4CAF50; }
+.dot-red { background: $color-mastery-low; }
+.dot-orange { background: $color-mastery-mid; }
+.dot-green { background: $color-mastery-high; }
 
 .mastery-legend-text {
   font-size: 22rpx;
-  color: #999;
+  color: $color-text-muted;
 }
 
 .mastery-legend-num {
   font-size: 28rpx;
   font-weight: 600;
-  color: #333;
+  color: $color-text-primary;
   margin-top: 4rpx;
 }
 
 /* ===== 学习趋势图表 ===== */
 .chart-card {
   margin: 16rpx 32rpx 0;
-  background: #fff;
-  border-radius: 16rpx;
+  @include card-base;
   padding: 28rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 }
 
 .chart-subtitle {
   font-size: 26rpx;
   font-weight: 600;
-  color: #666;
+  color: $color-text-secondary;
   margin-bottom: 24rpx;
   display: block;
 }
@@ -375,7 +370,7 @@
 
 .chart-y-label {
   font-size: 20rpx;
-  color: #bbb;
+  color: $color-text-muted;
   text-align: right;
   line-height: 1;
 }
@@ -392,7 +387,7 @@
   left: 0;
   right: 0;
   height: 1rpx;
-  background: #f0f0f0;
+  background: $color-border;
 }
 
 .chart-ref-top {
@@ -458,16 +453,14 @@
 
 .chart-x-label {
   font-size: 20rpx;
-  color: #bbb;
+  color: $color-text-muted;
 }
 
 /* ===== 每日复习量设置 ===== */
 .setting-card {
   margin: 16rpx 32rpx 0;
-  background: #fff;
-  border-radius: 16rpx;
+  @include card-base;
   padding: 28rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 }
 
 .setting-row {
@@ -479,25 +472,25 @@
 
 .setting-label {
   font-size: 28rpx;
-  color: #333;
+  color: $color-text-primary;
   flex-shrink: 0;
 }
 
 .setting-input {
   flex: 1;
   height: 72rpx;
-  border: 2rpx solid #e0e0e0;
+  border: 2rpx solid $color-border;
   border-radius: 12rpx;
   font-size: 32rpx;
   text-align: center;
-  color: #333;
+  color: $color-text-primary;
 }
 
 .setting-btn {
   flex-shrink: 0;
   height: 72rpx;
   padding: 0 32rpx;
-  background: #4A7CF8;
+  background: $color-primary;
   border-radius: 12rpx;
   display: flex;
   align-items: center;
@@ -517,7 +510,7 @@
 /* ===== 加载状态 ===== */
 .loading-text {
   font-size: 24rpx;
-  color: #ccc;
+  color: $color-text-placeholder;
   text-align: center;
   padding: 20rpx 0;
 }

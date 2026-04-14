@@ -5,6 +5,7 @@ import { currentDetail, modifyDailyLimit, modifyProfile } from '../../service/ac
 import { uploadImage } from '../../service/upload'
 import { statsOverview, statsMastery, statsStreak, statsDailyCompletion, statsMasteryTrend } from '../../service/stats'
 import { AccountDetailResp, StatsOverviewResp, MasteryDistributionResp, StreakResp, DailyCompletionResp, MasteryTrendResp } from '../../types'
+import { getCompletionColor, getMasteryDotColor } from '../../utils/colors'
 import './index.scss'
 
 /** 格式化日期为 M/D */
@@ -12,22 +13,6 @@ const formatMD = (dateStr: string): string => {
 
   const d = new Date(dateStr)
   return `${d.getMonth() + 1}/${d.getDate()}`
-}
-
-/** 完成率柱状颜色三段 */
-const getCompletionColor = (rate: number | null): string => {
-
-  if (rate === null || rate < 0.5) return '#F44336'
-  if (rate < 0.8) return '#FF9800'
-  return '#4CAF50'
-}
-
-/** 掌握度散点颜色三段 */
-const getMasteryDotColor = (avg: number): string => {
-
-  if (avg < 60) return '#F44336'
-  if (avg < 80) return '#FF9800'
-  return '#4CAF50'
 }
 
 const ProfilePage = () => {

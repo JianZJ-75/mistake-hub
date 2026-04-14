@@ -1,0 +1,33 @@
+@import 'variables';
+
+// ===== 公共 Mixin =====
+
+// 卡片基础样式
+@mixin card-base {
+  background: $color-bg-card;
+  border-radius: $radius-card;
+  box-shadow: $shadow-card;
+}
+
+// 掌握度徽章通用样式
+@mixin mastery-badge {
+  font-size: 22rpx;
+  padding: 4rpx 16rpx;
+  border-radius: 20rpx;
+  color: #fff;
+}
+
+// 表单区块通用样式
+@mixin form-section {
+  background: $color-bg-card;
+  margin: 20rpx 24rpx 0;
+  border-radius: $radius-card;
+  padding: 24rpx;
+}
+
+// 空状态居中布局
+@mixin empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
