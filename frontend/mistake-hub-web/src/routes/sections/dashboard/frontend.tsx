@@ -8,5 +8,7 @@ export function getFrontendDashboardRoutes(): RouteObject[] {
 		{ path: "management/mistake", element: Component("/pages/management/mistake") },
 		{ path: "management/tag", element: Component("/pages/management/tag") },
 		{ path: "management/review-record", element: Component("/pages/management/review-record") },
+		{ path: "management/config", element: Component("/pages/management/config") },
+		{ path: "management/log", element: Component("/pages/management/log") },
 	];
 }

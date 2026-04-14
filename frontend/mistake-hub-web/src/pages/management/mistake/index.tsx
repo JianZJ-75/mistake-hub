@@ -118,17 +118,19 @@ export default function MistakeManagementPage() {
 	const allFlatTags = [...flattenTags(tagTree), ...customTags];
 
 	const fetchMistakes = async (page: number, overrides?: { mastery?: string; tagIds?: number[]; account?: string }) => {
+
 		setLoading(true);
 		try {
 			const mVal = overrides?.mastery ?? masteryFilterVal;
 			const tIds = overrides?.tagIds ?? selectedTagIds;
 			const aVal = overrides?.account ?? (selectedStudent?.id ?? "all");
-			const tagIds = tIds.length > 0 ? tIds.join(",") : undefined;
 			const masteryFilter = mVal !== "all" ? Number(mVal) : undefined;
 			const accountId = aVal !== "all" ? Number(aVal) : undefined;
-			const res = await mistakeService.listMistakes({
+			// admin-list 只支持单个 tagId，取第一个
+			const tagId = tIds.length > 0 ? tIds[0] : undefined;
+			const res = await mistakeService.adminListMistakes({
 				accountId,
-				tagIds,
+				tagId,
 				masteryFilter,
 				pageNum: page,
 				pageSize: PAGE_SIZE,
@@ -200,7 +202,7 @@ export default function MistakeManagementPage() {
 		}
 		setSaving(true);
 		try {
-			await mistakeService.modifyMistake({
+			await mistakeService.adminUpdateMistake({
 				id: selected.id,
 				title: editForm.title.trim(),
 				correctAnswer: editForm.correctAnswer.trim() || "",
@@ -550,7 +552,10 @@ export default function MistakeManagementPage() {
 								return (
 									<tr key={m.id} className="hover:bg-muted/30 transition-colors">
 										<td className="px-4 py-3 text-text-secondary">{m.id}</td>
-										<td className="px-4 py-3 text-sm">{m.accountNickname || "—"}</td>
+										<td className="px-4 py-3 text-sm">
+											<div>{m.accountNickname || "—"}</div>
+											{m.accountCode && <div className="text-xs text-muted-foreground">{m.accountCode}</div>}
+										</td>
 										<td className="px-4 py-3 max-w-[240px]">
 											<span className="line-clamp-2 text-sm">{m.title}</span>
 										</td>

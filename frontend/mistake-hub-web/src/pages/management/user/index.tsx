@@ -161,6 +161,10 @@ export default function UserManagementPage() {
 							<th className="px-4 py-3 text-left font-medium text-text-secondary">昵称</th>
 							<th className="px-4 py-3 text-left font-medium text-text-secondary">角色</th>
 							<th className="px-4 py-3 text-left font-medium text-text-secondary">每日复习量</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary">总错题</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary">已掌握</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary">连续天数</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary">最后活跃</th>
 							<th className="px-4 py-3 text-left font-medium text-text-secondary">注册时间</th>
 							<th className="px-4 py-3 text-left font-medium text-text-secondary">操作</th>
 						</tr>
@@ -168,13 +172,13 @@ export default function UserManagementPage() {
 					<tbody className="divide-y">
 						{loading ? (
 							<tr>
-								<td colSpan={8} className="py-12 text-center text-text-secondary">
+								<td colSpan={12} className="py-12 text-center text-text-secondary">
 									<Loader2 className="h-6 w-6 animate-spin mx-auto" />
 								</td>
 							</tr>
 						) : users.length === 0 ? (
 							<tr>
-								<td colSpan={8} className="py-12 text-center text-text-secondary">
+								<td colSpan={12} className="py-12 text-center text-text-secondary">
 									{isFiltering ? "无匹配结果，请调整筛选条件" : "暂无数据"}
 								</td>
 							</tr>
@@ -203,6 +207,17 @@ export default function UserManagementPage() {
 											</span>
 										</td>
 										<td className="px-4 py-3 text-text-secondary">{user.dailyLimit ?? "—"}</td>
+										<td className="px-4 py-3 text-text-secondary">{user.totalMistakes ?? 0}</td>
+										<td className="px-4 py-3 text-text-secondary">{user.masteredCount ?? 0}</td>
+										<td className="px-4 py-3 text-text-secondary">
+											{(user.currentStreak ?? 0) > 0
+												? <span className="text-green-600 font-medium">{user.currentStreak}天</span>
+												: "0天"
+											}
+										</td>
+										<td className="px-4 py-3 text-text-secondary text-xs whitespace-nowrap">
+											{user.lastActiveTime ? user.lastActiveTime.replace("T", " ").substring(0, 16) : "—"}
+										</td>
 										<td className="px-4 py-3 text-text-secondary text-xs whitespace-nowrap">
 											{user.createdTime ? user.createdTime.replace("T", " ").substring(0, 16) : "—"}
 										</td>

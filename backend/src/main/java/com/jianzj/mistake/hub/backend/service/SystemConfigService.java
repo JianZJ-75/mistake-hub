@@ -12,7 +12,9 @@ import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import static com.jianzj.mistake.hub.common.convention.exception.BaseException.oops;
 
@@ -31,6 +33,17 @@ public class SystemConfigService extends ServiceImpl<SystemConfigMapper, SystemC
     private static final String CACHE_KEY_PREFIX = "config:";
 
     private static final long CACHE_TTL_HOURS = 24;
+
+    /**
+     * 配置值校验器，key → 校验逻辑（不通过直接 oops）
+     */
+    private static final Map<String, Consumer<String>> VALIDATORS = Map.of(
+            "review.intervals", SystemConfigService::validateIntervals,
+            "review.mastery_correct_delta", v -> validateIntRange(v, 1, 100, "答对掌握度增量"),
+            "review.mastery_wrong_delta", v -> validateIntRange(v, 1, 100, "答错掌握度减量"),
+            "review.stage_wrong_back", v -> validateIntRange(v, 1, 6, "答错回退阶段数"),
+            "review.default_daily_limit", v -> validateIntRange(v, 1, 200, "默认每日复习量")
+    );
 
     private final RedissonClient redissonClient;
 
@@ -107,6 +120,11 @@ public class SystemConfigService extends ServiceImpl<SystemConfigMapper, SystemC
             oops("配置项不存在：%s", "Config key not found: %s", req.getConfigKey());
         }
 
+        Consumer<String> validator = VALIDATORS.get(req.getConfigKey());
+        if (validator != null) {
+            validator.accept(req.getConfigValue());
+        }
+
         config.setConfigValue(req.getConfigValue());
 
         boolean success = updateById(config);
@@ -118,6 +136,58 @@ public class SystemConfigService extends ServiceImpl<SystemConfigMapper, SystemC
     }
 
     // ===== 工具方法 =====
+
+    /**
+     * 校验 review.intervals 格式：逗号分隔的 7 个非负整数，且单调递增
+     */
+    private static void validateIntervals(String value) {
+
+        String[] parts = value.split(",");
+        if (parts.length != 7) {
+            oops("复习间隔必须是 7 个逗号分隔的整数（对应阶段 0~6），当前 %d 个",
+                    "review.intervals must contain exactly 7 comma-separated integers, got %d", parts.length);
+        }
+
+        int prev = -1;
+        for (int i = 0; i < parts.length; i++) {
+            int num;
+            try {
+                num = Integer.parseInt(parts[i].trim());
+            } catch (NumberFormatException e) {
+                oops("复习间隔第 %d 项「%s」不是合法整数",
+                        "review.intervals item %d '%s' is not a valid integer", i + 1, parts[i].trim());
+                return;
+            }
+            if (num < 0) {
+                oops("复习间隔第 %d 项不能为负数",
+                        "review.intervals item %d must be non-negative", i + 1);
+            }
+            if (num < prev) {
+                oops("复习间隔必须单调递增，第 %d 项(%d) < 第 %d 项(%d)",
+                        "review.intervals must be non-decreasing, item %d (%d) < item %d (%d)",
+                        i + 1, num, i, prev);
+            }
+            prev = num;
+        }
+    }
+
+    /**
+     * 校验整数范围
+     */
+    private static void validateIntRange(String value, int min, int max, String label) {
+
+        int num;
+        try {
+            num = Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            oops("%s必须是整数，当前值：%s", "%s must be an integer, got: %s", label, value);
+            return;
+        }
+        if (num < min || num > max) {
+            oops("%s必须在 %d ~ %d 之间，当前值：%d",
+                    "%s must be between %d and %d, got: %d", label, min, max, num);
+        }
+    }
 
     /**
      * 根据 configKey 查询配置
