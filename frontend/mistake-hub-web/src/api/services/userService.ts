@@ -1,5 +1,5 @@
 import { sha256, aesEncrypt, aesDecryptDirect } from "@/utils/crypto";
-import type { EnumOption, UserInfo } from "#/entity";
+import type { EnumOption, PageResult, UserInfo } from "#/entity";
 import apiClient from "../apiClient";
 import nonceService from "./nonceService";
 
@@ -58,15 +58,6 @@ const loginWeb = async (data: SignInReq): Promise<string> => {
 
 /** 获取当前用户详情 */
 const currentDetail = () => apiClient.post<UserInfo>({ url: UserApi.CurrentDetail });
-
-/** MybatisPlus 分页响应结构 */
-export interface PageResult<T> {
-	records: T[];
-	total: number;
-	size: number;
-	current: number;
-	pages: number;
-}
 
 /** 用户列表查询参数 */
 export interface ListUsersParams {

@@ -1,5 +1,6 @@
 package com.jianzj.mistake.hub.backend.service;
 
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.jianzj.mistake.hub.backend.dto.req.MistakeAddReq;
@@ -126,15 +127,13 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
 
         final List<Long> finalTagMistakeIds = tagMistakeIds;
 
-        Page<Mistake> page = lambdaQuery()
+        LambdaQueryChainWrapper<Mistake> query = lambdaQuery()
                 .eq(!admin, Mistake::getAccountId, threadStorageUtil.getCurAccountId())
                 .eq(admin && accountId != null, Mistake::getAccountId, accountId)
                 .eq(Mistake::getStatus, Mistake.STATUS_VALID)
-                .in(finalTagMistakeIds != null, Mistake::getId, finalTagMistakeIds != null ? finalTagMistakeIds : List.of())
-                .ge(masteryFilter != null && masteryFilter == 2, Mistake::getMasteryLevel, 80)
-                .ge(masteryFilter != null && masteryFilter == 1, Mistake::getMasteryLevel, 60)
-                .lt(masteryFilter != null && masteryFilter == 1, Mistake::getMasteryLevel, 80)
-                .lt(masteryFilter != null && masteryFilter == 0, Mistake::getMasteryLevel, 60)
+                .in(finalTagMistakeIds != null, Mistake::getId, finalTagMistakeIds != null ? finalTagMistakeIds : List.of());
+
+        Page<Mistake> page = applyMasteryFilter(query, masteryFilter)
                 .orderByDesc(Mistake::getCreatedTime)
                 .page(new Page<>(pageNum, pageSize));
 
@@ -236,14 +235,12 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
         final List<Long> finalTagMistakeIds = tagMistakeIds;
         Integer masteryFilter = req.getMasteryFilter();
 
-        Page<Mistake> page = lambdaQuery()
+        LambdaQueryChainWrapper<Mistake> query = lambdaQuery()
                 .eq(req.getAccountId() != null, Mistake::getAccountId, req.getAccountId())
                 .eq(Mistake::getStatus, Mistake.STATUS_VALID)
-                .in(finalTagMistakeIds != null, Mistake::getId, finalTagMistakeIds != null ? finalTagMistakeIds : List.of())
-                .ge(masteryFilter != null && masteryFilter == 2, Mistake::getMasteryLevel, 80)
-                .ge(masteryFilter != null && masteryFilter == 1, Mistake::getMasteryLevel, 60)
-                .lt(masteryFilter != null && masteryFilter == 1, Mistake::getMasteryLevel, 80)
-                .lt(masteryFilter != null && masteryFilter == 0, Mistake::getMasteryLevel, 60)
+                .in(finalTagMistakeIds != null, Mistake::getId, finalTagMistakeIds != null ? finalTagMistakeIds : List.of());
+
+        Page<Mistake> page = applyMasteryFilter(query, masteryFilter)
                 .orderByDesc(Mistake::getCreatedTime)
                 .page(new Page<>(req.getPageNum(), req.getPageSize()));
 
@@ -359,6 +356,23 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
     }
 
     // ===== 工具方法 =====
+
+    /**
+     * 应用掌握度筛选条件
+     */
+    private LambdaQueryChainWrapper<Mistake> applyMasteryFilter(
+            LambdaQueryChainWrapper<Mistake> query, Integer masteryFilter) {
+
+        if (masteryFilter == null) {
+            return query;
+        }
+        return switch (masteryFilter) {
+            case 0 -> query.lt(Mistake::getMasteryLevel, 60);
+            case 1 -> query.ge(Mistake::getMasteryLevel, 60).lt(Mistake::getMasteryLevel, 80);
+            case 2 -> query.ge(Mistake::getMasteryLevel, 80);
+            default -> query;
+        };
+    }
 
     /**
      * 解析逗号分隔的 tagIds 字符串

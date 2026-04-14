@@ -1,5 +1,6 @@
 @import '../../styles/variables';
 @import '../../styles/mixins';
+@import '../../styles/form';
 
 .detail-page {
   min-height: 100vh;
@@ -113,20 +114,6 @@
   border-radius: 8rpx;
 }
 
-.tag-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12rpx;
-}
-
-.tag-chip {
-  font-size: 24rpx;
-  color: $color-tag-text;
-  background: $color-tag-bg;
-  padding: 6rpx 20rpx;
-  border-radius: 20rpx;
-}
-
 /* 查看模式操作按钮 */
 .view-actions {
   display: flex;
@@ -172,112 +159,6 @@
   font-size: 30rpx;
   color: $color-danger;
   border: 2rpx solid $color-danger;
-}
-
-/* 编辑模式表单 */
-.form-section {
-  @include form-section;
-}
-
-.section-label {
-  font-size: 26rpx;
-  color: $color-text-secondary;
-  margin-bottom: 16rpx;
-  display: block;
-}
-
-.required {
-  color: $color-danger;
-  margin-left: 4rpx;
-}
-
-.textarea {
-  width: 100%;
-  min-height: 120rpx;
-  font-size: 28rpx;
-  color: $color-text-primary;
-  line-height: 1.6;
-  background: $color-bg-input;
-  border-radius: 8rpx;
-  padding: 16rpx;
-  box-sizing: border-box;
-}
-
-.img-picker {
-  width: 160rpx;
-  height: 160rpx;
-  background: $color-bg-input;
-  border-radius: 12rpx;
-  border: 2rpx dashed $color-text-placeholder;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.img-picker-loading { opacity: 0.6; }
-
-.img-picker-icon {
-  font-size: 48rpx;
-  color: $color-text-placeholder;
-  line-height: 1;
-}
-
-.img-picker-hint {
-  font-size: 22rpx;
-  color: $color-text-placeholder;
-  margin-top: 8rpx;
-}
-
-.img-preview-wrap {
-  position: relative;
-  display: inline-block;
-}
-
-.img-preview {
-  width: 280rpx;
-  border-radius: 12rpx;
-}
-
-.img-remove {
-  position: absolute;
-  top: -16rpx;
-  right: -16rpx;
-  width: 40rpx;
-  height: 40rpx;
-  background: rgba(0, 0, 0, 0.5);
-  border-radius: 20rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.img-remove-text {
-  color: #fff;
-  font-size: 28rpx;
-  line-height: 1;
-}
-
-.tag-selector {
-  background: $color-bg-input;
-  border-radius: 8rpx;
-  padding: 16rpx;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  min-height: 80rpx;
-}
-
-.tag-placeholder {
-  flex: 1;
-  font-size: 28rpx;
-  color: $color-text-placeholder;
-}
-
-.tag-arrow {
-  font-size: 32rpx;
-  color: $color-text-placeholder;
-  margin-left: 12rpx;
 }
 
 /* 编辑模式操作按钮 */

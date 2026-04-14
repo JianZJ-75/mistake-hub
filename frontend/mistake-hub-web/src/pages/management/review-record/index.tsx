@@ -49,17 +49,19 @@ export default function ReviewRecordPage() {
 		fetchRecords(1);
 	}, []);
 
-	const fetchRecords = async (page: number, overrides?: { correct?: string; account?: string }) => {
+	const fetchRecords = async (page: number, overrides?: { correct?: string; account?: string; start?: string; end?: string }) => {
 
 		setLoading(true);
 		try {
 			const cVal = overrides?.correct ?? correctFilter;
 			const aVal = overrides?.account ?? (selectedStudent?.id ?? "all");
+			const sVal = overrides?.start ?? startTime;
+			const eVal = overrides?.end ?? endTime;
 			const res = await reviewService.listReviewRecords({
 				accountId: aVal !== "all" ? Number(aVal) : undefined,
 				isCorrect: cVal !== "all" ? Number(cVal) : undefined,
-				startTime: startTime || undefined,
-				endTime: endTime || undefined,
+				startTime: sVal || undefined,
+				endTime: eVal || undefined,
 				pageNum: page,
 				pageSize: PAGE_SIZE,
 			});
@@ -185,7 +187,7 @@ export default function ReviewRecordPage() {
 					type="datetime-local"
 					className="w-48"
 					value={startTime}
-					onChange={e => setStartTime(e.target.value)}
+					onChange={e => { setStartTime(e.target.value); setPageNum(1); fetchRecords(1, { start: e.target.value }); }}
 					placeholder="开始时间"
 				/>
 				<span className="text-muted-foreground text-sm">至</span>
@@ -193,7 +195,7 @@ export default function ReviewRecordPage() {
 					type="datetime-local"
 					className="w-48"
 					value={endTime}
-					onChange={e => setEndTime(e.target.value)}
+					onChange={e => { setEndTime(e.target.value); setPageNum(1); fetchRecords(1, { end: e.target.value }); }}
 					placeholder="结束时间"
 				/>
 
