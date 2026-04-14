@@ -71,8 +71,8 @@ public class OperationLogAspect {
             OperationLog operationLog = OperationLog.builder()
                     .accountId(accountId)
                     .accountCode(accountCode)
-                    .action(anno.action())
-                    .targetType(anno.targetType())
+                    .action(anno.action().getCode())
+                    .targetType(anno.targetType().getCode())
                     .targetId(targetId)
                     .detail(detail)
                     .build();

@@ -7,8 +7,12 @@ import com.jianzj.mistake.hub.backend.dto.req.TagCustomAddReq;
 import com.jianzj.mistake.hub.backend.dto.req.TagDeleteReq;
 import com.jianzj.mistake.hub.backend.dto.req.TagUpdateReq;
 import com.jianzj.mistake.hub.backend.dto.resp.TagResp;
+import com.jianzj.mistake.hub.backend.enums.OperationAction;
+import com.jianzj.mistake.hub.backend.enums.OperationTargetType;
 import com.jianzj.mistake.hub.backend.enums.Role;
+import com.jianzj.mistake.hub.backend.enums.TagType;
 import com.jianzj.mistake.hub.backend.service.TagService;
+import com.jianzj.mistake.hub.common.convention.enums.BasicEnumPojo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotNull;
@@ -56,12 +60,23 @@ public class TagController {
     }
 
     /**
+     * 获取标签类型枚举列表
+     */
+    @Operation(summary = "获取标签类型枚举列表")
+    @GetMapping("/types")
+    @PreAuthorize(requiredRole = Role.STUDENT)
+    public List<BasicEnumPojo> types() {
+
+        return TagType.listAll();
+    }
+
+    /**
      * 新增全局标签
      */
     @Operation(summary = "新增全局标签")
     @PostMapping("/add")
     @PreAuthorize(requiredRole = Role.ADMIN)
-    @OperationLogAnno(action = "tag/add", targetType = "TAG")
+    @OperationLogAnno(action = OperationAction.TAG_ADD, targetType = OperationTargetType.TAG)
     public void add(@RequestBody @Validated @NotNull TagAddReq req) {
 
         tagService.add(req);
@@ -73,7 +88,7 @@ public class TagController {
     @Operation(summary = "编辑全局标签")
     @PostMapping("/modify")
     @PreAuthorize(requiredRole = Role.ADMIN)
-    @OperationLogAnno(action = "tag/update", targetType = "TAG")
+    @OperationLogAnno(action = OperationAction.TAG_UPDATE, targetType = OperationTargetType.TAG)
     public void modify(@RequestBody @Validated @NotNull TagUpdateReq req) {
 
         tagService.modify(req);
@@ -85,7 +100,7 @@ public class TagController {
     @Operation(summary = "删除全局标签")
     @PostMapping("/delete")
     @PreAuthorize(requiredRole = Role.ADMIN)
-    @OperationLogAnno(action = "tag/delete", targetType = "TAG")
+    @OperationLogAnno(action = OperationAction.TAG_DELETE, targetType = OperationTargetType.TAG)
     public void delete(@RequestBody @Validated @NotNull TagDeleteReq req) {
 
         tagService.delete(req);

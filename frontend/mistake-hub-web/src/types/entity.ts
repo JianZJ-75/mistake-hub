@@ -5,6 +5,14 @@ export interface UserToken {
 	accessToken?: string;
 }
 
+/** 对应后端 BasicEnumPojo */
+export interface EnumOption {
+	code: string;
+	displayNameCn: string;
+	displayNameUs: string;
+	level: number;
+}
+
 /** 对应后端 AccountDetailResp */
 export interface UserInfo {
 	id?: number;

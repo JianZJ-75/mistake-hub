@@ -1,5 +1,5 @@
 import logService from "@/api/services/logService";
-import type { OperationLogResp } from "#/entity";
+import type { EnumOption, OperationLogResp } from "#/entity";
 import { Button } from "@/ui/button";
 import { Input } from "@/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/ui/select";
@@ -9,18 +9,11 @@ import { useEffect, useState } from "react";
 
 const PAGE_SIZE = 15;
 
-const ACTION_OPTIONS = [
-	{ label: "全部操作", value: "all" },
-	{ label: "角色变更", value: "account/change-role" },
-	{ label: "重置密码", value: "account/reset-password" },
-	{ label: "新增标签", value: "tag/add" },
-	{ label: "更新标签", value: "tag/update" },
-	{ label: "删除标签", value: "tag/delete" },
-	{ label: "更新配置", value: "config/update" },
-	{ label: "管理员编辑错题", value: "mistake/admin-update" },
-];
-
 export default function LogManagementPage() {
+
+	// ===== 枚举选项（从后端拉取） =====
+	const [actionOptions, setActionOptions] = useState<EnumOption[]>([]);
+	const [targetTypeOptions, setTargetTypeOptions] = useState<EnumOption[]>([]);
 
 	// ===== 列表状态 =====
 	const [logs, setLogs] = useState<OperationLogResp[]>([]);
@@ -38,15 +31,27 @@ export default function LogManagementPage() {
 	const [detailOpen, setDetailOpen] = useState(false);
 	const [selectedLog, setSelectedLog] = useState<OperationLogResp | null>(null);
 
-	const fetchLogs = async (page = pageNum) => {
+	useEffect(() => {
+		logService.getActionTypes().then(setActionOptions).catch(() => {});
+		logService.getTargetTypes().then(setTargetTypeOptions).catch(() => {});
+		fetchLogs(1);
+	}, []);
+
+	const actionLabelMap = new Map(actionOptions.map(o => [o.code, o.displayNameCn]));
+	const targetTypeLabelMap = new Map(targetTypeOptions.map(o => [o.code, o.displayNameCn]));
+
+	const fetchLogs = async (page = pageNum, overrides?: { action?: string; start?: string; end?: string }) => {
 
 		setLoading(true);
 		try {
+			const aVal = overrides?.action ?? actionFilter;
+			const sVal = overrides?.start ?? startDate;
+			const eVal = overrides?.end ?? endDate;
 			const res = await logService.listLogs({
 				accountId: undefined,
-				action: actionFilter !== "all" ? actionFilter : undefined,
-				startTime: startDate || undefined,
-				endTime: endDate || undefined,
+				action: aVal !== "all" ? aVal : undefined,
+				startTime: sVal || undefined,
+				endTime: eVal || undefined,
 				pageNum: page,
 				pageSize: PAGE_SIZE,
 			});
@@ -58,10 +63,6 @@ export default function LogManagementPage() {
 			setLoading(false);
 		}
 	};
-
-	useEffect(() => {
-		fetchLogs(1);
-	}, []);
 
 	const handleSearch = () => {
 
@@ -107,13 +108,14 @@ export default function LogManagementPage() {
 						onKeyDown={e => e.key === "Enter" && handleSearch()}
 					/>
 				</div>
-				<Select value={actionFilter} onValueChange={v => { setActionFilter(v); }}>
+				<Select value={actionFilter} onValueChange={v => { setActionFilter(v); setPageNum(1); fetchLogs(1, { action: v }); }}>
 					<SelectTrigger className="w-44">
 						<SelectValue placeholder="操作类型" />
 					</SelectTrigger>
 					<SelectContent>
-						{ACTION_OPTIONS.map(o => (
-							<SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+						<SelectItem value="all">全部操作</SelectItem>
+						{actionOptions.map(o => (
+							<SelectItem key={o.code} value={o.code}>{o.displayNameCn}</SelectItem>
 						))}
 					</SelectContent>
 				</Select>
@@ -121,7 +123,7 @@ export default function LogManagementPage() {
 					type="date"
 					className="w-36"
 					value={startDate}
-					onChange={e => setStartDate(e.target.value)}
+					onChange={e => { setStartDate(e.target.value); setPageNum(1); fetchLogs(1, { start: e.target.value }); }}
 					placeholder="开始日期"
 				/>
 				<span className="text-muted-foreground">—</span>
@@ -129,7 +131,7 @@ export default function LogManagementPage() {
 					type="date"
 					className="w-36"
 					value={endDate}
-					onChange={e => setEndDate(e.target.value)}
+					onChange={e => { setEndDate(e.target.value); setPageNum(1); fetchLogs(1, { end: e.target.value }); }}
 					placeholder="结束日期"
 				/>
 				<Button onClick={handleSearch} disabled={loading}>
@@ -173,10 +175,12 @@ export default function LogManagementPage() {
 									<td className="px-4 py-3 text-sm">{log.accountCode || "—"}</td>
 									<td className="px-4 py-3">
 										<span className="px-2 py-0.5 rounded-full text-xs font-medium bg-muted">
-											{log.action}
+											{actionLabelMap.get(log.action) || log.action}
 										</span>
 									</td>
-									<td className="px-4 py-3 text-sm text-muted-foreground">{log.targetType || "—"}</td>
+									<td className="px-4 py-3 text-sm text-muted-foreground">
+										{targetTypeLabelMap.get(log.targetType || "") || log.targetType || "—"}
+									</td>
 									<td className="px-4 py-3 text-sm text-muted-foreground">{log.targetId || "—"}</td>
 									<td className="px-4 py-3">
 										<Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => openDetail(log)}>
@@ -229,11 +233,11 @@ export default function LogManagementPage() {
 								</div>
 								<div>
 									<span className="text-muted-foreground">操作类型：</span>
-									{selectedLog.action}
+									{actionLabelMap.get(selectedLog.action) || selectedLog.action}
 								</div>
 								<div>
 									<span className="text-muted-foreground">目标类型：</span>
-									{selectedLog.targetType || "—"}
+									{targetTypeLabelMap.get(selectedLog.targetType || "") || selectedLog.targetType || "—"}
 								</div>
 								<div>
 									<span className="text-muted-foreground">目标ID：</span>

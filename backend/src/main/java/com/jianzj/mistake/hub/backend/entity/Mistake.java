@@ -27,6 +27,9 @@ public class Mistake implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    /** 有效状态 */
+    public static final int STATUS_VALID = 1;
+
     /**
      * 主键
      */

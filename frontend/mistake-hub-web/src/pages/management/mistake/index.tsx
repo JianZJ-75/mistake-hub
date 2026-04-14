@@ -3,7 +3,7 @@ import reviewService from "@/api/services/reviewService";
 import tagService from "@/api/services/tagService";
 import userService from "@/api/services/userService";
 import uploadService from "@/api/services/uploadService";
-import type { MistakeDetailResp, ReviewRecordResp, TagResp, UserInfo } from "#/entity";
+import type { EnumOption, MistakeDetailResp, ReviewRecordResp, TagResp, UserInfo } from "#/entity";
 import { Badge } from "@/ui/badge";
 import { Button } from "@/ui/button";
 import { Checkbox } from "@/ui/checkbox";
@@ -53,8 +53,6 @@ const flattenTags = (tags: TagResp[] | null | undefined): TagResp[] => {
 	return result;
 };
 
-const TYPE_LABEL: Record<string, string> = { SUBJECT: "学科", CHAPTER: "章节", KNOWLEDGE: "知识点", CUSTOM: "自定义" };
-
 interface EditForm {
 	title: string;
 	correctAnswer: string;
@@ -64,6 +62,9 @@ interface EditForm {
 }
 
 export default function MistakeManagementPage() {
+	// ===== 枚举选项（从后端拉取） =====
+	const [tagTypeOptions, setTagTypeOptions] = useState<EnumOption[]>([]);
+
 	// ===== 列表状态 =====
 	const [mistakes, setMistakes] = useState<MistakeDetailResp[]>([]);
 	const [total, setTotal] = useState(0);
@@ -110,10 +111,13 @@ export default function MistakeManagementPage() {
 	const [historyLoading, setHistoryLoading] = useState(false);
 
 	useEffect(() => {
+		tagService.getTagTypes().then(setTagTypeOptions).catch(() => {});
 		tagService.getTagTree().then(data => setTagTree(data || [])).catch(() => {});
 		tagService.listAllCustomTags().then(data => setCustomTags(data || [])).catch(() => {});
 		fetchMistakes(1);
 	}, []);
+
+	const typeLabelMap = new Map(tagTypeOptions.map(o => [o.code, o.displayNameCn]));
 
 	const allFlatTags = [...flattenTags(tagTree), ...customTags];
 
@@ -323,7 +327,7 @@ export default function MistakeManagementPage() {
 					/>
 					<span className="text-sm flex-1 truncate cursor-pointer" onClick={() => onToggle(node.id)}>{node.name}</span>
 					{node.type && (
-						<span className="text-xs text-muted-foreground">{TYPE_LABEL[node.type] || ""}</span>
+						<span className="text-xs text-muted-foreground">{typeLabelMap.get(node.type) || ""}</span>
 					)}
 				</div>,
 			);

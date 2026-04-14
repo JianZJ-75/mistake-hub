@@ -4,6 +4,8 @@ import com.jianzj.mistake.hub.backend.annotation.OperationLogAnno;
 import com.jianzj.mistake.hub.backend.annotation.PreAuthorize;
 import com.jianzj.mistake.hub.backend.dto.req.ConfigUpdateReq;
 import com.jianzj.mistake.hub.backend.entity.SystemConfig;
+import com.jianzj.mistake.hub.backend.enums.OperationAction;
+import com.jianzj.mistake.hub.backend.enums.OperationTargetType;
 import com.jianzj.mistake.hub.backend.enums.Role;
 import com.jianzj.mistake.hub.backend.service.SystemConfigService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -57,7 +59,7 @@ public class ConfigController {
     @Operation(summary = "更新配置")
     @PostMapping("/update")
     @PreAuthorize(requiredRole = Role.ADMIN)
-    @OperationLogAnno(action = "config/update", targetType = "CONFIG")
+    @OperationLogAnno(action = OperationAction.CONFIG_UPDATE, targetType = OperationTargetType.CONFIG)
     public void update(@RequestBody @Validated @NotNull ConfigUpdateReq req) {
 
         systemConfigService.updateConfig(req);

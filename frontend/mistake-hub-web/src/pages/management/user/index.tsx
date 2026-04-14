@@ -1,5 +1,5 @@
 import userService from "@/api/services/userService";
-import type { UserInfo } from "#/entity";
+import type { EnumOption, UserInfo } from "#/entity";
 import { Icon } from "@/components/icon";
 import { Button } from "@/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/ui/dialog";
@@ -20,6 +20,9 @@ const ACTION_CONFIRM: Record<ActionType, string> = {
 const PAGE_SIZE = 10;
 
 export default function UserManagementPage() {
+	// ===== 枚举选项（从后端拉取） =====
+	const [roleOptions, setRoleOptions] = useState<EnumOption[]>([]);
+
 	// ===== 列表状态 =====
 	const [codeFilter, setCodeFilter] = useState("");
 	const [nicknameFilter, setNicknameFilter] = useState("");
@@ -55,6 +58,12 @@ export default function UserManagementPage() {
 			setLoading(false);
 		}
 	};
+
+	useEffect(() => {
+		userService.getRoles().then(setRoleOptions).catch(() => {});
+	}, []);
+
+	const roleLabelMap = new Map(roleOptions.map(o => [o.code, o.displayNameCn]));
 
 	useEffect(() => {
 		fetchUsers(1);
@@ -140,8 +149,9 @@ export default function UserManagementPage() {
 					</SelectTrigger>
 					<SelectContent>
 						<SelectItem value="all">全部角色</SelectItem>
-						<SelectItem value="admin">管理员</SelectItem>
-						<SelectItem value="student">学生</SelectItem>
+						{roleOptions.map(o => (
+							<SelectItem key={o.code} value={o.code}>{o.displayNameCn}</SelectItem>
+						))}
 					</SelectContent>
 				</Select>
 				<Button onClick={handleSearch} disabled={loading}>
@@ -203,7 +213,7 @@ export default function UserManagementPage() {
 												isAdmin ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
 											}`}>
 												<Icon icon={isAdmin ? "solar:shield-user-bold-duotone" : "solar:user-bold-duotone"} size={12} />
-												{isAdmin ? "管理员" : "学生"}
+												{isAdmin ? "管理员" : (roleLabelMap.get(user.role || "") || user.role)}
 											</span>
 										</td>
 										<td className="px-4 py-3 text-text-secondary">{user.dailyLimit ?? "—"}</td>

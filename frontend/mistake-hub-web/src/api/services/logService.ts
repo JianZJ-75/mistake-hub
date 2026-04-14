@@ -1,4 +1,4 @@
-import type { OperationLogResp, PageResult } from "#/entity";
+import type { EnumOption, OperationLogResp, PageResult } from "#/entity";
 import apiClient from "../apiClient";
 
 export interface LogListParams {
@@ -13,4 +13,10 @@ export interface LogListParams {
 const listLogs = (params: LogListParams): Promise<PageResult<OperationLogResp>> =>
 	apiClient.post({ url: "/v1/log/list", data: params });
 
-export default { listLogs };
+const getActionTypes = (): Promise<EnumOption[]> =>
+	apiClient.get({ url: "/v1/log/action-types" });
+
+const getTargetTypes = (): Promise<EnumOption[]> =>
+	apiClient.get({ url: "/v1/log/target-types" });
+
+export default { listLogs, getActionTypes, getTargetTypes };

@@ -9,6 +9,8 @@ import com.jianzj.mistake.hub.backend.dto.req.MistakeDeleteReq;
 import com.jianzj.mistake.hub.backend.dto.req.MistakeDetailReq;
 import com.jianzj.mistake.hub.backend.dto.req.MistakeUpdateReq;
 import com.jianzj.mistake.hub.backend.dto.resp.MistakeDetailResp;
+import com.jianzj.mistake.hub.backend.enums.OperationAction;
+import com.jianzj.mistake.hub.backend.enums.OperationTargetType;
 import com.jianzj.mistake.hub.backend.enums.Role;
 import com.jianzj.mistake.hub.backend.manager.MistakeManager;
 import com.jianzj.mistake.hub.backend.service.MistakeService;
@@ -117,7 +119,7 @@ public class MistakeController {
     @Operation(summary = "管理员编辑错题")
     @PostMapping("/admin-update")
     @PreAuthorize(requiredRole = Role.ADMIN)
-    @OperationLogAnno(action = "mistake/admin-update", targetType = "MISTAKE")
+    @OperationLogAnno(action = OperationAction.MISTAKE_ADMIN_UPDATE, targetType = OperationTargetType.MISTAKE)
     public void adminUpdate(@RequestBody @Validated @NotNull MistakeUpdateReq req) {
 
         mistakeService.adminModify(req);

@@ -249,7 +249,7 @@ public class ReviewScheduleService {
 
         // 查询有到期错题的用户ID（groupBy 去重，避免加载冗余行）
         List<Mistake> dueMistakes = mistakeService.lambdaQuery()
-                .eq(Mistake::getStatus, 1)
+                .eq(Mistake::getStatus, Mistake.STATUS_VALID)
                 .le(Mistake::getNextReviewTime, todayEnd)
                 .select(Mistake::getAccountId)
                 .groupBy(Mistake::getAccountId)
