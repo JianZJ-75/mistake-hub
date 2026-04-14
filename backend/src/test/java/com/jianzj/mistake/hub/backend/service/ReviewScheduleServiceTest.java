@@ -26,6 +26,9 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
@@ -54,6 +57,9 @@ class ReviewScheduleServiceTest {
 
     @Mock
     private RedissonClient redissonClient;
+
+    @Mock
+    private SystemConfigService systemConfigService;
 
     @Mock
     private ThreadStorageUtil threadStorageUtil;
@@ -272,6 +278,12 @@ class ReviewScheduleServiceTest {
                         .nextReviewTime(LocalDateTime.now().plusDays(4)).build()
         );
         when(mistakeService.updateById(any())).thenReturn(true);
+
+        // 动态配置 mock
+        when(systemConfigService.getIntByKey(eq("review.mastery_correct_delta"), anyInt())).thenReturn(20);
+        when(systemConfigService.getIntByKey(eq("review.mastery_wrong_delta"), anyInt())).thenReturn(15);
+        when(systemConfigService.getIntByKey(eq("review.stage_wrong_back"), anyInt())).thenReturn(2);
+        when(systemConfigService.getByKey(eq("review.intervals"), anyString())).thenReturn("0,1,2,4,7,15,30");
 
         RBucket<String> bucket = mock(RBucket.class);
         doReturn(bucket).when(redissonClient).getBucket(any());

@@ -27,6 +27,9 @@ public class MistakeDetailResp {
     /** 所属用户ID */
     private Long accountId;
 
+    /** 所属用户 code */
+    private String accountCode;
+
     /** 所属用户昵称 */
     private String accountNickname;
 

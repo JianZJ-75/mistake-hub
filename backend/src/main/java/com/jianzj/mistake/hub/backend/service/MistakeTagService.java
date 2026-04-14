@@ -3,6 +3,7 @@ package com.jianzj.mistake.hub.backend.service;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.jianzj.mistake.hub.backend.entity.MistakeTag;
 import com.jianzj.mistake.hub.backend.entity.Tag;
+import com.jianzj.mistake.hub.backend.enums.TagType;
 import com.jianzj.mistake.hub.backend.mapper.MistakeTagMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -137,7 +138,7 @@ public class MistakeTagService extends ServiceImpl<MistakeTagMapper, MistakeTag>
         // 查出所有关联标签，过滤出 SUBJECT 类型
         List<Tag> allTags = tagService.listByIds(new ArrayList<>(allTagIds));
         Map<Long, String> subjectTagNameMap = allTags.stream()
-                .filter(tag -> "SUBJECT".equals(tag.getType()))
+                .filter(tag -> TagType.SUBJECT.getCode().equals(tag.getType()))
                 .collect(Collectors.toMap(Tag::getId, Tag::getName));
 
         // 为每个 mistakeId 找到第一个 SUBJECT 标签名

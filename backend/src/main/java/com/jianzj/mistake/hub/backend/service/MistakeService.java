@@ -3,6 +3,7 @@ package com.jianzj.mistake.hub.backend.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.jianzj.mistake.hub.backend.dto.req.MistakeAddReq;
+import com.jianzj.mistake.hub.backend.dto.req.MistakeAdminListReq;
 import com.jianzj.mistake.hub.backend.dto.req.MistakeDeleteReq;
 import com.jianzj.mistake.hub.backend.dto.req.MistakeDetailReq;
 import com.jianzj.mistake.hub.backend.dto.req.MistakeUpdateReq;
@@ -23,6 +24,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -43,8 +47,6 @@ import static com.jianzj.mistake.hub.common.convention.exception.BaseException.o
 @Service
 @Slf4j
 public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
-
-    private static final int STATUS_VALID = 1;
 
     private static final int STATUS_DELETED = 0;
 
@@ -86,7 +88,7 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
                 .reviewStage(0)
                 .masteryLevel(0)
                 .nextReviewTime(LocalDateTime.now())
-                .status(STATUS_VALID)
+                .status(Mistake.STATUS_VALID)
                 .build();
 
         boolean success = save(mistake);
@@ -127,7 +129,7 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
         Page<Mistake> page = lambdaQuery()
                 .eq(!admin, Mistake::getAccountId, threadStorageUtil.getCurAccountId())
                 .eq(admin && accountId != null, Mistake::getAccountId, accountId)
-                .eq(Mistake::getStatus, STATUS_VALID)
+                .eq(Mistake::getStatus, Mistake.STATUS_VALID)
                 .in(finalTagMistakeIds != null, Mistake::getId, finalTagMistakeIds != null ? finalTagMistakeIds : List.of())
                 .ge(masteryFilter != null && masteryFilter == 2, Mistake::getMasteryLevel, 80)
                 .ge(masteryFilter != null && masteryFilter == 1, Mistake::getMasteryLevel, 60)
@@ -192,6 +194,112 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
     public void modify(MistakeUpdateReq req) {
 
         Mistake mistake = isAdmin() ? getMistakeValidById(req.getId()) : getMistakeOwnedByCurrentUser(req.getId());
+
+        if (StringUtils.isNotBlank(req.getTitle())) {
+            mistake.setTitle(req.getTitle());
+        }
+        if (req.getCorrectAnswer() != null) {
+            mistake.setCorrectAnswer(req.getCorrectAnswer().isEmpty() ? null : req.getCorrectAnswer());
+        }
+        if (req.getTitleImageUrl() != null) {
+            mistake.setTitleImageUrl(req.getTitleImageUrl().isEmpty() ? null : req.getTitleImageUrl());
+        }
+        if (req.getAnswerImageUrl() != null) {
+            mistake.setAnswerImageUrl(req.getAnswerImageUrl().isEmpty() ? null : req.getAnswerImageUrl());
+        }
+        boolean success = updateById(mistake);
+        if (!success) {
+            oops("编辑错题失败", "Failed to update mistake.");
+        }
+
+        if (req.getTagIds() != null) {
+            mistakeTagService.saveTagIds(mistake.getId(), req.getTagIds());
+        }
+    }
+
+    /**
+     * 管理员错题列表（全量查询，含用户信息）
+     */
+    public Page<MistakeDetailResp> adminListPage(MistakeAdminListReq req) {
+
+        // 标签筛选
+        List<Long> tagMistakeIds = null;
+        if (req.getTagId() != null) {
+            Set<Long> expandedTagIds = new HashSet<>();
+            expandedTagIds.addAll(tagService.expandDescendantTagIds(req.getTagId()));
+            tagMistakeIds = mistakeTagService.getMistakeIdsByTagIds(expandedTagIds);
+            if (CollectionUtils.isEmpty(tagMistakeIds)) {
+                return new Page<>(req.getPageNum(), req.getPageSize(), 0);
+            }
+        }
+
+        final List<Long> finalTagMistakeIds = tagMistakeIds;
+        Integer masteryFilter = req.getMasteryFilter();
+
+        Page<Mistake> page = lambdaQuery()
+                .eq(req.getAccountId() != null, Mistake::getAccountId, req.getAccountId())
+                .eq(Mistake::getStatus, Mistake.STATUS_VALID)
+                .in(finalTagMistakeIds != null, Mistake::getId, finalTagMistakeIds != null ? finalTagMistakeIds : List.of())
+                .ge(masteryFilter != null && masteryFilter == 2, Mistake::getMasteryLevel, 80)
+                .ge(masteryFilter != null && masteryFilter == 1, Mistake::getMasteryLevel, 60)
+                .lt(masteryFilter != null && masteryFilter == 1, Mistake::getMasteryLevel, 80)
+                .lt(masteryFilter != null && masteryFilter == 0, Mistake::getMasteryLevel, 60)
+                .orderByDesc(Mistake::getCreatedTime)
+                .page(new Page<>(req.getPageNum(), req.getPageSize()));
+
+        List<Mistake> records = page.getRecords();
+        if (CollectionUtils.isEmpty(records)) {
+            Page<MistakeDetailResp> respPage = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
+            respPage.setRecords(new ArrayList<>());
+            return respPage;
+        }
+
+        // 批量查询标签
+        List<Long> mistakeIds = records.stream().map(Mistake::getId).collect(Collectors.toList());
+        Map<Long, List<Long>> tagIdMap = mistakeTagService.getTagIdMapByMistakeIds(mistakeIds);
+
+        Set<Long> allTagIds = tagIdMap.values().stream().flatMap(List::stream).collect(Collectors.toSet());
+        List<TagResp> allTags = tagService.getByIds(new ArrayList<>(allTagIds));
+        Map<Long, TagResp> tagRespMap = allTags.stream().collect(Collectors.toMap(TagResp::getId, t -> t));
+
+        // 批量查询用户信息
+        Set<Long> accountIds = records.stream().map(Mistake::getAccountId).collect(Collectors.toSet());
+        Map<Long, Account> accountMap = accountService.listByIds(new ArrayList<>(accountIds)).stream()
+                .collect(Collectors.toMap(Account::getId, a -> a));
+
+        List<MistakeDetailResp> respList = records.stream()
+                .map(mistake -> {
+                    MistakeDetailResp resp = new MistakeDetailResp();
+                    BeanUtils.copyProperties(mistake, resp);
+
+                    Account account = accountMap.get(mistake.getAccountId());
+                    if (account != null) {
+                        resp.setAccountCode(account.getCode());
+                        resp.setAccountNickname(account.getNickname());
+                    }
+
+                    List<Long> mTagIds = tagIdMap.getOrDefault(mistake.getId(), List.of());
+                    List<TagResp> tags = mTagIds.stream()
+                            .map(tagRespMap::get)
+                            .filter(t -> t != null)
+                            .collect(Collectors.toList());
+                    resp.setTags(tags);
+                    return resp;
+                })
+                .collect(Collectors.toList());
+
+        Page<MistakeDetailResp> respPage = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
+        respPage.setRecords(respList);
+        return respPage;
+    }
+
+    /**
+     * 管理员编辑错题（不校验归属，仅校验错题有效）
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void adminModify(MistakeUpdateReq req) {
+
+        Mistake mistake = getMistakeValidById(req.getId());
 
         if (StringUtils.isNotBlank(req.getTitle())) {
             mistake.setTitle(req.getTitle());
@@ -283,7 +391,7 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
 
         List<Mistake> mistakes = lambdaQuery()
                 .eq(Mistake::getId, mistakeId)
-                .eq(Mistake::getStatus, STATUS_VALID)
+                .eq(Mistake::getStatus, Mistake.STATUS_VALID)
                 .list();
 
         if (CollectionUtils.isEmpty(mistakes)) {
@@ -303,7 +411,7 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
         List<Mistake> mistakes = lambdaQuery()
                 .eq(Mistake::getId, mistakeId)
                 .eq(Mistake::getAccountId, accountId)
-                .eq(Mistake::getStatus, STATUS_VALID)
+                .eq(Mistake::getStatus, Mistake.STATUS_VALID)
                 .list();
 
         if (CollectionUtils.isEmpty(mistakes)) {
@@ -338,7 +446,7 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
 
         return lambdaQuery()
                 .eq(Mistake::getAccountId, accountId)
-                .eq(Mistake::getStatus, STATUS_VALID)
+                .eq(Mistake::getStatus, Mistake.STATUS_VALID)
                 .le(Mistake::getNextReviewTime, deadline)
                 .list();
     }
@@ -384,7 +492,7 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
 
         return lambdaQuery()
                 .eq(Mistake::getAccountId, accountId)
-                .eq(Mistake::getStatus, STATUS_VALID)
+                .eq(Mistake::getStatus, Mistake.STATUS_VALID)
                 .count();
     }
 
@@ -395,7 +503,7 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
 
         return lambdaQuery()
                 .eq(Mistake::getAccountId, accountId)
-                .eq(Mistake::getStatus, STATUS_VALID)
+                .eq(Mistake::getStatus, Mistake.STATUS_VALID)
                 .ge(Mistake::getMasteryLevel, threshold)
                 .count();
     }
@@ -407,7 +515,7 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
 
         return lambdaQuery()
                 .eq(Mistake::getAccountId, accountId)
-                .eq(Mistake::getStatus, STATUS_VALID)
+                .eq(Mistake::getStatus, Mistake.STATUS_VALID)
                 .le(Mistake::getNextReviewTime, deadline)
                 .count();
     }
@@ -419,7 +527,7 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
 
         return lambdaQuery()
                 .eq(Mistake::getAccountId, accountId)
-                .eq(Mistake::getStatus, STATUS_VALID)
+                .eq(Mistake::getStatus, Mistake.STATUS_VALID)
                 .ge(Mistake::getCreatedTime, weekStart)
                 .count();
     }
@@ -431,7 +539,7 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
 
         return lambdaQuery()
                 .eq(Mistake::getAccountId, accountId)
-                .eq(Mistake::getStatus, STATUS_VALID)
+                .eq(Mistake::getStatus, Mistake.STATUS_VALID)
                 .ge(Mistake::getMasteryLevel, min)
                 .lt(max != null, Mistake::getMasteryLevel, max)
                 .count();
@@ -444,7 +552,7 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
 
         List<Mistake> mistakes = lambdaQuery()
                 .eq(Mistake::getAccountId, accountId)
-                .eq(Mistake::getStatus, STATUS_VALID)
+                .eq(Mistake::getStatus, Mistake.STATUS_VALID)
                 .select(Mistake::getId)
                 .list();
 
@@ -461,7 +569,7 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
     public long countAllValid() {
 
         return lambdaQuery()
-                .eq(Mistake::getStatus, STATUS_VALID)
+                .eq(Mistake::getStatus, Mistake.STATUS_VALID)
                 .count();
     }
 
@@ -472,9 +580,56 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
 
         return lambdaQuery()
                 .eq(Mistake::getAccountId, accountId)
-                .eq(Mistake::getStatus, STATUS_VALID)
+                .eq(Mistake::getStatus, Mistake.STATUS_VALID)
                 .select(Mistake::getId, Mistake::getMasteryLevel)
                 .list();
+    }
+
+    /**
+     * 批量统计每个用户的有效错题总数
+     */
+    public Map<Long, Integer> countValidGroupByAccountId(Collection<Long> accountIds) {
+
+        if (CollectionUtils.isEmpty(accountIds)) {
+            return Collections.emptyMap();
+        }
+
+        List<Mistake> mistakes = lambdaQuery()
+                .in(Mistake::getAccountId, accountIds)
+                .eq(Mistake::getStatus, Mistake.STATUS_VALID)
+                .select(Mistake::getAccountId)
+                .list();
+
+        if (CollectionUtils.isEmpty(mistakes)) {
+            return Collections.emptyMap();
+        }
+
+        return mistakes.stream()
+                .collect(Collectors.groupingBy(Mistake::getAccountId, Collectors.collectingAndThen(Collectors.counting(), Long::intValue)));
+    }
+
+    /**
+     * 批量统计每个用户掌握度 >= 80 的错题数
+     */
+    public Map<Long, Integer> countMasteredGroupByAccountId(Collection<Long> accountIds) {
+
+        if (CollectionUtils.isEmpty(accountIds)) {
+            return Collections.emptyMap();
+        }
+
+        List<Mistake> mistakes = lambdaQuery()
+                .in(Mistake::getAccountId, accountIds)
+                .eq(Mistake::getStatus, Mistake.STATUS_VALID)
+                .ge(Mistake::getMasteryLevel, 80)
+                .select(Mistake::getAccountId)
+                .list();
+
+        if (CollectionUtils.isEmpty(mistakes)) {
+            return Collections.emptyMap();
+        }
+
+        return mistakes.stream()
+                .collect(Collectors.groupingBy(Mistake::getAccountId, Collectors.collectingAndThen(Collectors.counting(), Long::intValue)));
     }
 
     /**
@@ -483,7 +638,7 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
     public List<Mistake> listAllValidIdAndMastery() {
 
         return lambdaQuery()
-                .eq(Mistake::getStatus, STATUS_VALID)
+                .eq(Mistake::getStatus, Mistake.STATUS_VALID)
                 .select(Mistake::getId, Mistake::getMasteryLevel)
                 .list();
     }

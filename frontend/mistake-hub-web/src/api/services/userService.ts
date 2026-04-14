@@ -1,5 +1,5 @@
 import { sha256, aesEncrypt, aesDecryptDirect } from "@/utils/crypto";
-import type { UserInfo } from "#/entity";
+import type { EnumOption, UserInfo } from "#/entity";
 import apiClient from "../apiClient";
 import nonceService from "./nonceService";
 
@@ -152,9 +152,13 @@ const changePassword = async (oldPassword: string, newPassword: string): Promise
 const modifyProfile = (data: { nickname?: string; avatarUrl?: string }) =>
 	apiClient.post<void>({ url: "/v1/account/modify-profile", data });
 
+/** 获取角色枚举列表 */
+const getRoles = (): Promise<EnumOption[]> =>
+	apiClient.get({ url: "/v1/account/roles" });
+
 /** 注册（暂未实现，保留签名供模板页面编译通过） */
 const signup = (_data: { username: string; password: string; email: string }): Promise<never> => {
 	return Promise.reject(new Error("暂不支持注册"));
 };
 
-export default { loginWeb, currentDetail, listUsers, changeRole, resetPassword, changePassword, modifyProfile, signup };
+export default { loginWeb, currentDetail, listUsers, getRoles, changeRole, resetPassword, changePassword, modifyProfile, signup };

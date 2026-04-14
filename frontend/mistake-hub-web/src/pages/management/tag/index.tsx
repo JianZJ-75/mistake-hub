@@ -1,5 +1,5 @@
 import tagService from "@/api/services/tagService";
-import type { TagResp } from "#/entity";
+import type { EnumOption, TagResp } from "#/entity";
 import { Button } from "@/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/ui/dialog";
 import { Input } from "@/ui/input";
@@ -7,24 +7,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Pencil, Plus, Trash2, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-
-const FILTER_TYPE_OPTIONS = [
-	{ label: "不限", value: "all" },
-	{ label: "学科", value: "SUBJECT" },
-	{ label: "章节", value: "CHAPTER" },
-	{ label: "知识点", value: "KNOWLEDGE" },
-	{ label: "自定义", value: "CUSTOM" },
-];
-
-const FORM_TYPE_OPTIONS = [
-	{ label: "无", value: "none" },
-	{ label: "学科", value: "SUBJECT" },
-	{ label: "章节", value: "CHAPTER" },
-	{ label: "知识点", value: "KNOWLEDGE" },
-	{ label: "自定义", value: "CUSTOM" },
-];
-
-const TYPE_LABEL: Record<string, string> = { SUBJECT: "学科", CHAPTER: "章节", KNOWLEDGE: "知识点", CUSTOM: "自定义" };
 
 interface FormState {
 	id?: number;
@@ -67,6 +49,9 @@ const flattenTree = (nodes: TagResp[], parentPath: string): FlatTag[] => {
 };
 
 export default function TagManagementPage() {
+	// ===== 枚举选项（从后端拉取） =====
+	const [tagTypeOptions, setTagTypeOptions] = useState<EnumOption[]>([]);
+
 	// ===== 列表状态 =====
 	const [tree, setTree] = useState<TagResp[]>([]);
 	const [customTags, setCustomTags] = useState<TagResp[]>([]);
@@ -91,8 +76,11 @@ export default function TagManagementPage() {
 	const [deleting, setDeleting] = useState(false);
 
 	useEffect(() => {
+		tagService.getTagTypes().then(setTagTypeOptions).catch(() => {});
 		fetchData();
 	}, []);
+
+	const typeLabelMap = new Map(tagTypeOptions.map(o => [o.code, o.displayNameCn]));
 
 	const fetchData = async () => {
 		setLoading(true);
@@ -240,8 +228,9 @@ export default function TagManagementPage() {
 						<SelectValue placeholder="全部类型" />
 					</SelectTrigger>
 					<SelectContent>
-						{FILTER_TYPE_OPTIONS.map(o => (
-							<SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+						<SelectItem value="all">不限</SelectItem>
+						{tagTypeOptions.map(o => (
+							<SelectItem key={o.code} value={o.code}>{o.displayNameCn}</SelectItem>
 						))}
 					</SelectContent>
 				</Select>
@@ -289,7 +278,7 @@ export default function TagManagementPage() {
 									<td className="px-4 py-3 text-sm">{tag.name}</td>
 									<td className="px-4 py-3">
 										{tag.type ? (
-											<span className="px-2 py-0.5 rounded-full text-xs bg-muted">{TYPE_LABEL[tag.type] || tag.type}</span>
+											<span className="px-2 py-0.5 rounded-full text-xs bg-muted">{typeLabelMap.get(tag.type) || tag.type}</span>
 										) : (
 											<span className="text-xs text-muted-foreground">—</span>
 										)}
@@ -349,8 +338,9 @@ export default function TagManagementPage() {
 									<SelectValue placeholder="选择类型" />
 								</SelectTrigger>
 								<SelectContent>
-									{FORM_TYPE_OPTIONS.map(o => (
-										<SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+									<SelectItem value="none">无</SelectItem>
+									{tagTypeOptions.map(o => (
+										<SelectItem key={o.code} value={o.code}>{o.displayNameCn}</SelectItem>
 									))}
 								</SelectContent>
 							</Select>

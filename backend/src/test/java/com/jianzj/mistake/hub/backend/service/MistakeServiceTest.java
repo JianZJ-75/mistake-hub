@@ -46,12 +46,6 @@ class MistakeServiceTest {
     @Mock
     private ThreadStorageUtil threadStorageUtil;
 
-    @Mock
-    private ReviewPlanService reviewPlanService;
-
-    @Mock
-    private ReviewScheduleService reviewScheduleService;
-
     private MistakeService mistakeService;
 
     @BeforeEach
@@ -59,7 +53,7 @@ class MistakeServiceTest {
 
         mistakeService = spy(new MistakeService(
                 mistakeTagService, tagService, accountService,
-                threadStorageUtil, reviewPlanService, reviewScheduleService
+                threadStorageUtil
         ));
         ReflectionTestUtils.setField(mistakeService, "baseMapper", mockMistakeMapper);
     }

@@ -5,6 +5,14 @@ export interface UserToken {
 	accessToken?: string;
 }
 
+/** 对应后端 BasicEnumPojo */
+export interface EnumOption {
+	code: string;
+	displayNameCn: string;
+	displayNameUs: string;
+	level: number;
+}
+
 /** 对应后端 AccountDetailResp */
 export interface UserInfo {
 	id?: number;
@@ -13,6 +21,10 @@ export interface UserInfo {
 	avatarUrl?: string;
 	role?: string;
 	dailyLimit?: number;
+	totalMistakes?: number;
+	masteredCount?: number;
+	currentStreak?: number;
+	lastActiveTime?: string;
 	createdTime?: string;
 	permissions?: Permission[];
 	// 模板兼容字段（供示例页面使用）
@@ -119,6 +131,7 @@ export interface TagResp {
 export interface MistakeDetailResp {
 	id: number;
 	accountId?: number;
+	accountCode?: string;
 	accountNickname?: string;
 	title: string;
 	correctAnswer?: string;
@@ -184,4 +197,25 @@ export interface SubjectStatsResp {
 	subject: string;
 	count: number;
 	avgMastery: number;
+}
+
+/** 对应后端 SystemConfig */
+export interface SystemConfigResp {
+	id: number;
+	configKey: string;
+	configValue: string;
+	description?: string;
+	updatedTime?: string;
+}
+
+/** 对应后端 OperationLog */
+export interface OperationLogResp {
+	id: number;
+	accountId?: number;
+	accountCode?: string;
+	action: string;
+	targetType?: string;
+	targetId?: string;
+	detail?: string;
+	createdTime: string;
 }

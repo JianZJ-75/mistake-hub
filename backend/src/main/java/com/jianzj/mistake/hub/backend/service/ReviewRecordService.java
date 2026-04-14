@@ -16,6 +16,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -167,6 +170,32 @@ public class ReviewRecordService extends ServiceImpl<ReviewRecordMapper, ReviewR
                 .map(ReviewRecord::getAccountId)
                 .distinct()
                 .count();
+    }
+
+    /**
+     * 批量查询每个用户的最后活跃时间（max(review_time)）
+     */
+    public Map<Long, LocalDateTime> getLastActiveTimeByAccountIds(Collection<Long> accountIds) {
+
+        if (CollectionUtils.isEmpty(accountIds)) {
+            return Collections.emptyMap();
+        }
+
+        List<ReviewRecord> records = lambdaQuery()
+                .in(ReviewRecord::getAccountId, accountIds)
+                .select(ReviewRecord::getAccountId, ReviewRecord::getReviewTime)
+                .orderByDesc(ReviewRecord::getReviewTime)
+                .list();
+
+        if (CollectionUtils.isEmpty(records)) {
+            return Collections.emptyMap();
+        }
+
+        Map<Long, LocalDateTime> result = new HashMap<>();
+        for (ReviewRecord record : records) {
+            result.putIfAbsent(record.getAccountId(), record.getReviewTime());
+        }
+        return result;
     }
 
     // ===== 工具方法 =====

@@ -35,6 +35,16 @@ export const frontendNavData: NavProps["data"] = [
 				path: "/management/review-record",
 				icon: <Icon icon="solar:clipboard-list-bold-duotone" size="24" />,
 			},
+			{
+				title: "参数配置",
+				path: "/management/config",
+				icon: <Icon icon="solar:settings-bold-duotone" size="24" />,
+			},
+			{
+				title: "操作日志",
+				path: "/management/log",
+				icon: <Icon icon="solar:document-text-bold-duotone" size="24" />,
+			},
 		],
 	},
 ];

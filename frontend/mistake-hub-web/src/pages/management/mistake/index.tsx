@@ -3,7 +3,7 @@ import reviewService from "@/api/services/reviewService";
 import tagService from "@/api/services/tagService";
 import userService from "@/api/services/userService";
 import uploadService from "@/api/services/uploadService";
-import type { MistakeDetailResp, ReviewRecordResp, TagResp, UserInfo } from "#/entity";
+import type { EnumOption, MistakeDetailResp, ReviewRecordResp, TagResp, UserInfo } from "#/entity";
 import { Badge } from "@/ui/badge";
 import { Button } from "@/ui/button";
 import { Checkbox } from "@/ui/checkbox";
@@ -53,8 +53,6 @@ const flattenTags = (tags: TagResp[] | null | undefined): TagResp[] => {
 	return result;
 };
 
-const TYPE_LABEL: Record<string, string> = { SUBJECT: "学科", CHAPTER: "章节", KNOWLEDGE: "知识点", CUSTOM: "自定义" };
-
 interface EditForm {
 	title: string;
 	correctAnswer: string;
@@ -64,6 +62,9 @@ interface EditForm {
 }
 
 export default function MistakeManagementPage() {
+	// ===== 枚举选项（从后端拉取） =====
+	const [tagTypeOptions, setTagTypeOptions] = useState<EnumOption[]>([]);
+
 	// ===== 列表状态 =====
 	const [mistakes, setMistakes] = useState<MistakeDetailResp[]>([]);
 	const [total, setTotal] = useState(0);
@@ -110,25 +111,30 @@ export default function MistakeManagementPage() {
 	const [historyLoading, setHistoryLoading] = useState(false);
 
 	useEffect(() => {
+		tagService.getTagTypes().then(setTagTypeOptions).catch(() => {});
 		tagService.getTagTree().then(data => setTagTree(data || [])).catch(() => {});
 		tagService.listAllCustomTags().then(data => setCustomTags(data || [])).catch(() => {});
 		fetchMistakes(1);
 	}, []);
 
+	const typeLabelMap = new Map(tagTypeOptions.map(o => [o.code, o.displayNameCn]));
+
 	const allFlatTags = [...flattenTags(tagTree), ...customTags];
 
 	const fetchMistakes = async (page: number, overrides?: { mastery?: string; tagIds?: number[]; account?: string }) => {
+
 		setLoading(true);
 		try {
 			const mVal = overrides?.mastery ?? masteryFilterVal;
 			const tIds = overrides?.tagIds ?? selectedTagIds;
 			const aVal = overrides?.account ?? (selectedStudent?.id ?? "all");
-			const tagIds = tIds.length > 0 ? tIds.join(",") : undefined;
 			const masteryFilter = mVal !== "all" ? Number(mVal) : undefined;
 			const accountId = aVal !== "all" ? Number(aVal) : undefined;
-			const res = await mistakeService.listMistakes({
+			// admin-list 只支持单个 tagId，取第一个
+			const tagId = tIds.length > 0 ? tIds[0] : undefined;
+			const res = await mistakeService.adminListMistakes({
 				accountId,
-				tagIds,
+				tagId,
 				masteryFilter,
 				pageNum: page,
 				pageSize: PAGE_SIZE,
@@ -200,7 +206,7 @@ export default function MistakeManagementPage() {
 		}
 		setSaving(true);
 		try {
-			await mistakeService.modifyMistake({
+			await mistakeService.adminUpdateMistake({
 				id: selected.id,
 				title: editForm.title.trim(),
 				correctAnswer: editForm.correctAnswer.trim() || "",
@@ -321,7 +327,7 @@ export default function MistakeManagementPage() {
 					/>
 					<span className="text-sm flex-1 truncate cursor-pointer" onClick={() => onToggle(node.id)}>{node.name}</span>
 					{node.type && (
-						<span className="text-xs text-muted-foreground">{TYPE_LABEL[node.type] || ""}</span>
+						<span className="text-xs text-muted-foreground">{typeLabelMap.get(node.type) || ""}</span>
 					)}
 				</div>,
 			);
@@ -550,7 +556,10 @@ export default function MistakeManagementPage() {
 								return (
 									<tr key={m.id} className="hover:bg-muted/30 transition-colors">
 										<td className="px-4 py-3 text-text-secondary">{m.id}</td>
-										<td className="px-4 py-3 text-sm">{m.accountNickname || "—"}</td>
+										<td className="px-4 py-3 text-sm">
+											<div>{m.accountNickname || "—"}</div>
+											{m.accountCode && <div className="text-xs text-muted-foreground">{m.accountCode}</div>}
+										</td>
 										<td className="px-4 py-3 max-w-[240px]">
 											<span className="line-clamp-2 text-sm">{m.title}</span>
 										</td>

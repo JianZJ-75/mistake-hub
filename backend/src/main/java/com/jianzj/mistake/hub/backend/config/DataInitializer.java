@@ -22,8 +22,6 @@ import static com.jianzj.mistake.hub.common.convention.exception.BaseException.o
 @Slf4j
 public class DataInitializer implements CommandLineRunner {
 
-    private static final String ADMIN_CODE = "admin";
-
     private static final String ADMIN_DEFAULT_PASSWORD = "admin-123";
 
     private final AccountService accountService;
@@ -47,11 +45,11 @@ public class DataInitializer implements CommandLineRunner {
      */
     private void initAdminAccount() {
 
-        Account admin = accountService.getByCodeAndRole(ADMIN_CODE, Role.ADMIN.getCode());
+        Account admin = accountService.getByCodeAndRole(Role.ADMIN.getCode(), Role.ADMIN.getCode());
 
         if (admin == null) {
             admin = Account.builder()
-                    .code(ADMIN_CODE)
+                    .code(Role.ADMIN.getCode())
                     .nickname("管理员")
                     .role(Role.ADMIN.getCode())
                     .dailyLimit(30L)
@@ -60,7 +58,7 @@ public class DataInitializer implements CommandLineRunner {
             if (!success) {
                 oops("默认管理员账户创建失败", "Failed to create default admin account.");
             }
-            log.info("已创建默认管理员账户 [{}]", ADMIN_CODE);
+            log.info("已创建默认管理员账户 [{}]", Role.ADMIN.getCode());
         }
 
         if (admin.getCipherPassword() != null) {
@@ -75,6 +73,6 @@ public class DataInitializer implements CommandLineRunner {
         if (!success) {
             oops("管理员密码初始化失败", "Failed to initialize admin password.");
         }
-        log.info("已为管理员账户 [{}] 初始化密码", ADMIN_CODE);
+        log.info("已为管理员账户 [{}] 初始化密码", Role.ADMIN.getCode());
     }
 }

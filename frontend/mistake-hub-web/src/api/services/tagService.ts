@@ -1,4 +1,4 @@
-import type { TagResp } from "#/entity";
+import type { EnumOption, TagResp } from "#/entity";
 import apiClient from "../apiClient";
 
 export interface TagAddParams {
@@ -38,4 +38,7 @@ const addCustomTag = (name: string): Promise<void> =>
 const deleteCustomTag = (id: number): Promise<void> =>
 	apiClient.post({ url: "/v1/tag/custom/delete", data: { id } });
 
-export default { getTagTree, addTag, modifyTag, deleteTag, listCustomTags, listAllCustomTags, addCustomTag, deleteCustomTag };
+const getTagTypes = (): Promise<EnumOption[]> =>
+	apiClient.get({ url: "/v1/tag/types" });
+
+export default { getTagTree, getTagTypes, addTag, modifyTag, deleteTag, listCustomTags, listAllCustomTags, addCustomTag, deleteCustomTag };
