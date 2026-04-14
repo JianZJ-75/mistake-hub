@@ -1,0 +1,44 @@
+server:
+  port: 0
+
+spring:
+  application:
+    name: mistake-hub-backend-test
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/mistake_hub?remarks=true&useInformationSchema=true&tinyInt1isBit=true&useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&rewriteBatchedStatements=true
+    username: root
+    password: mysql-1q2w3e4R
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: redis-1q2w3e4R
+  task:
+    scheduling:
+      pool:
+        size: 1
+
+# 微信小程序 - 测试占位值
+wechat:
+  app-id: test-app-id
+  app-secret: test-app-secret
+
+# 阿里云 OSS - 测试占位值
+oss:
+  endpoint: test-endpoint
+  access-key-id: test-key-id
+  access-key-secret: test-key-secret
+  bucket-name: test-bucket
+
+# 管理端口
+management:
+  server:
+    port: 0
+
+# 是否进行登录和权限校验
+auth-check:
+  exclude-path-list:
+    - "/v1/account/login-wx"
+    - "/v1/account/login-web"
+    - "/v1/nonce/generate"

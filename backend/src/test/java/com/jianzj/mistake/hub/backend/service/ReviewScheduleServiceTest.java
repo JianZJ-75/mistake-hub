@@ -240,6 +240,72 @@ class ReviewScheduleServiceTest {
         assertThat(result.get(1).getNoteImageUrl()).isEqualTo("n2.jpg");
     }
 
+    // ===== updateMistakeAfterReview 边界测试 =====
+
+    @Test
+    void submitReview_correct_stage6_shouldCapAt6() {
+
+        // stage=6, correct → 仍然=6（上限）
+        stubSubmitReviewCommon(100L, 5L, true, 6, 80);
+
+        ReviewSubmitReq req = new ReviewSubmitReq();
+        req.setMistakeId(5L);
+        req.setIsCorrect(true);
+
+        ReviewSubmitResp resp = reviewScheduleService.submitReview(req);
+
+        assertThat(resp.getReviewStageBefore()).isEqualTo(6);
+        assertThat(resp.getReviewStageAfter()).isEqualTo(6);
+    }
+
+    @Test
+    void submitReview_wrong_stage0_shouldCapAt0() {
+
+        // stage=0, wrong → 仍然=0（下限）
+        stubSubmitReviewCommon(100L, 5L, false, 0, 30);
+
+        ReviewSubmitReq req = new ReviewSubmitReq();
+        req.setMistakeId(5L);
+        req.setIsCorrect(false);
+
+        ReviewSubmitResp resp = reviewScheduleService.submitReview(req);
+
+        assertThat(resp.getReviewStageBefore()).isEqualTo(0);
+        assertThat(resp.getReviewStageAfter()).isEqualTo(0);
+    }
+
+    @Test
+    void submitReview_correct_mastery100_shouldCapAt100() {
+
+        // mastery=90, correct +20 → cap at 100
+        stubSubmitReviewCommon(100L, 5L, true, 3, 90);
+
+        ReviewSubmitReq req = new ReviewSubmitReq();
+        req.setMistakeId(5L);
+        req.setIsCorrect(true);
+
+        ReviewSubmitResp resp = reviewScheduleService.submitReview(req);
+
+        assertThat(resp.getMasteryBefore()).isEqualTo(90);
+        assertThat(resp.getMasteryAfter()).isEqualTo(100);
+    }
+
+    @Test
+    void submitReview_wrong_mastery0_shouldCapAt0() {
+
+        // mastery=10, wrong -15 → cap at 0
+        stubSubmitReviewCommon(100L, 5L, false, 3, 10);
+
+        ReviewSubmitReq req = new ReviewSubmitReq();
+        req.setMistakeId(5L);
+        req.setIsCorrect(false);
+
+        ReviewSubmitResp resp = reviewScheduleService.submitReview(req);
+
+        assertThat(resp.getMasteryBefore()).isEqualTo(10);
+        assertThat(resp.getMasteryAfter()).isEqualTo(0);
+    }
+
     // ===== 工具方法 =====
 
     /**

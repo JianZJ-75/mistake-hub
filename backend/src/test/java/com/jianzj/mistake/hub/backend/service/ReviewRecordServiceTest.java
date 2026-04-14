@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapp
 import com.jianzj.mistake.hub.backend.dto.resp.ReviewRecordResp;
 import com.jianzj.mistake.hub.backend.entity.ReviewRecord;
 import com.jianzj.mistake.hub.backend.mapper.ReviewRecordMapper;
+import com.jianzj.mistake.hub.backend.support.MockChainHelper;
 import com.jianzj.mistake.hub.common.convention.exception.BaseException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -126,14 +127,8 @@ class ReviewRecordServiceTest {
 
     // ===== 工具方法 =====
 
-    @SuppressWarnings("unchecked")
     private LambdaQueryChainWrapper<ReviewRecord> mockChain() {
 
-        return mock(LambdaQueryChainWrapper.class, invocation -> {
-            if (invocation.getMethod().getReturnType().isAssignableFrom(invocation.getMock().getClass())) {
-                return invocation.getMock();
-            }
-            return RETURNS_DEFAULTS.answer(invocation);
-        });
+        return MockChainHelper.mockChain();
     }
 }
