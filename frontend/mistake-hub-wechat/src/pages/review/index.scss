@@ -1,15 +1,19 @@
+@import '../../styles/variables';
+@import '../../styles/mixins';
+
 .review-page {
   min-height: 100vh;
-  background: #f5f7fa;
+  background: $color-bg-page;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
 }
 
 /* ===== 顶部进度条 ===== */
 .progress-bar-section {
-  background: #fff;
+  background: $color-bg-card;
   padding: 24rpx 32rpx;
-  border-bottom: 1rpx solid #f0f0f0;
+  border-bottom: 1rpx solid $color-border;
 }
 
 .progress-info {
@@ -22,25 +26,25 @@
 
 .progress-text {
   font-size: 26rpx;
-  color: #666;
+  color: $color-text-secondary;
 }
 
 .progress-num {
   font-size: 26rpx;
   font-weight: 600;
-  color: #4A7CF8;
+  color: $color-primary;
 }
 
 .progress-track {
   height: 10rpx;
-  background: #E3E8F0;
+  background: $color-track;
   border-radius: 5rpx;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: #4CAF50;
+  background: $color-success;
   border-radius: 5rpx;
   transition: width 0.3s ease;
 }
@@ -49,6 +53,8 @@
 .task-scroll {
   flex: 1;
   padding: 24rpx;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 /* ===== 加载状态 ===== */
@@ -60,14 +66,12 @@
 
 .loading-text {
   font-size: 28rpx;
-  color: #ccc;
+  color: $color-text-placeholder;
 }
 
 /* ===== 空状态 ===== */
 .empty-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  @include empty-state;
   padding: 160rpx 0;
 }
 
@@ -78,25 +82,23 @@
 
 .empty-title {
   font-size: 32rpx;
-  color: #333;
+  color: $color-text-primary;
   margin-bottom: 12rpx;
 }
 
 .empty-desc {
   font-size: 26rpx;
-  color: #999;
+  color: $color-text-muted;
 }
 
 /* ===== 完成总结卡片 ===== */
 .summary-card {
-  background: #fff;
-  border-radius: 16rpx;
+  @include card-base;
   padding: 40rpx 32rpx;
   margin-bottom: 24rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
 }
 
 .summary-icon {
@@ -107,7 +109,7 @@
 .summary-title {
   font-size: 32rpx;
   font-weight: 600;
-  color: #333;
+  color: $color-text-primary;
   margin-bottom: 28rpx;
 }
 
@@ -126,22 +128,21 @@
 .summary-stat-num {
   font-size: 36rpx;
   font-weight: 700;
-  color: #4A7CF8;
+  color: $color-primary;
 }
 
 .summary-stat-label {
   font-size: 22rpx;
-  color: #999;
+  color: $color-text-muted;
   margin-top: 4rpx;
 }
 
 /* ===== 任务卡片 ===== */
 .task-card {
-  background: #fff;
-  border-radius: 16rpx;
+  @include card-base;
   padding: 24rpx;
   margin-bottom: 20rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
+  overflow: hidden;
 }
 
 .task-header {
@@ -175,20 +176,20 @@
   flex-shrink: 0;
 }
 
-.dot-pending { background: #4A7CF8; }
-.dot-done { background: #4CAF50; }
-.dot-skipped { background: #C0C4CC; }
+.dot-pending { background: $color-primary; }
+.dot-done { background: $color-success; }
+.dot-skipped { background: $color-stat-skipped; }
 
 .task-title {
   font-size: 28rpx;
-  color: #333;
+  color: $color-text-primary;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .task-title-muted {
-  color: #999;
+  color: $color-text-muted;
 }
 
 .task-header-right {
@@ -202,15 +203,12 @@
 
 /* 复用错题列表页 badge */
 .mastery-badge {
-  font-size: 22rpx;
-  padding: 4rpx 16rpx;
-  border-radius: 20rpx;
-  color: #fff;
+  @include mastery-badge;
 }
 
-.badge-high { background: #4CAF50; }
-.badge-mid { background: #FF9800; }
-.badge-low { background: #F44336; }
+.badge-high { background: $color-mastery-high; }
+.badge-mid { background: $color-mastery-mid; }
+.badge-low { background: $color-mastery-low; }
 
 .status-tag {
   font-size: 20rpx;
@@ -219,13 +217,13 @@
 }
 
 .tag-done {
-  background: #E8F5E9;
-  color: #4CAF50;
+  background: $color-feedback-done-bg;
+  color: $color-feedback-done-text;
 }
 
 .tag-skipped {
-  background: #F5F5F5;
-  color: #999;
+  background: $color-bg-input;
+  color: $color-text-muted;
 }
 
 /* ===== 标签 ===== */
@@ -240,8 +238,8 @@
 
 .tag-chip {
   font-size: 22rpx;
-  color: #4A7CF8;
-  background: #eef2ff;
+  color: $color-tag-text;
+  background: $color-tag-bg;
   padding: 6rpx 20rpx;
   border-radius: 20rpx;
 }
@@ -250,12 +248,12 @@
 .task-detail {
   margin-top: 20rpx;
   padding-top: 20rpx;
-  border-top: 1rpx solid #f0f0f0;
+  border-top: 1rpx solid $color-border;
 }
 
 .detail-title {
   font-size: 28rpx;
-  color: #333;
+  color: $color-text-primary;
   line-height: 1.6;
   margin-bottom: 16rpx;
 }
@@ -272,13 +270,13 @@
 
 .detail-mastery-label {
   font-size: 24rpx;
-  color: #666;
+  color: $color-text-secondary;
   margin-bottom: 8rpx;
 }
 
 .mastery-track {
   height: 8rpx;
-  background: #f0f0f0;
+  background: $color-track;
   border-radius: 4rpx;
   overflow: hidden;
 }
@@ -288,9 +286,9 @@
   border-radius: 4rpx;
 }
 
-.mastery-fill.badge-high { background: #4CAF50; }
-.mastery-fill.badge-mid { background: #FF9800; }
-.mastery-fill.badge-low { background: #F44336; }
+.mastery-fill.badge-high { background: $color-mastery-high; }
+.mastery-fill.badge-mid { background: $color-mastery-mid; }
+.mastery-fill.badge-low { background: $color-mastery-low; }
 
 /* ===== 作答按钮 ===== */
 .action-row {
@@ -309,11 +307,11 @@
 }
 
 .btn-correct {
-  background: #4CAF50;
+  background: $color-success;
 }
 
 .btn-wrong {
-  background: #F44336;
+  background: $color-danger;
 }
 
 .answer-btn-text {
@@ -330,19 +328,19 @@
 
 .skip-link {
   font-size: 26rpx;
-  color: #999;
+  color: $color-text-muted;
 }
 
 /* ===== 提交反馈 ===== */
 .feedback-row {
   margin-top: 12rpx;
   padding-top: 12rpx;
-  border-top: 1rpx solid #f0f0f0;
+  border-top: 1rpx solid $color-border;
 }
 
 .feedback-text {
   font-size: 24rpx;
-  color: #4CAF50;
+  color: $color-success;
 }
 
 /* ===== 查看答案按钮 ===== */
@@ -350,7 +348,7 @@
   margin-top: 20rpx;
   height: 80rpx;
   border-radius: 12rpx;
-  background: #4A7CF8;
+  background: $color-primary;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -373,24 +371,24 @@
 
 .answer-label {
   font-size: 24rpx;
-  color: #999;
+  color: $color-text-muted;
   margin-bottom: 8rpx;
 }
 
 .answer-content {
   font-size: 28rpx;
-  color: #333;
+  color: $color-text-primary;
   line-height: 1.6;
 }
 
 .answer-correct {
-  color: #4CAF50;
+  color: $color-success;
 }
 
 .history-link {
   display: inline-block;
   font-size: 24rpx;
-  color: #4A7CF8;
+  color: $color-primary;
   margin: 8rpx 0 20rpx;
 }
 
@@ -398,13 +396,13 @@
 .note-section {
   margin-bottom: 20rpx;
   padding: 20rpx;
-  background: #f9fafb;
+  background: $color-bg-input;
   border-radius: 12rpx;
 }
 
 .note-label {
   font-size: 24rpx;
-  color: #999;
+  color: $color-text-muted;
   margin-bottom: 12rpx;
 }
 
@@ -412,8 +410,8 @@
   width: 100%;
   min-height: 60rpx;
   font-size: 28rpx;
-  background: #fff;
-  border: 1rpx solid #e5e7eb;
+  background: $color-bg-card;
+  border: 1rpx solid $color-border;
   border-radius: 8rpx;
   padding: 16rpx;
   box-sizing: border-box;
@@ -436,7 +434,7 @@
   right: -12rpx;
   width: 36rpx;
   height: 36rpx;
-  background: #F44336;
+  background: $color-danger;
   border-radius: 18rpx;
   display: flex;
   align-items: center;
@@ -452,6 +450,6 @@
 .note-upload-link {
   display: inline-block;
   font-size: 24rpx;
-  color: #4A7CF8;
+  color: $color-primary;
   margin-top: 12rpx;
 }

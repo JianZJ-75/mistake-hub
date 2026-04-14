@@ -1,0 +1,54 @@
+// ===== 蓝紫色系 — 设计 Token =====
+// Primary #4F86F7 | Secondary #646DD5 | Tertiary #AE56A8 | Neutral #71749E
+
+// --- 语义色 ---
+$color-primary: #4F86F7;
+$color-secondary: #646DD5;
+$color-success: #43A047;
+$color-warning: #FF9800;
+$color-danger: #E53935;
+
+// --- 掌握度专用色（badge / 进度条）红橙绿 ---
+$color-mastery-high: #43A047;
+$color-mastery-mid: #FF9800;
+$color-mastery-low: #E53935;
+
+// --- 文字色 ---
+$color-text-primary: #1E2046;
+$color-text-secondary: #71749E;
+$color-text-muted: #A0A3BD;
+$color-text-placeholder: #C5C7D6;
+
+// --- 背景色 ---
+$color-bg-page: #EFF0FA;
+$color-bg-card: #ffffff;
+$color-bg-input: #F5F6FC;
+
+// --- 边框 & 分割线 ---
+$color-border: #E0E2F0;
+$color-track: #E0E2F0;
+
+// --- 标签芯片 ---
+$color-tag-bg: #EEF0FF;
+$color-tag-text: #4F86F7;
+
+// --- 特殊色 ---
+$color-streak: #FF6B35;
+$color-stat-purple: #646DD5;
+$color-stat-skipped: #C5C7D6;
+
+// --- 状态反馈色 ---
+$color-feedback-done-bg: #E8F5E9;
+$color-feedback-done-text: #43A047;
+
+// --- 圆角 ---
+$radius-card: 24rpx;
+$radius-modal: 32rpx;
+$radius-btn: 24rpx;
+
+// --- 阴影 ---
+$shadow-card: 0 2rpx 16rpx rgba(100, 109, 213, 0.08);
+
+// --- 渐变 ---
+$gradient-primary: linear-gradient(135deg, #4F86F7 0%, #646DD5 100%);
+$gradient-profile: linear-gradient(135deg, #4F86F7 0%, #646DD5 100%);

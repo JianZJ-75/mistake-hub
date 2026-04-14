@@ -1,3 +1,6 @@
+@import '../../styles/variables';
+@import '../../styles/mixins';
+
 .tag-picker-modal__mask {
   position: fixed;
   top: 0;
@@ -11,8 +14,8 @@
 }
 
 .tag-picker-modal__content {
-  background: #fff;
-  border-radius: 24rpx 24rpx 0 0;
+  background: $color-bg-card;
+  border-radius: $radius-modal $radius-modal 0 0;
   width: 100%;
   max-height: 70vh;
   display: flex;
@@ -25,18 +28,18 @@
   align-items: center;
   justify-content: space-between;
   padding: 32rpx 32rpx 24rpx;
-  border-bottom: 1rpx solid #f0f0f0;
+  border-bottom: 1rpx solid $color-border;
 }
 
 .tag-picker-modal__title {
   font-size: 32rpx;
   font-weight: 600;
-  color: #333;
+  color: $color-text-primary;
 }
 
 .tag-picker-modal__close {
   font-size: 40rpx;
-  color: #999;
+  color: $color-text-muted;
   line-height: 1;
 }
 
@@ -50,12 +53,12 @@
   flex-direction: row;
   align-items: center;
   padding: 24rpx 32rpx 24rpx 0;
-  border-bottom: 1rpx solid #f8f8f8;
+  border-bottom: 1rpx solid $color-bg-input;
   gap: 12rpx;
 }
 
 .tag-picker-modal__row--active {
-  background: #f5f8ff;
+  background: $color-tag-bg;
 }
 
 .tag-picker-modal__expand-icon {
@@ -75,7 +78,7 @@
 .tag-picker-modal__arrow-right {
   width: 0;
   height: 0;
-  border-left: 12rpx solid #999;
+  border-left: 12rpx solid $color-text-muted;
   border-top: 8rpx solid transparent;
   border-bottom: 8rpx solid transparent;
 }
@@ -83,7 +86,7 @@
 .tag-picker-modal__arrow-down {
   width: 0;
   height: 0;
-  border-top: 12rpx solid #999;
+  border-top: 12rpx solid $color-text-muted;
   border-left: 8rpx solid transparent;
   border-right: 8rpx solid transparent;
 }
@@ -92,14 +95,14 @@
   width: 36rpx;
   height: 36rpx;
   border-radius: 8rpx;
-  border: 2rpx solid #ddd;
-  background: #fff;
+  border: 2rpx solid $color-text-placeholder;
+  background: $color-bg-card;
   flex-shrink: 0;
 }
 
 .tag-picker-modal__checkbox--checked {
-  background: #4A7CF8;
-  border-color: #4A7CF8;
+  background: $color-primary;
+  border-color: $color-primary;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 12l5 5 9-9' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-size: 80%;
   background-repeat: no-repeat;
@@ -109,7 +112,7 @@
 .tag-picker-modal__tag-name {
   flex: 1;
   font-size: 28rpx;
-  color: #333;
+  color: $color-text-primary;
 }
 
 .tag-picker-modal__empty {
@@ -120,7 +123,7 @@
 
 .tag-picker-modal__empty-text {
   font-size: 28rpx;
-  color: #999;
+  color: $color-text-muted;
 }
 
 .tag-picker-modal__footer {
@@ -128,7 +131,7 @@
   flex-direction: row;
   padding: 24rpx 32rpx;
   gap: 24rpx;
-  border-top: 1rpx solid #f0f0f0;
+  border-top: 1rpx solid $color-border;
 }
 
 .tag-picker-modal__btn {
@@ -142,31 +145,31 @@
 }
 
 .tag-picker-modal__btn--cancel {
-  background: #f5f5f5;
-  color: #666;
+  background: $color-bg-input;
+  color: $color-text-secondary;
 }
 
 .tag-picker-modal__btn--confirm {
-  background: #4A7CF8;
+  background: $color-primary;
   color: #fff;
   font-weight: 600;
 }
 
 .tag-picker-modal__section-title {
   padding: 20rpx 32rpx 8rpx;
-  border-top: 1rpx solid #eee;
+  border-top: 1rpx solid $color-border;
   margin-top: 8rpx;
 }
 
 .tag-picker-modal__section-text {
   font-size: 24rpx;
-  color: #999;
+  color: $color-text-muted;
   font-weight: 500;
 }
 
 .tag-picker-modal__delete-btn {
   font-size: 24rpx;
-  color: #e53935;
+  color: $color-danger;
   padding: 4rpx 16rpx;
   flex-shrink: 0;
 }
@@ -177,13 +180,13 @@
   align-items: center;
   padding: 16rpx 32rpx;
   gap: 16rpx;
-  border-top: 1rpx solid #f0f0f0;
+  border-top: 1rpx solid $color-border;
 }
 
 .tag-picker-modal__custom-input {
   flex: 1;
   height: 64rpx;
-  border: 1rpx solid #e0e0e0;
+  border: 1rpx solid $color-border;
   border-radius: 8rpx;
   padding: 0 16rpx;
   font-size: 26rpx;
@@ -192,7 +195,7 @@
 .tag-picker-modal__custom-add-btn {
   height: 64rpx;
   padding: 0 24rpx;
-  background: #4A7CF8;
+  background: $color-primary;
   color: #fff;
   border-radius: 8rpx;
   display: flex;

@@ -1,6 +1,9 @@
+@import '../../styles/variables';
+@import '../../styles/mixins';
+
 .detail-page {
   min-height: 100vh;
-  background: #f5f7fa;
+  background: $color-bg-page;
   display: flex;
   flex-direction: column;
 }
@@ -19,14 +22,13 @@
 
 .loading-text {
   font-size: 28rpx;
-  color: #999;
+  color: $color-text-muted;
 }
 
 /* 头部状态卡片 */
 .detail-header {
-  background: #fff;
+  @include card-base;
   margin: 20rpx 24rpx 0;
-  border-radius: 16rpx;
   padding: 24rpx;
 }
 
@@ -40,19 +42,16 @@
 }
 
 .mastery-badge {
-  font-size: 22rpx;
-  padding: 4rpx 16rpx;
-  border-radius: 20rpx;
-  color: #fff;
+  @include mastery-badge;
 }
 
-.badge-high { background: #4CAF50; }
-.badge-mid  { background: #FF9800; }
-.badge-low  { background: #F44336; }
+.badge-high { background: $color-mastery-high; }
+.badge-mid  { background: $color-mastery-mid; }
+.badge-low  { background: $color-mastery-low; }
 
 .stage-info {
   font-size: 22rpx;
-  color: #999;
+  color: $color-text-muted;
 }
 
 .mastery-row {
@@ -65,7 +64,7 @@
 .mastery-track {
   flex: 1;
   height: 10rpx;
-  background: #f0f0f0;
+  background: $color-track;
   border-radius: 5rpx;
   overflow: hidden;
 }
@@ -75,39 +74,38 @@
   border-radius: 5rpx;
 }
 
-.mastery-fill.badge-high { background: #4CAF50; }
-.mastery-fill.badge-mid  { background: #FF9800; }
-.mastery-fill.badge-low  { background: #F44336; }
+.mastery-fill.badge-high { background: $color-mastery-high; }
+.mastery-fill.badge-mid  { background: $color-mastery-mid; }
+.mastery-fill.badge-low  { background: $color-mastery-low; }
 
 .mastery-pct {
   font-size: 24rpx;
-  color: #666;
+  color: $color-text-secondary;
   white-space: nowrap;
 }
 
 /* 内容区块 */
 .detail-section {
-  background: #fff;
+  @include card-base;
   margin: 20rpx 24rpx 0;
-  border-radius: 16rpx;
   padding: 24rpx;
 }
 
 .detail-label {
   font-size: 24rpx;
-  color: #999;
+  color: $color-text-muted;
   margin-bottom: 12rpx;
   display: block;
 }
 
 .detail-text {
   font-size: 30rpx;
-  color: #333;
+  color: $color-text-primary;
   line-height: 1.7;
 }
 
 .answer-text {
-  color: #4CAF50;
+  color: $color-success;
 }
 
 .detail-img {
@@ -123,8 +121,8 @@
 
 .tag-chip {
   font-size: 24rpx;
-  color: #4A7CF8;
-  background: #eef2ff;
+  color: $color-tag-text;
+  background: $color-tag-bg;
   padding: 6rpx 20rpx;
   border-radius: 20rpx;
 }
@@ -140,7 +138,7 @@
 .btn-edit {
   flex: 1;
   height: 88rpx;
-  background: #4A7CF8;
+  background: $color-primary;
   border-radius: 12rpx;
   display: flex;
   align-items: center;
@@ -153,46 +151,43 @@
 .btn-history {
   flex: 1;
   height: 88rpx;
-  background: #fff;
+  background: $color-bg-card;
   border-radius: 12rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 30rpx;
-  color: #4A7CF8;
-  border: 2rpx solid #4A7CF8;
+  color: $color-primary;
+  border: 2rpx solid $color-primary;
 }
 
 .btn-delete {
   flex: 1;
   height: 88rpx;
-  background: #fff;
+  background: $color-bg-card;
   border-radius: 12rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 30rpx;
-  color: #F44336;
-  border: 2rpx solid #F44336;
+  color: $color-danger;
+  border: 2rpx solid $color-danger;
 }
 
 /* 编辑模式表单 */
 .form-section {
-  background: #fff;
-  margin: 20rpx 24rpx 0;
-  border-radius: 16rpx;
-  padding: 24rpx;
+  @include form-section;
 }
 
 .section-label {
   font-size: 26rpx;
-  color: #666;
+  color: $color-text-secondary;
   margin-bottom: 16rpx;
   display: block;
 }
 
 .required {
-  color: #F44336;
+  color: $color-danger;
   margin-left: 4rpx;
 }
 
@@ -200,9 +195,9 @@
   width: 100%;
   min-height: 120rpx;
   font-size: 28rpx;
-  color: #333;
+  color: $color-text-primary;
   line-height: 1.6;
-  background: #f8f8f8;
+  background: $color-bg-input;
   border-radius: 8rpx;
   padding: 16rpx;
   box-sizing: border-box;
@@ -211,9 +206,9 @@
 .img-picker {
   width: 160rpx;
   height: 160rpx;
-  background: #f8f8f8;
+  background: $color-bg-input;
   border-radius: 12rpx;
-  border: 2rpx dashed #ddd;
+  border: 2rpx dashed $color-text-placeholder;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -224,13 +219,13 @@
 
 .img-picker-icon {
   font-size: 48rpx;
-  color: #ccc;
+  color: $color-text-placeholder;
   line-height: 1;
 }
 
 .img-picker-hint {
   font-size: 22rpx;
-  color: #ccc;
+  color: $color-text-placeholder;
   margin-top: 8rpx;
 }
 
@@ -264,7 +259,7 @@
 }
 
 .tag-selector {
-  background: #f8f8f8;
+  background: $color-bg-input;
   border-radius: 8rpx;
   padding: 16rpx;
   display: flex;
@@ -276,12 +271,12 @@
 .tag-placeholder {
   flex: 1;
   font-size: 28rpx;
-  color: #ccc;
+  color: $color-text-placeholder;
 }
 
 .tag-arrow {
   font-size: 32rpx;
-  color: #ccc;
+  color: $color-text-placeholder;
   margin-left: 12rpx;
 }
 
@@ -296,19 +291,19 @@
 .btn-cancel {
   flex: 1;
   height: 88rpx;
-  background: #f5f5f5;
+  background: $color-bg-input;
   border-radius: 12rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 30rpx;
-  color: #666;
+  color: $color-text-secondary;
 }
 
 .btn-save {
   flex: 2;
   height: 88rpx;
-  background: #4A7CF8;
+  background: $color-primary;
   border-radius: 12rpx;
   display: flex;
   align-items: center;

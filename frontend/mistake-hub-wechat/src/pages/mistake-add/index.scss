@@ -1,6 +1,9 @@
+@import '../../styles/variables';
+@import '../../styles/mixins';
+
 .add-page {
   min-height: 100vh;
-  background: #f5f7fa;
+  background: $color-bg-page;
   display: flex;
   flex-direction: column;
 }
@@ -12,21 +15,18 @@
 
 /* 表单区块 */
 .form-section {
-  background: #fff;
-  margin: 20rpx 24rpx 0;
-  border-radius: 16rpx;
-  padding: 24rpx;
+  @include form-section;
 }
 
 .section-label {
   font-size: 26rpx;
-  color: #666;
+  color: $color-text-secondary;
   margin-bottom: 16rpx;
   display: block;
 }
 
 .required {
-  color: #F44336;
+  color: $color-danger;
   margin-left: 4rpx;
 }
 
@@ -34,9 +34,9 @@
   width: 100%;
   min-height: 120rpx;
   font-size: 28rpx;
-  color: #333;
+  color: $color-text-primary;
   line-height: 1.6;
-  background: #f8f8f8;
+  background: $color-bg-input;
   border-radius: 8rpx;
   padding: 16rpx;
   box-sizing: border-box;
@@ -46,9 +46,9 @@
 .img-picker {
   width: 160rpx;
   height: 160rpx;
-  background: #f8f8f8;
+  background: $color-bg-input;
   border-radius: 12rpx;
-  border: 2rpx dashed #ddd;
+  border: 2rpx dashed $color-text-placeholder;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -61,13 +61,13 @@
 
 .img-picker-icon {
   font-size: 48rpx;
-  color: #ccc;
+  color: $color-text-placeholder;
   line-height: 1;
 }
 
 .img-picker-hint {
   font-size: 22rpx;
-  color: #ccc;
+  color: $color-text-placeholder;
   margin-top: 8rpx;
 }
 
@@ -102,7 +102,7 @@
 
 /* 标签选择器 */
 .tag-selector {
-  background: #f8f8f8;
+  background: $color-bg-input;
   border-radius: 8rpx;
   padding: 16rpx;
   display: flex;
@@ -120,8 +120,8 @@
 
 .tag-chip {
   font-size: 24rpx;
-  color: #4A7CF8;
-  background: #eef2ff;
+  color: $color-tag-text;
+  background: $color-tag-bg;
   padding: 6rpx 20rpx;
   border-radius: 20rpx;
 }
@@ -129,20 +129,20 @@
 .tag-placeholder {
   flex: 1;
   font-size: 28rpx;
-  color: #ccc;
+  color: $color-text-placeholder;
 }
 
 .tag-arrow {
   font-size: 32rpx;
-  color: #ccc;
+  color: $color-text-placeholder;
   margin-left: 12rpx;
 }
 
 /* 提交按钮 */
 .submit-btn {
   margin: 40rpx 24rpx 60rpx;
-  background: #4A7CF8;
-  border-radius: 16rpx;
+  background: $color-primary;
+  border-radius: $radius-btn;
   height: 96rpx;
   display: flex;
   align-items: center;

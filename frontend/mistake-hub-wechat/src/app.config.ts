@@ -10,13 +10,13 @@ export default defineAppConfig({
   ],
   window: {
     backgroundTextStyle: 'light',
-    navigationBarBackgroundColor: '#4A7CF8',
+    navigationBarBackgroundColor: '#EFF0FA',
     navigationBarTitleText: '错题复习',
-    navigationBarTextStyle: 'white',
+    navigationBarTextStyle: 'black',
   },
   tabBar: {
-    color: '#999999',
-    selectedColor: '#4A7CF8',
+    color: '#A0A3BD',
+    selectedColor: '#4F86F7',
     backgroundColor: '#ffffff',
     borderStyle: 'black',
     list: [
