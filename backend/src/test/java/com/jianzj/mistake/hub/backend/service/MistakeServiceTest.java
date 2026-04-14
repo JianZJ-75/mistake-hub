@@ -2,9 +2,15 @@ package com.jianzj.mistake.hub.backend.service;
 
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.jianzj.mistake.hub.backend.dto.req.MistakeAddReq;
+import com.jianzj.mistake.hub.backend.dto.req.MistakeDeleteReq;
+import com.jianzj.mistake.hub.backend.dto.req.MistakeDetailReq;
 import com.jianzj.mistake.hub.backend.dto.req.MistakeUpdateReq;
+import com.jianzj.mistake.hub.backend.dto.resp.MistakeDetailResp;
+import com.jianzj.mistake.hub.backend.dto.resp.TagResp;
+import com.jianzj.mistake.hub.backend.entity.Account;
 import com.jianzj.mistake.hub.backend.entity.Mistake;
 import com.jianzj.mistake.hub.backend.mapper.MistakeMapper;
+import com.jianzj.mistake.hub.backend.support.MockChainHelper;
 import com.jianzj.mistake.hub.common.convention.exception.BaseException;
 import com.jianzj.mistake.hub.common.utils.ThreadStorageUtil;
 import org.junit.jupiter.api.BeforeEach;
@@ -206,7 +212,7 @@ class MistakeServiceTest {
         when(threadStorageUtil.getCurAccountRole()).thenReturn("admin");
         when(threadStorageUtil.getCurAccountId()).thenReturn(100L);
 
-        LambdaQueryChainWrapper<Mistake> chain = mockChain();
+        LambdaQueryChainWrapper<Mistake> chain = MockChainHelper.mockChain();
         doReturn(chain).when(mistakeService).lambdaQuery();
 
         com.baomidou.mybatisplus.extension.plugins.pagination.Page<Mistake> emptyPage =
@@ -227,7 +233,7 @@ class MistakeServiceTest {
         when(threadStorageUtil.getCurAccountRole()).thenReturn("student");
         when(threadStorageUtil.getCurAccountId()).thenReturn(200L);
 
-        LambdaQueryChainWrapper<Mistake> chain = mockChain();
+        LambdaQueryChainWrapper<Mistake> chain = MockChainHelper.mockChain();
         doReturn(chain).when(mistakeService).lambdaQuery();
 
         com.baomidou.mybatisplus.extension.plugins.pagination.Page<Mistake> emptyPage =
@@ -240,28 +246,92 @@ class MistakeServiceTest {
         verify(threadStorageUtil).getCurAccountId();
     }
 
-    // ===== 工具方法 =====
+    // ===== delete =====
 
-    /**
-     * 构建 LambdaQueryChainWrapper mock：所有返回类型兼容的方法自动返回 self
-     */
-    @SuppressWarnings("unchecked")
-    private LambdaQueryChainWrapper<Mistake> mockChain() {
+    @Test
+    void delete_success_shouldSoftDeleteAndClearTags() {
 
-        return mock(LambdaQueryChainWrapper.class, invocation -> {
-            if (invocation.getMethod().getReturnType().isAssignableFrom(invocation.getMock().getClass())) {
-                return invocation.getMock();
-            }
-            return RETURNS_DEFAULTS.answer(invocation);
-        });
+        when(threadStorageUtil.getCurAccountRole()).thenReturn("student");
+        when(threadStorageUtil.getCurAccountId()).thenReturn(100L);
+
+        Mistake existing = Mistake.builder()
+                .id(1L).accountId(100L).status(1).build();
+
+        stubLambdaQueryChain(List.of(existing));
+        doReturn(true).when(mistakeService).updateById(any(Mistake.class));
+
+        MistakeDeleteReq req = new MistakeDeleteReq();
+        req.setId(1L);
+
+        Mistake deleted = mistakeService.delete(req);
+
+        assertThat(deleted.getStatus()).isEqualTo(0);
+        verify(mistakeTagService).removeByMistakeId(1L);
     }
+
+    @Test
+    void delete_notOwned_shouldThrow() {
+
+        when(threadStorageUtil.getCurAccountRole()).thenReturn("student");
+        when(threadStorageUtil.getCurAccountId()).thenReturn(200L);
+
+        // lambdaQuery 返回空列表，模拟错题不属于当前用户
+        stubLambdaQueryChain(List.of());
+
+        MistakeDeleteReq req = new MistakeDeleteReq();
+        req.setId(1L);
+
+        assertThatThrownBy(() -> mistakeService.delete(req))
+                .isInstanceOf(BaseException.class);
+    }
+
+    // ===== detail =====
+
+    @Test
+    void detail_withTags_shouldReturnDetailResp() {
+
+        when(threadStorageUtil.getCurAccountRole()).thenReturn("student");
+        when(threadStorageUtil.getCurAccountId()).thenReturn(100L);
+
+        Mistake existing = Mistake.builder()
+                .id(1L).accountId(100L).status(1)
+                .title("测试题目").correctAnswer("A")
+                .reviewStage(2).masteryLevel(40)
+                .build();
+
+        stubLambdaQueryChain(List.of(existing));
+
+        Account account = Account.builder().id(100L).nickname("测试用户").build();
+        when(accountService.getById(100L)).thenReturn(account);
+
+        when(mistakeTagService.getTagIdsByMistakeId(1L)).thenReturn(List.of(10L, 20L));
+
+        TagResp tag1 = new TagResp();
+        tag1.setId(10L);
+        tag1.setName("数学");
+        TagResp tag2 = new TagResp();
+        tag2.setId(20L);
+        tag2.setName("函数");
+        when(tagService.getByIds(List.of(10L, 20L))).thenReturn(List.of(tag1, tag2));
+
+        MistakeDetailReq req = new MistakeDetailReq();
+        req.setId(1L);
+
+        MistakeDetailResp resp = mistakeService.detail(req);
+
+        assertThat(resp.getTitle()).isEqualTo("测试题目");
+        assertThat(resp.getTags()).hasSize(2);
+        assertThat(resp.getAccountNickname()).isEqualTo("测试用户");
+    }
+
+    // ===== 工具方法 =====
 
     /**
      * stub lambdaQuery 链式调用，最终返回给定列表
      */
     private void stubLambdaQueryChain(List<Mistake> result) {
 
-        LambdaQueryChainWrapper<Mistake> chain = mockChain();
+        LambdaQueryChainWrapper<Mistake> chain = MockChainHelper.mockChain();
         doReturn(chain).when(mistakeService).lambdaQuery();
         when(chain.list()).thenReturn(result);
     }
