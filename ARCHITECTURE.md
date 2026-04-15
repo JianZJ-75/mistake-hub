@@ -23,11 +23,10 @@
 mistake-hub-all (pom)
 ├── dependencies/    BOM 统一管理第三方依赖版本
 ├── common/          公共基础设施（BaseResult, BaseException, oops(), ThreadStorageUtil, 分布式锁）
-├── framework/       框架扩展（GlobalResultWrapper 自动包装, GlobalExceptionHandler）
 └── backend/         业务主模块（Controller → Service → Mapper）
 ```
 
-依赖方向：`backend → framework → common → dependencies`
+依赖方向：`backend → common → dependencies`
 
 ---
 
