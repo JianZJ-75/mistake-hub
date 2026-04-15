@@ -53,6 +53,9 @@ public class MistakeDetailResp {
 
     private LocalDateTime updatedTime;
 
+    /** 错题状态 */
+    private Integer status;
+
     /**
      * 关联的标签列表
      */

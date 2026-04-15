@@ -1,10 +1,11 @@
-package com.jianzj.mistake.hub.backend.service;
+package com.jianzj.mistake.hub.backend.client;
 
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
 import com.jianzj.mistake.hub.backend.config.OssProperties;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -17,7 +18,7 @@ import static com.jianzj.mistake.hub.common.convention.exception.BaseException.o
 
 /**
  * <p>
- * 阿里云 OSS 文件上传服务
+ * 阿里云 OSS 客户端
  * </p>
  *
  * @author jian.zhong
@@ -25,7 +26,7 @@ import static com.jianzj.mistake.hub.common.convention.exception.BaseException.o
  */
 @Service
 @Slf4j
-public class OssService {
+public class OssClient {
 
     private static final long MAX_SIZE_BYTES = 10L * 1024 * 1024;
 
@@ -35,7 +36,7 @@ public class OssService {
 
     private final OSS ossClient;
 
-    public OssService(OssProperties ossProperties) {
+    public OssClient(OssProperties ossProperties) {
 
         this.ossProperties = ossProperties;
         this.ossClient = new OSSClientBuilder().build(
@@ -68,6 +69,37 @@ public class OssService {
 
         String endpoint = ossProperties.getEndpoint().replaceFirst("^https?://", "");
         return "https://" + ossProperties.getBucketName() + "." + endpoint + "/" + objectKey;
+    }
+
+    /**
+     * 根据图片 URL 删除 OSS 对象，URL 为空时跳过，失败异常自然传播
+     */
+    public void deleteByUrl(String imageUrl) {
+
+        if (StringUtils.isBlank(imageUrl)) {
+            return;
+        }
+
+        String objectKey = extractObjectKey(imageUrl);
+        if (StringUtils.isBlank(objectKey)) {
+            oops("无法解析 OSS objectKey：%s", "Cannot extract objectKey from URL: %s", imageUrl);
+        }
+
+        ossClient.deleteObject(ossProperties.getBucketName(), objectKey);
+        log.info("OSS 删除成功：{}", objectKey);
+    }
+
+    /**
+     * 判断 URL 是否属于本 OSS bucket
+     */
+    public boolean isOssUrl(String url) {
+
+        if (StringUtils.isBlank(url)) {
+            return false;
+        }
+        String endpoint = ossProperties.getEndpoint().replaceFirst("^https?://", "");
+        String prefix = "https://" + ossProperties.getBucketName() + "." + endpoint + "/";
+        return url.startsWith(prefix);
     }
 
     // ===== 工具方法 =====
@@ -105,6 +137,21 @@ public class OssService {
         }
 
         return originalFilename.substring(originalFilename.lastIndexOf("."));
+    }
+
+    /**
+     * 从完整 URL 中提取 objectKey（格式：https://{bucket}.{endpoint}/{key}）
+     */
+    private String extractObjectKey(String imageUrl) {
+
+        String endpoint = ossProperties.getEndpoint().replaceFirst("^https?://", "");
+        String prefix = "https://" + ossProperties.getBucketName() + "." + endpoint + "/";
+
+        if (!imageUrl.startsWith(prefix)) {
+            return null;
+        }
+
+        return imageUrl.substring(prefix.length());
     }
 
     @PreDestroy

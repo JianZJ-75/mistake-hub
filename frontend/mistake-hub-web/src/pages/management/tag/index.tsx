@@ -24,6 +24,7 @@ interface FlatTag {
 	createdTime: string;
 	isCustom: boolean;
 	accountId?: number | null;
+	accountNickname?: string | null;
 }
 
 const EMPTY_FORM: FormState = { name: "", type: "", parentId: 0 };
@@ -121,6 +122,7 @@ export default function TagManagementPage() {
 			createdTime: t.createdTime,
 			isCustom: true,
 			accountId: t.accountId,
+			accountNickname: t.accountNickname,
 		}));
 		return [...treeTags, ...custom];
 	}, [tree, customTags]);
@@ -254,6 +256,7 @@ export default function TagManagementPage() {
 							<th className="px-4 py-3 text-left font-medium text-text-secondary">名称</th>
 							<th className="px-4 py-3 text-left font-medium text-text-secondary w-28">类型</th>
 							<th className="px-4 py-3 text-left font-medium text-text-secondary">路径</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary w-28">所属用户</th>
 							<th className="px-4 py-3 text-left font-medium text-text-secondary w-36">创建时间</th>
 							<th className="px-4 py-3 text-left font-medium text-text-secondary w-36">操作</th>
 						</tr>
@@ -261,13 +264,13 @@ export default function TagManagementPage() {
 					<tbody className="divide-y">
 						{loading ? (
 							<tr>
-								<td colSpan={6} className="py-12 text-center text-text-secondary">
+								<td colSpan={7} className="py-12 text-center text-text-secondary">
 									<Loader2 className="h-6 w-6 animate-spin mx-auto" />
 								</td>
 							</tr>
 						) : displayTags.length === 0 ? (
 							<tr>
-								<td colSpan={6} className="py-12 text-center text-text-secondary">
+								<td colSpan={7} className="py-12 text-center text-text-secondary">
 									{isFiltering ? "无匹配结果，请调整筛选条件" : "暂无标签数据"}
 								</td>
 							</tr>
@@ -284,6 +287,7 @@ export default function TagManagementPage() {
 										)}
 									</td>
 									<td className="px-4 py-3 text-text-secondary text-xs">{tag.path}</td>
+									<td className="px-4 py-3 text-text-secondary text-xs">{tag.accountNickname || "—"}</td>
 									<td className="px-4 py-3 text-text-secondary text-xs whitespace-nowrap">
 										{tag.createdTime?.replace("T", " ").substring(0, 16) || "—"}
 									</td>

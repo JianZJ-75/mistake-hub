@@ -7,167 +7,185 @@
   padding-bottom: 120rpx;
 }
 
-/* 掌握度筛选条 */
-.filter-bar {
+/* ===== 统计头部 ===== */
+.stats-header {
+  background: $color-bg-page;
+  padding: 24rpx 24rpx 12rpx;
   display: flex;
   flex-direction: row;
-  padding: 20rpx 24rpx 16rpx;
-  background: $color-bg-card;
-  border-bottom: 1rpx solid $color-border;
+  justify-content: space-between;
   gap: 16rpx;
 }
 
-.filter-chip {
+.stat-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28rpx 0;
+  @include card-base;
+}
+
+.stat-active {
+  background: rgba(239, 68, 68, 0.08);
+  box-shadow: 0 4rpx 20rpx rgba(239, 68, 68, 0.12);
+}
+
+.stat-num {
+  font-size: 56rpx;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.stat-num-total { color: $color-text-primary; }
+.stat-num-danger { color: $color-danger; }
+.stat-num-purple { color: $color-text-primary; }
+
+.stat-label {
+  font-size: 24rpx;
+  color: $color-text-secondary;
+  margin-bottom: 8rpx;
+}
+
+/* ===== 学科筛选栏 ===== */
+.subject-bar {
+  background: $color-bg-card;
+  border-bottom: 1rpx solid $color-border;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.subject-chips {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 20rpx 24rpx;
+  gap: 16rpx;
+}
+
+.subject-chip {
+  display: inline-flex;
+  align-items: center;
   padding: 10rpx 28rpx;
   border-radius: 32rpx;
-  background: $color-border;
+  background: $color-bg-card;
+  border: 1rpx solid $color-border;
   font-size: 26rpx;
   color: $color-text-secondary;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.chip-active {
+.subject-chip.chip-active {
   background: $color-primary;
+  border-color: $color-primary;
   color: #fff;
 }
 
-/* 标签筛选栏 */
-.tag-filter-bar {
-  background: $color-bg-card;
-  border-bottom: 1rpx solid $color-border;
-  padding: 16rpx 24rpx;
+.chip-filter {
+  border-style: dashed;
 }
 
-.tag-filter-chips {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12rpx;
-}
-
-.tag-filter-selected {
-  display: inline-flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 6rpx;
-  padding: 8rpx 20rpx;
-  border-radius: 32rpx;
-  background: $color-primary;
-}
-
-.tag-filter-selected-text {
-  font-size: 24rpx;
-  color: #fff;
-}
-
-.tag-filter-selected-remove {
-  font-size: 26rpx;
-  color: rgba(255, 255, 255, 0.7);
-  margin-left: 2rpx;
-}
-
-.tag-filter-add {
-  display: inline-flex;
-  align-items: center;
-  padding: 8rpx 20rpx;
-  border-radius: 32rpx;
-  border: 1rpx dashed $color-text-placeholder;
-  background: $color-bg-input;
-}
-
-.tag-filter-add-text {
-  font-size: 24rpx;
-  color: $color-text-muted;
-}
-
-.tag-filter-clear {
-  display: inline-flex;
-  align-items: center;
-  padding: 8rpx 16rpx;
-}
-
-.tag-filter-clear-text {
-  font-size: 24rpx;
-  color: $color-text-muted;
-}
-
-/* 错题列表 */
+/* ===== 错题列表 ===== */
 .mistake-list {
   padding: 24rpx;
 }
 
 .mistake-card {
   @include card-base;
-  padding: 24rpx;
+  padding: 32rpx;
   margin-bottom: 20rpx;
 }
 
-.card-header {
+.card-top {
   display: flex;
   flex-direction: row;
   align-items: center;
-  margin-bottom: 16rpx;
-  gap: 12rpx;
+  justify-content: space-between;
+  margin-bottom: 28rpx;
 }
 
 .mastery-badge {
-  @include mastery-badge;
+  font-size: 24rpx;
+  padding: 8rpx 20rpx;
+  border-radius: 8rpx;
+  font-weight: 500;
 }
 
-.badge-high { background: $color-mastery-high; }
-.badge-mid  { background: $color-mastery-mid; }
-.badge-low  { background: $color-mastery-low; }
+.badge-high { background: rgba(16, 185, 129, 0.12); color: $color-mastery-high; }
+.badge-mid  { background: rgba(245, 158, 11, 0.12); color: $color-mastery-mid; }
+.badge-low  { background: rgba(239, 68, 68, 0.12); color: $color-mastery-low; }
+
+.card-id {
+  font-size: 24rpx;
+  color: $color-text-muted;
+  font-family: monospace;
+}
 
 .card-title {
-  font-size: 28rpx;
+  font-size: 34rpx;
+  font-weight: 700;
   color: $color-text-primary;
   line-height: 1.6;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  margin-bottom: 16rpx;
+  margin-bottom: 28rpx;
 }
 
-.card-img {
-  width: 100%;
-  border-radius: 8rpx;
-  margin-bottom: 16rpx;
-}
-
-.card-footer {
+.card-bottom {
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding-top: 24rpx;
+  border-top: 1rpx solid $color-border;
+}
+
+.depth-info {
+  display: flex;
+  flex-direction: column;
   gap: 12rpx;
 }
 
-.mastery-track {
-  flex: 1;
-  height: 8rpx;
-  background: $color-track;
-  border-radius: 4rpx;
-  overflow: hidden;
-}
-
-.mastery-fill {
-  height: 100%;
-  border-radius: 4rpx;
-}
-
-.mastery-fill.badge-high { background: $color-mastery-high; }
-.mastery-fill.badge-mid  { background: $color-mastery-mid; }
-.mastery-fill.badge-low  { background: $color-mastery-low; }
-
-.mastery-pct {
-  font-size: 24rpx;
+.depth-label {
+  font-size: 26rpx;
   color: $color-text-muted;
-  min-width: 72rpx;
-  text-align: right;
 }
 
-/* 空状态 */
+.depth-bar {
+  display: flex;
+  gap: 8rpx;
+}
+
+.depth-seg {
+  width: 40rpx;
+  height: 10rpx;
+  border-radius: 5rpx;
+}
+
+.seg-filled { background: $color-depth-fill; }
+.seg-empty  { background: $color-depth-track; }
+
+.card-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16rpx 36rpx;
+  border-radius: 32rpx;
+  background: rgba(37, 99, 235, 0.1);
+  flex-shrink: 0;
+}
+
+.card-action-text {
+  font-size: 28rpx;
+  color: $color-primary;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* ===== 空状态 ===== */
 .empty-wrap {
   @include empty-state;
   padding: 120rpx 0;
@@ -189,7 +207,7 @@
   color: $color-text-muted;
 }
 
-/* 底部提示 */
+/* ===== 底部提示 ===== */
 .footer-row {
   display: flex;
   justify-content: center;
@@ -201,7 +219,7 @@
   color: $color-text-placeholder;
 }
 
-/* 悬浮按钮 */
+/* ===== 悬浮按钮 ===== */
 .fab {
   position: fixed;
   right: 40rpx;
@@ -213,7 +231,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4rpx 20rpx rgba(79, 134, 247, 0.4);
+  box-shadow: 0 4rpx 20rpx rgba(37, 99, 235, 0.4);
 }
 
 .fab-text {

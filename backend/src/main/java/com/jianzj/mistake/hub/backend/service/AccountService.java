@@ -16,6 +16,7 @@ import com.jianzj.mistake.hub.backend.dto.req.AccountUpdateDailyLimitReq;
 import com.jianzj.mistake.hub.backend.dto.resp.AccountChangeRoleResp;
 import com.jianzj.mistake.hub.backend.dto.resp.AccountDetailResp;
 import com.jianzj.mistake.hub.backend.dto.resp.AccountResetPasswordResp;
+import com.jianzj.mistake.hub.backend.client.OssClient;
 import com.jianzj.mistake.hub.backend.entity.Account;
 import com.jianzj.mistake.hub.backend.entity.Nonce;
 import com.jianzj.mistake.hub.backend.enums.Role;
@@ -64,17 +65,21 @@ public class AccountService extends ServiceImpl<AccountMapper, Account> {
 
     private final ThreadStorageUtil threadStorageUtil;
 
+    private final OssClient ossClient;
+
     public AccountService(WechatProperties wechatProperties,
                           SessionService sessionService,
                           NonceService nonceService,
                           EncryptionUtil encryptionUtil,
-                          ThreadStorageUtil threadStorageUtil) {
+                          ThreadStorageUtil threadStorageUtil,
+                          OssClient ossClient) {
 
         this.wechatProperties = wechatProperties;
         this.sessionService = sessionService;
         this.nonceService = nonceService;
         this.encryptionUtil = encryptionUtil;
         this.threadStorageUtil = threadStorageUtil;
+        this.ossClient = ossClient;
     }
 
     // ==================== 业务方法 ====================
@@ -305,6 +310,8 @@ public class AccountService extends ServiceImpl<AccountMapper, Account> {
             oops("用户不存在", "Account does not exist.");
         }
 
+        String oldAvatarUrl = account.getAvatarUrl();
+
         if (StringUtils.isNotBlank(req.getNickname())) {
             account.setNickname(req.getNickname());
         }
@@ -316,6 +323,12 @@ public class AccountService extends ServiceImpl<AccountMapper, Account> {
         boolean success = updateById(account);
         if (!success) {
             oops("修改个人资料失败", "Failed to update profile.");
+        }
+
+        // 头像变更且旧头像是 OSS 文件时，清理旧文件
+        String newAvatarUrl = account.getAvatarUrl();
+        if (!StringUtils.equals(oldAvatarUrl, newAvatarUrl) && ossClient.isOssUrl(oldAvatarUrl)) {
+            ossClient.deleteByUrl(oldAvatarUrl);
         }
     }
 

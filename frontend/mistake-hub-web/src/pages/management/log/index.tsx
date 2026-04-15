@@ -4,10 +4,11 @@ import { Button } from "@/ui/button";
 import { Input } from "@/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/ui/dialog";
+import { Pagination } from "@/ui/pagination";
 import { Eye, Loader2, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 
-const PAGE_SIZE = 15;
+const DEFAULT_PAGE_SIZE = 15;
 
 export default function LogManagementPage() {
 
@@ -20,6 +21,7 @@ export default function LogManagementPage() {
 	const [total, setTotal] = useState(0);
 	const [loading, setLoading] = useState(false);
 	const [pageNum, setPageNum] = useState(1);
+	const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
 	// ===== 筛选状态 =====
 	const [codeFilter, setCodeFilter] = useState("");
@@ -40,7 +42,7 @@ export default function LogManagementPage() {
 	const actionLabelMap = new Map(actionOptions.map(o => [o.code, o.displayNameCn]));
 	const targetTypeLabelMap = new Map(targetTypeOptions.map(o => [o.code, o.displayNameCn]));
 
-	const fetchLogs = async (page = pageNum, overrides?: { action?: string; start?: string; end?: string }) => {
+	const fetchLogs = async (page = pageNum, overrides?: { action?: string; start?: string; end?: string; size?: number }) => {
 
 		setLoading(true);
 		try {
@@ -53,7 +55,7 @@ export default function LogManagementPage() {
 				startTime: sVal || undefined,
 				endTime: eVal || undefined,
 				pageNum: page,
-				pageSize: PAGE_SIZE,
+				pageSize: overrides?.size ?? pageSize,
 			});
 			setLogs(res.records);
 			setTotal(res.total || res.records.length);
@@ -86,7 +88,8 @@ export default function LogManagementPage() {
 		}
 	};
 
-	const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+	const handlePageChange = (page: number) => { setPageNum(page); fetchLogs(page); };
+	const handlePageSizeChange = (size: number) => { setPageSize(size); setPageNum(1); fetchLogs(1, { size }); };
 
 	const isFiltering = codeFilter.trim() !== "" || actionFilter !== "all" || startDate !== "" || endDate !== "";
 
@@ -195,24 +198,14 @@ export default function LogManagementPage() {
 			</div>
 
 			{/* 分页 */}
-			<div className="flex items-center justify-between text-sm text-text-secondary">
-				<span>共 {total} 条记录</span>
-				<div className="flex items-center gap-2">
-					<Button
-						size="sm"
-						variant="outline"
-						disabled={pageNum <= 1}
-						onClick={() => { setPageNum(p => p - 1); fetchLogs(pageNum - 1); }}
-					>上一页</Button>
-					<span className="px-2">{pageNum} / {totalPages}</span>
-					<Button
-						size="sm"
-						variant="outline"
-						disabled={pageNum >= totalPages}
-						onClick={() => { setPageNum(p => p + 1); fetchLogs(pageNum + 1); }}
-					>下一页</Button>
-				</div>
-			</div>
+			<Pagination
+				current={pageNum}
+				total={total}
+				pageSize={pageSize}
+				pageSizeOptions={[15, 30, 50, 100]}
+				onPageChange={handlePageChange}
+				onPageSizeChange={handlePageSizeChange}
+			/>
 
 			{/* 详情弹窗 */}
 			<Dialog open={detailOpen} onOpenChange={setDetailOpen}>

@@ -363,6 +363,22 @@ public class StatsService {
     }
 
     /**
+     * 管理端掌握度分布（全平台）
+     */
+    public MasteryDistributionResp adminMastery() {
+
+        long notMastered = mistakeService.countAllByMasteryRange(0, 60);
+        long learning = mistakeService.countAllByMasteryRange(60, 80);
+        long mastered = mistakeService.countAllByMasteryRange(80, null);
+
+        return MasteryDistributionResp.builder()
+                .notMastered((int) notMastered)
+                .learning((int) learning)
+                .mastered((int) mastered)
+                .build();
+    }
+
+    /**
      * 5.7 管理端全局统计
      */
     public AdminOverviewResp adminOverview() {

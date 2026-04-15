@@ -32,6 +32,9 @@ public class TagResp {
 
     private Long accountId;
 
+    /** 所属用户昵称（仅自定义标签，管理员查询时填充） */
+    private String accountNickname;
+
     private LocalDateTime createdTime;
 
     /**

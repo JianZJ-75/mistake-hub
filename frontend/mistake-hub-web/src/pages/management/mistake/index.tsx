@@ -14,19 +14,26 @@ import { ScrollArea } from "@/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/ui/select";
 import { Textarea } from "@/ui/textarea";
 import { cascadeToggleTag } from "@/utils/tagCascade";
+import { Pagination } from "@/ui/pagination";
 import { ChevronDown, ChevronRight, Eye, History, Loader2, Pencil, Search, Trash2, Upload, X } from "lucide-react";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/ui/command";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/ui/tooltip";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
-const PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 10;
 
 const MASTERY_OPTIONS = [
 	{ label: "全部掌握度", value: "all" },
 	{ label: "未掌握（<60）", value: "0" },
 	{ label: "掌握中（60-79）", value: "1" },
 	{ label: "已掌握（≥80）", value: "2" },
+];
+
+const STATUS_OPTIONS = [
+	{ label: "全部状态", value: "all" },
+	{ label: "正常", value: "1" },
+	{ label: "待删除", value: "2" },
 ];
 
 const STAGE_INTERVALS = [0, 1, 2, 4, 7, 15, 30];
@@ -70,9 +77,11 @@ export default function MistakeManagementPage() {
 	const [total, setTotal] = useState(0);
 	const [loading, setLoading] = useState(false);
 	const [pageNum, setPageNum] = useState(1);
+	const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
 	// ===== 筛选状态 =====
 	const [masteryFilterVal, setMasteryFilterVal] = useState("all");
+	const [statusFilterVal, setStatusFilterVal] = useState("all");
 	const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
 	const [tagTree, setTagTree] = useState<TagResp[]>([]);
 	const [customTags, setCustomTags] = useState<TagResp[]>([]);
@@ -121,23 +130,26 @@ export default function MistakeManagementPage() {
 
 	const allFlatTags = [...flattenTags(tagTree), ...customTags];
 
-	const fetchMistakes = async (page: number, overrides?: { mastery?: string; tagIds?: number[]; account?: string }) => {
+	const fetchMistakes = async (page: number, overrides?: { mastery?: string; tagIds?: number[]; account?: string; status?: string; size?: number }) => {
 
 		setLoading(true);
 		try {
 			const mVal = overrides?.mastery ?? masteryFilterVal;
 			const tIds = overrides?.tagIds ?? selectedTagIds;
 			const aVal = overrides?.account ?? (selectedStudent?.id ?? "all");
+			const sVal = overrides?.status ?? statusFilterVal;
 			const masteryFilter = mVal !== "all" ? Number(mVal) : undefined;
 			const accountId = aVal !== "all" ? Number(aVal) : undefined;
+			const statusFilter = sVal !== "all" ? Number(sVal) : undefined;
 			// admin-list 只支持单个 tagId，取第一个
 			const tagId = tIds.length > 0 ? tIds[0] : undefined;
 			const res = await mistakeService.adminListMistakes({
 				accountId,
 				tagId,
 				masteryFilter,
+				statusFilter,
 				pageNum: page,
-				pageSize: PAGE_SIZE,
+				pageSize: overrides?.size ?? pageSize,
 			});
 			setMistakes(res.records);
 			setTotal(res.total || res.records.length);
@@ -372,9 +384,10 @@ export default function MistakeManagementPage() {
 		}
 	};
 
-	const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+	const handlePageChange = (page: number) => { setPageNum(page); fetchMistakes(page); };
+	const handlePageSizeChange = (size: number) => { setPageSize(size); setPageNum(1); fetchMistakes(1, { size }); };
 
-	const isFiltering = selectedStudent !== null || masteryFilterVal !== "all" || selectedTagIds.length > 0;
+	const isFiltering = selectedStudent !== null || masteryFilterVal !== "all" || selectedTagIds.length > 0 || statusFilterVal !== "all";
 
 	return (
 		<div className="flex flex-col gap-4 p-2">
@@ -433,6 +446,16 @@ export default function MistakeManagementPage() {
 					</SelectTrigger>
 					<SelectContent>
 						{MASTERY_OPTIONS.map(o => (
+							<SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
+				<Select value={statusFilterVal} onValueChange={v => { setStatusFilterVal(v); setPageNum(1); fetchMistakes(1, { status: v }); }}>
+					<SelectTrigger className="w-32">
+						<SelectValue placeholder="状态" />
+					</SelectTrigger>
+					<SelectContent>
+						{STATUS_OPTIONS.map(o => (
 							<SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
 						))}
 					</SelectContent>
@@ -533,19 +556,20 @@ export default function MistakeManagementPage() {
 							<th className="px-4 py-3 text-left font-medium text-text-secondary">复习阶段</th>
 							<th className="px-4 py-3 text-left font-medium text-text-secondary">标签</th>
 							<th className="px-4 py-3 text-left font-medium text-text-secondary">录入时间</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary">状态</th>
 							<th className="px-4 py-3 text-left font-medium text-text-secondary">操作</th>
 						</tr>
 					</thead>
 					<tbody className="divide-y">
 						{loading ? (
 							<tr>
-								<td colSpan={8} className="py-12 text-center text-text-secondary">
+								<td colSpan={9} className="py-12 text-center text-text-secondary">
 									<Loader2 className="h-6 w-6 animate-spin mx-auto" />
 								</td>
 							</tr>
 						) : mistakes.length === 0 ? (
 							<tr>
-								<td colSpan={8} className="py-12 text-center text-text-secondary">
+								<td colSpan={9} className="py-12 text-center text-text-secondary">
 									{isFiltering ? "无匹配结果，请调整筛选条件" : "暂无数据"}
 								</td>
 							</tr>
@@ -608,6 +632,13 @@ export default function MistakeManagementPage() {
 											{m.createdTime?.replace("T", " ").substring(0, 16) || "—"}
 										</td>
 										<td className="px-4 py-3">
+											{m.status === 2 ? (
+												<span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-yellow-100 text-yellow-700">待删除</span>
+											) : (
+												<span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-green-100 text-green-700">正常</span>
+											)}
+										</td>
+										<td className="px-4 py-3">
 											<div className="flex items-center gap-1">
 												<Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => openDetail(m)}>
 													<Eye className="h-3 w-3 mr-1" />详情
@@ -617,6 +648,7 @@ export default function MistakeManagementPage() {
 													variant="ghost"
 													className="h-7 px-2 text-xs text-destructive hover:text-destructive"
 													onClick={() => openDelete(m.id)}
+													disabled={m.status === 2}
 												>
 													<Trash2 className="h-3 w-3 mr-1" />删除
 												</Button>
@@ -631,24 +663,13 @@ export default function MistakeManagementPage() {
 			</div>
 
 			{/* 分页 */}
-			<div className="flex items-center justify-between text-sm text-text-secondary">
-				<span>共 {total} 条记录</span>
-				<div className="flex items-center gap-2">
-					<Button
-						size="sm"
-						variant="outline"
-						disabled={pageNum <= 1}
-						onClick={() => { setPageNum(p => p - 1); fetchMistakes(pageNum - 1); }}
-					>上一页</Button>
-					<span className="px-2">{pageNum} / {totalPages}</span>
-					<Button
-						size="sm"
-						variant="outline"
-						disabled={pageNum >= totalPages}
-						onClick={() => { setPageNum(p => p + 1); fetchMistakes(pageNum + 1); }}
-					>下一页</Button>
-				</div>
-			</div>
+			<Pagination
+				current={pageNum}
+				total={total}
+				pageSize={pageSize}
+				onPageChange={handlePageChange}
+				onPageSizeChange={handlePageSizeChange}
+			/>
 
 			{/* 详情/编辑弹窗（2.W2） */}
 			<Dialog open={detailOpen} onOpenChange={open => { if (!open) { setDetailOpen(false); setEditMode(false); } }}>
@@ -851,10 +872,11 @@ export default function MistakeManagementPage() {
 									variant="outline"
 									className="text-destructive border-destructive hover:bg-destructive/10"
 									onClick={() => { setDetailOpen(false); if (selected) openDelete(selected.id); }}
+									disabled={selected?.status === 2}
 								>
 									<Trash2 className="h-4 w-4 mr-1" />删除
 								</Button>
-								<Button onClick={enterEdit}>
+								<Button onClick={enterEdit} disabled={selected?.status === 2}>
 									<Pencil className="h-4 w-4 mr-1" />编辑
 								</Button>
 							</>
@@ -878,7 +900,7 @@ export default function MistakeManagementPage() {
 					<DialogHeader>
 						<DialogTitle>确认删除</DialogTitle>
 					</DialogHeader>
-					<p className="text-sm text-muted-foreground py-2">删除后无法恢复，确认删除该错题吗？</p>
+					<p className="text-sm text-muted-foreground py-2">删除后该错题将进入待清理状态，系统将在凌晨自动清理相关数据和图片。确认删除吗？</p>
 					<DialogFooter>
 						<Button variant="outline" onClick={() => setDeleteOpen(false)}>取消</Button>
 						<Button variant="destructive" onClick={confirmDelete} disabled={deleting}>

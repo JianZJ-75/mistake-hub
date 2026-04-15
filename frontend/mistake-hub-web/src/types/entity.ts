@@ -123,6 +123,7 @@ export interface TagResp {
 	type: string;
 	parentId: number;
 	accountId?: number | null;
+	accountNickname?: string | null;
 	createdTime: string;
 	children?: TagResp[];
 }
@@ -143,6 +144,7 @@ export interface MistakeDetailResp {
 	nextReviewTime?: string;
 	createdTime?: string;
 	updatedTime?: string;
+	status?: number;
 	tags?: TagResp[];
 }
 
@@ -197,6 +199,13 @@ export interface SubjectStatsResp {
 	subject: string;
 	count: number;
 	avgMastery: number;
+}
+
+/** 对应后端 MasteryDistributionResp */
+export interface MasteryDistributionResp {
+	notMastered: number;
+	learning: number;
+	mastered: number;
 }
 
 /** 对应后端 SystemConfig */

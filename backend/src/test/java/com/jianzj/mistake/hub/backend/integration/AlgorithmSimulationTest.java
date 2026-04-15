@@ -3,6 +3,7 @@ package com.jianzj.mistake.hub.backend.integration;
 import com.jianzj.mistake.hub.backend.entity.Account;
 import com.jianzj.mistake.hub.backend.entity.Mistake;
 import com.jianzj.mistake.hub.backend.entity.ReviewPlan;
+import com.jianzj.mistake.hub.backend.enums.MistakeStatus;
 import com.jianzj.mistake.hub.backend.enums.ReviewPlanStatus;
 import com.jianzj.mistake.hub.backend.enums.Role;
 import org.junit.jupiter.api.Test;
@@ -187,7 +188,7 @@ class AlgorithmSimulationTest extends BaseIntegrationTest {
                 .reviewStage(stage)
                 .masteryLevel(mastery)
                 .nextReviewTime(nextReview)
-                .status(Mistake.STATUS_VALID)
+                .status(MistakeStatus.VALID.getCode())
                 .build();
         mistakeService.save(mistake);
         return mistake;

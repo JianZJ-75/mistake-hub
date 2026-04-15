@@ -1,45 +1,49 @@
-// ===== 蓝紫色系 — 设计 Token =====
-// Primary #4F86F7 | Secondary #646DD5 | Tertiary #AE56A8 | Neutral #71749E
+// ===== Scholar Flow 设计系统 =====
+// Primary #2563EB | Secondary #0255C5 | Slate 色阶
 
 // --- 语义色 ---
-$color-primary: #4F86F7;
-$color-secondary: #646DD5;
-$color-success: #43A047;
-$color-warning: #FF9800;
-$color-danger: #E53935;
+$color-primary: #2563EB;
+$color-secondary: #0255C5;
+$color-success: #10B981;
+$color-warning: #F59E0B;
+$color-danger: #EF4444;
 
-// --- 掌握度专用色（badge / 进度条）红橙绿 ---
-$color-mastery-high: #43A047;
-$color-mastery-mid: #FF9800;
-$color-mastery-low: #E53935;
+// --- 掌握度专用色（badge / 进度条）---
+$color-mastery-high: #10B981;
+$color-mastery-mid: #F59E0B;
+$color-mastery-low: #EF4444;
+
+// --- 掌握深度条 ---
+$color-depth-track: #DBEAFE;
+$color-depth-fill: #3B82F6;
 
 // --- 文字色 ---
-$color-text-primary: #1E2046;
-$color-text-secondary: #71749E;
-$color-text-muted: #A0A3BD;
-$color-text-placeholder: #C5C7D6;
+$color-text-primary: #1E293B;
+$color-text-secondary: #64748B;
+$color-text-muted: #94A3B8;
+$color-text-placeholder: #CBD5E1;
 
 // --- 背景色 ---
-$color-bg-page: #EFF0FA;
-$color-bg-card: #ffffff;
-$color-bg-input: #F5F6FC;
+$color-bg-page: #F8FAFC;
+$color-bg-card: #FFFFFF;
+$color-bg-input: #F1F5F9;
 
 // --- 边框 & 分割线 ---
-$color-border: #E0E2F0;
-$color-track: #E0E2F0;
+$color-border: #E2E8F0;
+$color-track: #E2E8F0;
 
 // --- 标签芯片 ---
-$color-tag-bg: #EEF0FF;
-$color-tag-text: #4F86F7;
+$color-tag-bg: #DBEAFE;
+$color-tag-text: #2563EB;
 
 // --- 特殊色 ---
-$color-streak: #FF6B35;
-$color-stat-purple: #646DD5;
-$color-stat-skipped: #C5C7D6;
+$color-streak: #F59E0B;
+$color-stat-purple: #0255C5;
+$color-stat-skipped: #CBD5E1;
 
 // --- 状态反馈色 ---
-$color-feedback-done-bg: #E8F5E9;
-$color-feedback-done-text: #43A047;
+$color-feedback-done-bg: #ECFDF5;
+$color-feedback-done-text: #10B981;
 
 // --- 圆角 ---
 $radius-card: 24rpx;
@@ -47,8 +51,8 @@ $radius-modal: 32rpx;
 $radius-btn: 24rpx;
 
 // --- 阴影 ---
-$shadow-card: 0 2rpx 16rpx rgba(100, 109, 213, 0.08);
+$shadow-card: 0 2rpx 16rpx rgba(30, 41, 59, 0.06);
 
 // --- 渐变 ---
-$gradient-primary: linear-gradient(135deg, #4F86F7 0%, #646DD5 100%);
-$gradient-profile: linear-gradient(135deg, #4F86F7 0%, #646DD5 100%);
+$gradient-primary: linear-gradient(135deg, #2563EB 0%, #0255C5 100%);
+$gradient-profile: linear-gradient(135deg, #2563EB 0%, #0255C5 100%);

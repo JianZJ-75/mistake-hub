@@ -11,10 +11,10 @@
 
 // 掌握度徽章通用样式
 @mixin mastery-badge {
-  font-size: 22rpx;
-  padding: 4rpx 16rpx;
-  border-radius: 20rpx;
-  color: #fff;
+  font-size: 24rpx;
+  padding: 8rpx 20rpx;
+  border-radius: 8rpx;
+  font-weight: 500;
 }
 
 // 表单区块通用样式

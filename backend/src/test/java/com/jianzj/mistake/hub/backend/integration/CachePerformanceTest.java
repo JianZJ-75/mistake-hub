@@ -4,6 +4,7 @@ import com.jianzj.mistake.hub.backend.dto.req.ConfigUpdateReq;
 import com.jianzj.mistake.hub.backend.dto.resp.ReviewTaskResp;
 import com.jianzj.mistake.hub.backend.entity.Account;
 import com.jianzj.mistake.hub.backend.entity.Mistake;
+import com.jianzj.mistake.hub.backend.enums.MistakeStatus;
 import com.jianzj.mistake.hub.backend.enums.Role;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -100,7 +101,7 @@ class CachePerformanceTest extends BaseIntegrationTest {
                 .title("测试缓存")
                 .reviewStage(0).masteryLevel(0)
                 .nextReviewTime(LocalDateTime.now().minusDays(1))
-                .status(Mistake.STATUS_VALID)
+                .status(MistakeStatus.VALID.getCode())
                 .build();
         mistakeService.save(mistake);
 

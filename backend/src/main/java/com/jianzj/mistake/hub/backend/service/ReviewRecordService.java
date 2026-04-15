@@ -2,6 +2,7 @@ package com.jianzj.mistake.hub.backend.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.jianzj.mistake.hub.backend.client.OssClient;
 import com.jianzj.mistake.hub.backend.dto.req.ReviewRecordAdminReq;
 import com.jianzj.mistake.hub.backend.dto.resp.ReviewRecordAdminResp;
 import com.jianzj.mistake.hub.backend.dto.resp.ReviewRecordResp;
@@ -13,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -42,11 +44,15 @@ public class ReviewRecordService extends ServiceImpl<ReviewRecordMapper, ReviewR
 
     private final MistakeService mistakeService;
 
+    private final OssClient ossClient;
+
     public ReviewRecordService(AccountService accountService,
-                               MistakeService mistakeService) {
+                               MistakeService mistakeService,
+                               OssClient ossClient) {
 
         this.accountService = accountService;
         this.mistakeService = mistakeService;
+        this.ossClient = ossClient;
     }
 
     // ===== 业务方法 =====
@@ -199,6 +205,26 @@ public class ReviewRecordService extends ServiceImpl<ReviewRecordMapper, ReviewR
     }
 
     // ===== 工具方法 =====
+
+    /**
+     * 查询某错题的所有复习记录实体（供清理任务提取 noteImageUrl）
+     */
+    public List<ReviewRecord> listEntityByMistakeId(Long mistakeId) {
+
+        return lambdaQuery()
+                .eq(ReviewRecord::getMistakeId, mistakeId)
+                .list();
+    }
+
+    /**
+     * 清理笔记图片：先置空字段，再删 OSS；OSS 失败则事务回滚
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void cleanupNoteImage(Long recordId, String noteImageUrl) {
+
+        lambdaUpdate().eq(ReviewRecord::getId, recordId).set(ReviewRecord::getNoteImageUrl, null).update();
+        ossClient.deleteByUrl(noteImageUrl);
+    }
 
     /**
      * ReviewRecord -> ReviewRecordResp

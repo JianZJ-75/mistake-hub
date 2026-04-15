@@ -13,6 +13,7 @@ export interface AdminListMistakesParams {
 	accountId?: number;
 	tagId?: number;
 	masteryFilter?: number;
+	statusFilter?: number;
 	pageNum: number;
 	pageSize: number;
 }

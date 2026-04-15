@@ -5,6 +5,7 @@ import { Button } from "@/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/ui/dialog";
 import { Input } from "@/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/ui/select";
+import { Pagination } from "@/ui/pagination";
 import { Copy, Loader2, RotateCcw, Search, ShieldCheck, ShieldOff } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -17,7 +18,7 @@ const ACTION_CONFIRM: Record<ActionType, string> = {
 	reset: "确定重置该用户密码？重置后该用户将被强制下线。",
 };
 
-const PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 10;
 
 export default function UserManagementPage() {
 	// ===== 枚举选项（从后端拉取） =====
@@ -31,6 +32,7 @@ export default function UserManagementPage() {
 	const [users, setUsers] = useState<UserInfo[]>([]);
 	const [total, setTotal] = useState(0);
 	const [pageNum, setPageNum] = useState(1);
+	const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
 	// ===== 操作状态 =====
 	const [confirmOpen, setConfirmOpen] = useState(false);
@@ -42,7 +44,7 @@ export default function UserManagementPage() {
 	const [pwdOpen, setPwdOpen] = useState(false);
 	const [plainPwd, setPlainPwd] = useState("");
 
-	const fetchUsers = async (page = pageNum) => {
+	const fetchUsers = async (page = pageNum, size = pageSize) => {
 		setLoading(true);
 		try {
 			const result = await userService.listUsers({
@@ -50,7 +52,7 @@ export default function UserManagementPage() {
 				nickname: nicknameFilter.trim() || undefined,
 				role: roleFilter === "all" ? undefined : roleFilter,
 				pageNum: page,
-				pageSize: PAGE_SIZE,
+				pageSize: size,
 			});
 			setUsers(result.records);
 			setTotal(result.total || result.records.length);
@@ -111,7 +113,8 @@ export default function UserManagementPage() {
 		navigator.clipboard.writeText(plainPwd).then(() => toast.success("已复制到剪贴板"));
 	};
 
-	const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+	const handlePageChange = (page: number) => { setPageNum(page); fetchUsers(page); };
+	const handlePageSizeChange = (size: number) => { setPageSize(size); setPageNum(1); fetchUsers(1, size); };
 
 	const isFiltering = codeFilter.trim() !== "" || nicknameFilter.trim() !== "" || roleFilter !== "all";
 
@@ -277,24 +280,13 @@ export default function UserManagementPage() {
 			</div>
 
 			{/* 分页 */}
-			<div className="flex items-center justify-between text-sm text-text-secondary">
-				<span>共 {total || users.length} 条记录</span>
-				<div className="flex items-center gap-2">
-					<Button
-						size="sm"
-						variant="outline"
-						disabled={pageNum <= 1}
-						onClick={() => { setPageNum(p => p - 1); fetchUsers(pageNum - 1); }}
-					>上一页</Button>
-					<span className="px-2">{pageNum} / {totalPages}</span>
-					<Button
-						size="sm"
-						variant="outline"
-						disabled={pageNum >= totalPages}
-						onClick={() => { setPageNum(p => p + 1); fetchUsers(pageNum + 1); }}
-					>下一页</Button>
-				</div>
-			</div>
+			<Pagination
+				current={pageNum}
+				total={total}
+				pageSize={pageSize}
+				onPageChange={handlePageChange}
+				onPageSizeChange={handlePageSizeChange}
+			/>
 
 			{/* 操作确认 Dialog */}
 			<Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
