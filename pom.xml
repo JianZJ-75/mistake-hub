@@ -22,7 +22,6 @@
         <module>backend</module>
         <module>common</module>
         <module>dependencies</module>
-        <module>framework</module>
     </modules>
 
     <properties>
