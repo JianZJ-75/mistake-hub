@@ -46,9 +46,9 @@
   @include mastery-badge;
 }
 
-.badge-high { background: $color-mastery-high; }
-.badge-mid  { background: $color-mastery-mid; }
-.badge-low  { background: $color-mastery-low; }
+.badge-high { background: rgba(16, 185, 129, 0.12); color: $color-mastery-high; }
+.badge-mid  { background: rgba(245, 158, 11, 0.12); color: $color-mastery-mid; }
+.badge-low  { background: rgba(239, 68, 68, 0.12); color: $color-mastery-low; }
 
 .stage-info {
   font-size: 22rpx;
@@ -118,7 +118,9 @@
 .view-actions {
   display: flex;
   flex-direction: row;
-  margin: 40rpx 24rpx 60rpx;
+  margin: 40rpx 24rpx 0;
+  padding-bottom: calc(60rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(60rpx + env(safe-area-inset-bottom));
   gap: 24rpx;
 }
 
@@ -165,7 +167,9 @@
 .edit-actions {
   display: flex;
   flex-direction: row;
-  margin: 40rpx 24rpx 60rpx;
+  margin: 40rpx 24rpx 0;
+  padding-bottom: calc(60rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(60rpx + env(safe-area-inset-bottom));
   gap: 24rpx;
 }
 

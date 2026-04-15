@@ -14,6 +14,7 @@ import com.jianzj.mistake.hub.backend.entity.Account;
 import com.jianzj.mistake.hub.backend.entity.Mistake;
 import com.jianzj.mistake.hub.backend.entity.ReviewPlan;
 import com.jianzj.mistake.hub.backend.entity.ReviewRecord;
+import com.jianzj.mistake.hub.backend.enums.MistakeStatus;
 import com.jianzj.mistake.hub.backend.enums.ReviewPlanStatus;
 import com.jianzj.mistake.hub.backend.enums.ReviewStage;
 import com.jianzj.mistake.hub.common.utils.ThreadStorageUtil;
@@ -249,7 +250,7 @@ public class ReviewScheduleService {
 
         // 查询有到期错题的用户ID（groupBy 去重，避免加载冗余行）
         List<Mistake> dueMistakes = mistakeService.lambdaQuery()
-                .eq(Mistake::getStatus, Mistake.STATUS_VALID)
+                .eq(Mistake::getStatus, MistakeStatus.VALID.getCode())
                 .le(Mistake::getNextReviewTime, todayEnd)
                 .select(Mistake::getAccountId)
                 .groupBy(Mistake::getAccountId)

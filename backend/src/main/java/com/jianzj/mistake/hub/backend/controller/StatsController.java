@@ -138,4 +138,15 @@ public class StatsController {
 
         return statsService.adminOverview();
     }
+
+    /**
+     * 管理端掌握度分布（全平台）
+     */
+    @Operation(summary = "管理端掌握度分布")
+    @PostMapping("/admin-mastery")
+    @PreAuthorize(requiredRole = Role.ADMIN)
+    public MasteryDistributionResp adminMastery() {
+
+        return statsService.adminMastery();
+    }
 }

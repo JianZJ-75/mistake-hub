@@ -7,6 +7,7 @@ import com.jianzj.mistake.hub.backend.dto.req.TagCustomAddReq;
 import com.jianzj.mistake.hub.backend.dto.req.TagDeleteReq;
 import com.jianzj.mistake.hub.backend.dto.req.TagUpdateReq;
 import com.jianzj.mistake.hub.backend.dto.resp.TagResp;
+import com.jianzj.mistake.hub.backend.entity.Account;
 import com.jianzj.mistake.hub.backend.entity.MistakeTag;
 import com.jianzj.mistake.hub.backend.entity.Tag;
 import com.jianzj.mistake.hub.backend.enums.TagType;
@@ -41,12 +42,16 @@ public class TagService extends ServiceImpl<TagMapper, Tag> {
 
     private final MistakeTagMapper mistakeTagMapper;
 
+    private final AccountService accountService;
+
     private final ThreadStorageUtil threadStorageUtil;
 
     public TagService(MistakeTagMapper mistakeTagMapper,
+                      AccountService accountService,
                       ThreadStorageUtil threadStorageUtil) {
 
         this.mistakeTagMapper = mistakeTagMapper;
+        this.accountService = accountService;
         this.threadStorageUtil = threadStorageUtil;
     }
 
@@ -185,7 +190,21 @@ public class TagService extends ServiceImpl<TagMapper, Tag> {
                 .orderByDesc(Tag::getCreatedTime)
                 .list();
 
-        return tags.stream().map(this::toResp).collect(Collectors.toList());
+        List<TagResp> respList = tags.stream().map(this::toResp).collect(Collectors.toList());
+
+        // 批量填充所属用户昵称
+        Set<Long> accountIds = tags.stream().map(Tag::getAccountId).collect(Collectors.toSet());
+        if (CollectionUtils.isNotEmpty(accountIds)) {
+            Map<Long, String> nicknameMap = accountService.listByIds(accountIds).stream()
+                    .collect(Collectors.toMap(Account::getId, a -> a.getNickname() != null ? a.getNickname() : a.getCode()));
+            for (TagResp resp : respList) {
+                if (resp.getAccountId() != null) {
+                    resp.setAccountNickname(nicknameMap.get(resp.getAccountId()));
+                }
+            }
+        }
+
+        return respList;
     }
 
     /**

@@ -1,24 +1,28 @@
 /**
- * 蓝紫色系常量 — 供 TSX 动态 style 使用
- * Primary #4F86F7 | Secondary #646DD5 | Tertiary #AE56A8 | Neutral #71749E
+ * Scholar Flow 设计系统颜色常量 — 供 TSX 动态 style 使用
+ * Primary #2563EB | Secondary #0255C5 | Slate 色阶
  */
 
 // 语义色
-export const COLOR_PRIMARY = '#4F86F7'
-export const COLOR_SECONDARY = '#646DD5'
-export const COLOR_SUCCESS = '#43A047'
-export const COLOR_WARNING = '#FF9800'
-export const COLOR_DANGER = '#E53935'
+export const COLOR_PRIMARY = '#2563EB'
+export const COLOR_SECONDARY = '#0255C5'
+export const COLOR_SUCCESS = '#10B981'
+export const COLOR_WARNING = '#F59E0B'
+export const COLOR_DANGER = '#EF4444'
 
-// 掌握度专用色（红橙绿）
-export const COLOR_MASTERY_HIGH = '#43A047'
-export const COLOR_MASTERY_MID = '#FF9800'
-export const COLOR_MASTERY_LOW = '#E53935'
+// 掌握度专用色
+export const COLOR_MASTERY_HIGH = '#10B981'
+export const COLOR_MASTERY_MID = '#F59E0B'
+export const COLOR_MASTERY_LOW = '#EF4444'
+
+// 掌握深度条
+export const COLOR_DEPTH_TRACK = '#DBEAFE'
+export const COLOR_DEPTH_FILL = '#3B82F6'
 
 // 背景 & 轨道
-export const COLOR_TRACK = '#E0E2F0'
-export const COLOR_STAT_SKIPPED = '#C5C7D6'
-export const COLOR_STAT_PURPLE = '#646DD5'
+export const COLOR_TRACK = '#E2E8F0'
+export const COLOR_STAT_SKIPPED = '#CBD5E1'
+export const COLOR_STAT_PURPLE = '#0255C5'
 
 /** 条形颜色按 avgMastery 三段 */
 export const getBarColor = (avgMastery: number): string => {

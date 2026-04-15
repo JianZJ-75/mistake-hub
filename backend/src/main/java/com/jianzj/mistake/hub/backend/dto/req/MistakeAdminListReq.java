@@ -27,6 +27,11 @@ public class MistakeAdminListReq {
     @Max(value = 2, message = "掌握度筛选值最大为2")
     private Integer masteryFilter;
 
+    /** 状态筛选：1=有效, 2=待删除，不传默认查有效 */
+    @Min(value = 1, message = "状态筛选值最小为1")
+    @Max(value = 2, message = "状态筛选值最大为2")
+    private Integer statusFilter;
+
     /** 页码 */
     @NotNull(message = "页码不能为空")
     @Min(value = 1, message = "页码最小为1")

@@ -8,10 +8,11 @@ import { Input } from "@/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/ui/select";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/ui/command";
+import { Pagination } from "@/ui/pagination";
 import { ChevronDown, Eye, Loader2, Search, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-const PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 10;
 
 const CORRECT_OPTIONS = [
 	{ label: "全部结果", value: "all" },
@@ -26,6 +27,7 @@ export default function ReviewRecordPage() {
 	const [total, setTotal] = useState(0);
 	const [loading, setLoading] = useState(false);
 	const [pageNum, setPageNum] = useState(1);
+	const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
 	// ===== 筛选状态 =====
 	const [correctFilter, setCorrectFilter] = useState("all");
@@ -49,7 +51,7 @@ export default function ReviewRecordPage() {
 		fetchRecords(1);
 	}, []);
 
-	const fetchRecords = async (page: number, overrides?: { correct?: string; account?: string; start?: string; end?: string }) => {
+	const fetchRecords = async (page: number, overrides?: { correct?: string; account?: string; start?: string; end?: string; size?: number }) => {
 
 		setLoading(true);
 		try {
@@ -63,7 +65,7 @@ export default function ReviewRecordPage() {
 				startTime: sVal || undefined,
 				endTime: eVal || undefined,
 				pageNum: page,
-				pageSize: PAGE_SIZE,
+				pageSize: overrides?.size ?? pageSize,
 			});
 			setRecords(res.records);
 			setTotal(res.total || res.records.length);
@@ -117,7 +119,8 @@ export default function ReviewRecordPage() {
 		setNoteOpen(true);
 	};
 
-	const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+	const handlePageChange = (page: number) => { setPageNum(page); fetchRecords(page); };
+	const handlePageSizeChange = (size: number) => { setPageSize(size); setPageNum(1); fetchRecords(1, { size }); };
 	const isFiltering = selectedStudent !== null || correctFilter !== "all" || startTime !== "" || endTime !== "";
 
 	return (
@@ -270,24 +273,13 @@ export default function ReviewRecordPage() {
 			</div>
 
 			{/* 分页 */}
-			<div className="flex items-center justify-between text-sm text-text-secondary">
-				<span>共 {total} 条记录</span>
-				<div className="flex items-center gap-2">
-					<Button
-						size="sm"
-						variant="outline"
-						disabled={pageNum <= 1}
-						onClick={() => { setPageNum(p => p - 1); fetchRecords(pageNum - 1); }}
-					>上一页</Button>
-					<span className="px-2">{pageNum} / {totalPages}</span>
-					<Button
-						size="sm"
-						variant="outline"
-						disabled={pageNum >= totalPages}
-						onClick={() => { setPageNum(p => p + 1); fetchRecords(pageNum + 1); }}
-					>下一页</Button>
-				</div>
-			</div>
+			<Pagination
+				current={pageNum}
+				total={total}
+				pageSize={pageSize}
+				onPageChange={handlePageChange}
+				onPageSizeChange={handlePageSizeChange}
+			/>
 
 			{/* 备注详情弹窗 */}
 			<Dialog open={noteOpen} onOpenChange={v => { if (!previewUrl) setNoteOpen(v); }}>

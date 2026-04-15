@@ -2,7 +2,7 @@ package com.jianzj.mistake.hub.backend.controller;
 
 import com.jianzj.mistake.hub.backend.annotation.PreAuthorize;
 import com.jianzj.mistake.hub.backend.enums.Role;
-import com.jianzj.mistake.hub.backend.service.OssService;
+import com.jianzj.mistake.hub.backend.client.OssClient;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
@@ -28,9 +28,9 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 public class UploadController {
 
-    private final OssService ossService;
+    private final OssClient ossService;
 
-    public UploadController(OssService ossService) {
+    public UploadController(OssClient ossService) {
 
         this.ossService = ossService;
     }

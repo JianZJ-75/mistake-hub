@@ -27,9 +27,6 @@ public class Mistake implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    /** 有效状态 */
-    public static final int STATUS_VALID = 1;
-
     /**
      * 主键
      */
@@ -82,7 +79,7 @@ public class Mistake implements Serializable {
     private LocalDateTime nextReviewTime;
 
     /**
-     * 状态：1-有效 0-删除
+     * 状态：0-已删除 1-有效 2-待删除
      */
     private Integer status;
 

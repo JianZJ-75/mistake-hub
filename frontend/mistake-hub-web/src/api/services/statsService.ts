@@ -1,4 +1,4 @@
-import type { AdminOverviewResp, DailyCompletionResp, SubjectStatsResp } from "#/entity";
+import type { AdminOverviewResp, DailyCompletionResp, MasteryDistributionResp, SubjectStatsResp } from "#/entity";
 import apiClient from "../apiClient";
 
 const adminOverview = (): Promise<AdminOverviewResp> =>
@@ -10,4 +10,7 @@ const adminDailyCompletion = (): Promise<DailyCompletionResp[]> =>
 const adminSubject = (): Promise<SubjectStatsResp[]> =>
 	apiClient.post({ url: "/v1/stats/admin-subject" });
 
-export default { adminOverview, adminDailyCompletion, adminSubject };
+const adminMastery = (): Promise<MasteryDistributionResp> =>
+	apiClient.post({ url: "/v1/stats/admin-mastery" });
+
+export default { adminOverview, adminDailyCompletion, adminSubject, adminMastery };

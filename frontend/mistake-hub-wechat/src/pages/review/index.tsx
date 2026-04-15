@@ -224,7 +224,7 @@ const ReviewPage = () => {
                 <View className='task-header-left'>
                   <Text className={`status-dot ${isDone ? 'dot-done' : isSkipped ? 'dot-skipped' : 'dot-pending'}`} />
                   <Text className={`task-title ${isDone || isSkipped ? 'task-title-muted' : ''}`}>
-                    {task.title.length > 40 ? task.title.substring(0, 40) + '…' : task.title}
+                    {task.title}
                   </Text>
                 </View>
                 <View className='task-header-right'>
@@ -258,10 +258,12 @@ const ReviewPage = () => {
                   )}
 
                   {/* 掌握度进度条 */}
-                  <View className='detail-mastery'>
-                    <Text className='detail-mastery-label'>掌握度 {task.masteryLevel}%</Text>
-                    <View className='mastery-track'>
-                      <View className={`mastery-fill ${mastery.cls}`} style={{ width: `${task.masteryLevel}%` }} />
+                  <View className='depth-info'>
+                    <Text className='depth-label'>掌握深度：{mastery.depthText}</Text>
+                    <View className='depth-bar'>
+                      {[1, 2, 3, 4, 5].map(i => (
+                        <View key={i} className={`depth-seg ${i <= mastery.depthLevel ? 'seg-filled' : 'seg-empty'}`} />
+                      ))}
                     </View>
                   </View>
 

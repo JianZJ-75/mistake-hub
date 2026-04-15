@@ -41,12 +41,12 @@
 /* ===== 记录卡片 ===== */
 .record-card {
   @include card-base;
-  padding: 28rpx;
+  padding: 32rpx;
   margin-bottom: 20rpx;
 }
 
 .record-card-expanded {
-  box-shadow: 0 4rpx 20rpx rgba(100, 109, 213, 0.1);
+  box-shadow: 0 4rpx 20rpx rgba(30, 41, 59, 0.1);
 }
 
 .record-header {

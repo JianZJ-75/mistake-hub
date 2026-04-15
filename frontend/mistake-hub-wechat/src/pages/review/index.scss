@@ -140,7 +140,7 @@
 /* ===== 任务卡片 ===== */
 .task-card {
   @include card-base;
-  padding: 24rpx;
+  padding: 32rpx;
   margin-bottom: 20rpx;
   overflow: hidden;
 }
@@ -181,7 +181,8 @@
 .dot-skipped { background: $color-stat-skipped; }
 
 .task-title {
-  font-size: 28rpx;
+  font-size: 32rpx;
+  font-weight: 600;
   color: $color-text-primary;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -206,9 +207,9 @@
   @include mastery-badge;
 }
 
-.badge-high { background: $color-mastery-high; }
-.badge-mid { background: $color-mastery-mid; }
-.badge-low { background: $color-mastery-low; }
+.badge-high { background: rgba(16, 185, 129, 0.12); color: $color-mastery-high; }
+.badge-mid { background: rgba(245, 158, 11, 0.12); color: $color-mastery-mid; }
+.badge-low { background: rgba(239, 68, 68, 0.12); color: $color-mastery-low; }
 
 .status-tag {
   font-size: 20rpx;
@@ -252,10 +253,15 @@
 }
 
 .detail-title {
-  font-size: 28rpx;
+  font-size: 34rpx;
+  font-weight: 700;
   color: $color-text-primary;
   line-height: 1.6;
   margin-bottom: 16rpx;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .detail-img {
@@ -264,31 +270,12 @@
   margin-bottom: 16rpx;
 }
 
-.detail-mastery {
-  margin-bottom: 24rpx;
-}
-
-.detail-mastery-label {
-  font-size: 24rpx;
-  color: $color-text-secondary;
-  margin-bottom: 8rpx;
-}
-
-.mastery-track {
-  height: 8rpx;
-  background: $color-track;
-  border-radius: 4rpx;
-  overflow: hidden;
-}
-
-.mastery-fill {
-  height: 100%;
-  border-radius: 4rpx;
-}
-
-.mastery-fill.badge-high { background: $color-mastery-high; }
-.mastery-fill.badge-mid { background: $color-mastery-mid; }
-.mastery-fill.badge-low { background: $color-mastery-low; }
+.depth-info { display: flex; flex-direction: column; gap: 12rpx; margin-bottom: 24rpx; }
+.depth-label { font-size: 26rpx; color: $color-text-muted; }
+.depth-bar { display: flex; gap: 8rpx; }
+.depth-seg { width: 40rpx; height: 10rpx; border-radius: 5rpx; }
+.seg-filled { background: $color-depth-fill; }
+.seg-empty { background: $color-depth-track; }
 
 /* ===== 作答按钮 ===== */
 .action-row {
