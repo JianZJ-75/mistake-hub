@@ -204,6 +204,17 @@ public class ReviewRecordService extends ServiceImpl<ReviewRecordMapper, ReviewR
         return result;
     }
 
+    /**
+     * 查询某道错题的全部原始复习记录（按时间升序，供遗忘曲线使用）
+     */
+    public List<ReviewRecord> listRawByMistakeAsc(Long mistakeId) {
+
+        return lambdaQuery()
+                .eq(ReviewRecord::getMistakeId, mistakeId)
+                .orderByAsc(ReviewRecord::getReviewTime)
+                .list();
+    }
+
     // ===== 工具方法 =====
 
     /**

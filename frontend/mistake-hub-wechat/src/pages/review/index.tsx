@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Image, Textarea, ScrollView } from '@tarojs/components'
-import { reviewToday, reviewSubmit, reviewSkip } from '../../service/review'
+import { reviewToday, reviewSubmit } from '../../service/review'
 import { uploadImage } from '../../service/upload'
 import { ReviewTaskResp, ReviewSubmitResp } from '../../types'
 import { getMasteryInfo } from '../../utils/mistake'
@@ -110,28 +110,10 @@ const ReviewPage = () => {
     }
   }
 
-  const handleSkip = async (mistakeId: number) => {
-
-    if (submitting) return
-    setSubmitting(true)
-    try {
-      await reviewSkip(mistakeId)
-      setTasks(prev => prev.map(t =>
-        t.mistakeId === mistakeId ? { ...t, planStatus: 'SKIPPED' } : t
-      ))
-      setExpandedId(null)
-    } catch {
-      // request.ts 已处理 toast
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
   // ===== 统计数据 =====
   const total = tasks.length
   const completed = tasks.filter(t => t.planStatus === 'COMPLETED').length
-  const skipped = tasks.filter(t => t.planStatus === 'SKIPPED').length
-  const pending = total - completed - skipped
+  const pending = total - completed
   const allDone = total > 0 && pending === 0
 
   // ===== 完成总结数据 =====
@@ -182,10 +164,6 @@ const ReviewPage = () => {
                 <Text className='summary-stat-num'>{completed}</Text>
                 <Text className='summary-stat-label'>已完成</Text>
               </View>
-              <View className='summary-stat'>
-                <Text className='summary-stat-num'>{skipped}</Text>
-                <Text className='summary-stat-label'>已跳过</Text>
-              </View>
               {feedbackList.length > 0 && (
                 <>
                   <View className='summary-stat'>
@@ -206,11 +184,13 @@ const ReviewPage = () => {
           </View>
         )}
 
-        {!loading && tasks.map(task => {
+        {!loading && [...tasks].sort((a, b) => {
+          const order = (s: string) => s === 'PENDING' ? 0 : 1
+          return order(a.planStatus) - order(b.planStatus)
+        }).map(task => {
           const mastery = getMasteryInfo(task.masteryLevel || 0)
           const isExpanded = expandedId === task.mistakeId
           const isDone = task.planStatus === 'COMPLETED'
-          const isSkipped = task.planStatus === 'SKIPPED'
           const feedback = feedbackMap[task.mistakeId]
           const isAnswerRevealed = answerVisible[task.mistakeId] || false
 
@@ -218,19 +198,18 @@ const ReviewPage = () => {
             <View key={task.mistakeId} className='task-card'>
               {/* 卡片头部（点击展开） */}
               <View
-                className={`task-header ${isDone ? 'task-done' : ''} ${isSkipped ? 'task-skipped' : ''}`}
-                onClick={() => !isDone && !isSkipped && handleExpand(task.mistakeId)}
+                className={`task-header ${isDone ? 'task-done' : ''}`}
+                onClick={() => !isDone && handleExpand(task.mistakeId)}
               >
                 <View className='task-header-left'>
-                  <Text className={`status-dot ${isDone ? 'dot-done' : isSkipped ? 'dot-skipped' : 'dot-pending'}`} />
-                  <Text className={`task-title ${isDone || isSkipped ? 'task-title-muted' : ''}`}>
+                  <Text className={`status-dot ${isDone ? 'dot-done' : 'dot-pending'}`} />
+                  <Text className={`task-title ${isDone ? 'task-title-muted' : ''}`}>
                     {task.title}
                   </Text>
                 </View>
                 <View className='task-header-right'>
                   <Text className={`mastery-badge ${mastery.cls}`}>{mastery.label}</Text>
                   {isDone && <Text className='status-tag tag-done'>已完成</Text>}
-                  {isSkipped && <Text className='status-tag tag-skipped'>已跳过</Text>}
                 </View>
               </View>
 
@@ -244,7 +223,7 @@ const ReviewPage = () => {
               )}
 
               {/* 展开详情区 */}
-              {isExpanded && !isDone && !isSkipped && (
+              {isExpanded && !isDone && (
                 <View className='task-detail'>
                   {/* 题目 + 题目图片 */}
                   <Text className='detail-title'>{task.title}</Text>
@@ -337,9 +316,6 @@ const ReviewPage = () => {
                         >
                           <Text className='answer-btn-text'>答错 ✗</Text>
                         </View>
-                      </View>
-                      <View className='skip-row'>
-                        <Text className='skip-link' onClick={() => handleSkip(task.mistakeId)}>跳过</Text>
                       </View>
                     </View>
                   )}

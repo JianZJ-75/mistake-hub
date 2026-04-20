@@ -33,9 +33,9 @@ export const findTagNamesByIds = (tree: TagResp[], ids: number[]): string[] => {
  */
 export const getMasteryInfo = (level: number) => {
 
-  if (level >= 80) return { label: '已掌握', cls: 'badge-high', depthLevel: 5, depthText: '彻底掌握', actionText: '查看详情' }
-  if (level >= 60) return { label: '掌握中', cls: 'badge-mid', depthLevel: 4, depthText: '熟练应用', actionText: '查看详情' }
-  if (level >= 40) return { label: '掌握中', cls: 'badge-mid', depthLevel: 3, depthText: '基本掌握', actionText: '查看详情' }
+  if (level >= 100) return { label: '已掌握', cls: 'badge-high', depthLevel: 5, depthText: '彻底掌握', actionText: '查看详情' }
+  if (level >= 80) return { label: '已掌握', cls: 'badge-high', depthLevel: 4, depthText: '熟练掌握', actionText: '查看详情' }
+  if (level >= 60) return { label: '掌握中', cls: 'badge-mid', depthLevel: 3, depthText: '基本掌握', actionText: '查看详情' }
   if (level >= 20) return { label: '未掌握', cls: 'badge-low', depthLevel: 2, depthText: '初步了解', actionText: '查看详情' }
   return { label: '未掌握', cls: 'badge-low', depthLevel: 1, depthText: '完全陌生', actionText: '查看详情' }
 }

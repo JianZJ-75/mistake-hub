@@ -4,7 +4,7 @@ import { View, Text } from '@tarojs/components'
 import { reviewProgress } from '../../service/review'
 import { statsSubject } from '../../service/stats'
 import { ReviewProgressResp, SubjectStatsResp } from '../../types'
-import { COLOR_PRIMARY, COLOR_TRACK, COLOR_STAT_SKIPPED, COLOR_MASTERY_HIGH, COLOR_MASTERY_MID, COLOR_MASTERY_LOW, getBarColor } from '../../utils/colors'
+import { COLOR_PRIMARY, COLOR_TRACK, COLOR_MASTERY_HIGH, COLOR_MASTERY_MID, COLOR_MASTERY_LOW, getBarColor } from '../../utils/colors'
 import './index.scss'
 
 /** 生成 conic-gradient 色段，用于纯 CSS 进度环 */
@@ -12,16 +12,12 @@ const buildConicGradient = (data: ReviewProgressResp): string => {
 
   const total = data.totalToday || 1
   const completedDeg = (data.completedToday / total) * 360
-  const skippedDeg = (data.skippedToday / total) * 360
 
-  const p1 = completedDeg
-  const p2 = p1 + skippedDeg
-
-  if (completedDeg === 0 && skippedDeg === 0) {
+  if (completedDeg === 0) {
     return COLOR_TRACK
   }
 
-  return `conic-gradient(from -90deg, ${COLOR_PRIMARY} 0deg ${p1}deg, ${COLOR_STAT_SKIPPED} ${p1}deg ${p2}deg, ${COLOR_TRACK} ${p2}deg 360deg)`
+  return `conic-gradient(from -90deg, ${COLOR_PRIMARY} 0deg ${completedDeg}deg, ${COLOR_TRACK} ${completedDeg}deg 360deg)`
 }
 
 /** 根据进度生成激励文案 */
@@ -60,7 +56,7 @@ const IndexPage = () => {
   }
 
   const pending = progress
-    ? progress.totalToday - progress.completedToday - progress.skippedToday
+    ? progress.totalToday - progress.completedToday
     : 0
 
   const hasTask = progress && progress.totalToday > 0

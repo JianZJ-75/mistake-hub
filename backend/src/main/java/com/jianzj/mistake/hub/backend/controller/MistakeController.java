@@ -73,11 +73,12 @@ public class MistakeController {
     @PreAuthorize(requiredRole = Role.STUDENT)
     public Page<MistakeDetailResp> list(@RequestParam(value = "accountId", required = false) Long accountId,
                                         @RequestParam(value = "tagIds", required = false) String tagIds,
-                                        @RequestParam(value = "masteryFilter", required = false) @Min(0) @Max(2) Integer masteryFilter,
+                                        @RequestParam(value = "masteryFilter", required = false) @Min(0) @Max(4) Integer masteryFilter,
+                                        @RequestParam(value = "masteryGroup", required = false) @Min(0) @Max(1) Integer masteryGroup,
                                         @RequestParam(value = "pageNum") @NotNull @Min(1) Long pageNum,
                                         @RequestParam(value = "pageSize") @NotNull @Min(1) @Max(100) Long pageSize) {
 
-        return mistakeService.listPage(accountId, tagIds, masteryFilter, pageNum, pageSize);
+        return mistakeService.listPage(accountId, tagIds, masteryFilter, masteryGroup, pageNum, pageSize);
     }
 
     /**

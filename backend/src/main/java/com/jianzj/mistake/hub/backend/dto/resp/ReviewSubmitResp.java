@@ -33,4 +33,10 @@ public class ReviewSubmitResp {
 
     /** 下次复习时间 */
     private LocalDateTime nextReviewTime;
+
+    /** 复习前的记忆保持率（0~1） */
+    private Double retentionBeforeReview;
+
+    /** 下次复习间隔天数 */
+    private Integer intervalDays;
 }

@@ -28,4 +28,7 @@ public class AdminOverviewResp {
 
     /** 全平台近7天平均复习完成率 */
     private Double avgCompletionRate;
+
+    /** 全平台平均记忆保持率（0~1） */
+    private Double avgRetention;
 }

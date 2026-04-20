@@ -126,7 +126,7 @@ export default function ReviewRecordPage() {
 	return (
 		<div className="flex flex-col gap-4 p-2">
 			<div className="flex items-center justify-between">
-				<h2 className="text-2xl font-bold">复习记录</h2>
+				<h2 className="text-2xl font-bold whitespace-nowrap">复习记录</h2>
 			</div>
 
 			{/* 筛选栏 */}
@@ -213,14 +213,14 @@ export default function ReviewRecordPage() {
 				<table className="w-full text-sm">
 					<thead className="bg-muted/50">
 						<tr>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">复习时间</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">所属用户</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">关联错题</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">答题结果</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">阶段变化</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">掌握度变化</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">备注</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">操作</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">复习时间</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">所属用户</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">关联错题</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">答题结果</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">阶段变化</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">掌握度变化</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">备注</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">操作</th>
 						</tr>
 					</thead>
 					<tbody className="divide-y">
@@ -242,9 +242,9 @@ export default function ReviewRecordPage() {
 									<td className="px-4 py-3 text-xs whitespace-nowrap">
 										{r.reviewTime?.replace("T", " ").substring(0, 16) || "—"}
 									</td>
-									<td className="px-4 py-3 text-sm">{r.accountNickname || r.accountCode || "—"}</td>
+									<td className="px-4 py-3 text-sm max-w-[120px] truncate" title={r.accountNickname || r.accountCode || ""}>{r.accountNickname || r.accountCode || "—"}</td>
 									<td className="px-4 py-3 max-w-[200px]">
-										<span className="line-clamp-1 text-sm">{r.mistakeTitle || "—"}</span>
+										<span className="line-clamp-1 text-sm" title={r.mistakeTitle || ""}>{r.mistakeTitle || "—"}</span>
 									</td>
 									<td className="px-4 py-3">
 										<Badge variant={r.isCorrect === 1 ? "default" : "destructive"} className="text-xs">
@@ -258,7 +258,7 @@ export default function ReviewRecordPage() {
 										{r.masteryBefore}% → {r.masteryAfter}%
 									</td>
 									<td className="px-4 py-3 text-xs max-w-[120px]">
-										<span className="line-clamp-1">{r.note || "—"}</span>
+										<span className="line-clamp-1" title={r.note || ""}>{r.note || "—"}</span>
 									</td>
 									<td className="px-4 py-3">
 										<Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => openNote(r)}>

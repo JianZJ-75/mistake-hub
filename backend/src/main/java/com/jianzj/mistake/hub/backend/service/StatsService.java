@@ -1,29 +1,40 @@
 package com.jianzj.mistake.hub.backend.service;
 
 import com.jianzj.mistake.hub.backend.dto.resp.AdminOverviewResp;
+import com.jianzj.mistake.hub.backend.dto.resp.CurvePrediction;
+import com.jianzj.mistake.hub.backend.dto.resp.CurveSegment;
 import com.jianzj.mistake.hub.backend.dto.resp.DailyCompletionResp;
+import com.jianzj.mistake.hub.backend.dto.resp.ForgettingCurveResp;
 import com.jianzj.mistake.hub.backend.dto.resp.MasteryDistributionResp;
 import com.jianzj.mistake.hub.backend.dto.resp.MasteryTrendResp;
+import com.jianzj.mistake.hub.backend.dto.resp.MemoryHealthResp;
+import com.jianzj.mistake.hub.backend.dto.resp.RetentionBucket;
+import com.jianzj.mistake.hub.backend.dto.resp.RetentionTrendResp;
 import com.jianzj.mistake.hub.backend.dto.resp.StatsOverviewResp;
 import com.jianzj.mistake.hub.backend.dto.resp.StreakResp;
 import com.jianzj.mistake.hub.backend.dto.resp.SubjectStatsResp;
+import com.jianzj.mistake.hub.backend.dto.resp.UpcomingReview;
 import com.jianzj.mistake.hub.backend.entity.Mistake;
 import com.jianzj.mistake.hub.backend.entity.ReviewPlan;
 import com.jianzj.mistake.hub.backend.entity.ReviewRecord;
 import com.jianzj.mistake.hub.backend.enums.ReviewPlanStatus;
+import com.jianzj.mistake.hub.backend.enums.ReviewStage;
 import com.jianzj.mistake.hub.common.utils.ThreadStorageUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -40,6 +51,16 @@ public class StatsService {
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
+    private static final DateTimeFormatter DATETIME_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    private static final String CFG_INTERVALS = "review.intervals";
+
+    private static final String DEFAULT_INTERVALS = "0,1,2,4,7,15,30";
+
+    private static final double STABILITY_FACTOR = 1.44;
+
+    private static final int PREDICTION_DAYS = 14;
+
     private final MistakeService mistakeService;
 
     private final ReviewPlanService reviewPlanService;
@@ -50,6 +71,8 @@ public class StatsService {
 
     private final MistakeTagService mistakeTagService;
 
+    private final SystemConfigService systemConfigService;
+
     private final ThreadStorageUtil threadStorageUtil;
 
     public StatsService(MistakeService mistakeService,
@@ -57,6 +80,7 @@ public class StatsService {
                         ReviewRecordService reviewRecordService,
                         AccountService accountService,
                         MistakeTagService mistakeTagService,
+                        SystemConfigService systemConfigService,
                         ThreadStorageUtil threadStorageUtil) {
 
         this.mistakeService = mistakeService;
@@ -64,6 +88,7 @@ public class StatsService {
         this.reviewRecordService = reviewRecordService;
         this.accountService = accountService;
         this.mistakeTagService = mistakeTagService;
+        this.systemConfigService = systemConfigService;
         this.threadStorageUtil = threadStorageUtil;
     }
 
@@ -139,25 +164,29 @@ public class StatsService {
 
         Long accountId = threadStorageUtil.getCurAccountId();
 
-        long notMastered = mistakeService.countByMasteryRange(accountId, 0, 60);
-        long learning = mistakeService.countByMasteryRange(accountId, 60, 80);
-        long mastered = mistakeService.countByMasteryRange(accountId, 80, null);
+        long stranger = mistakeService.countByMasteryRange(accountId, 0, 20);
+        long beginner = mistakeService.countByMasteryRange(accountId, 20, 60);
+        long basic = mistakeService.countByMasteryRange(accountId, 60, 80);
+        long proficient = mistakeService.countByMasteryRange(accountId, 80, 100);
+        long mastered = mistakeService.countByMasteryRange(accountId, 100, null);
 
         return MasteryDistributionResp.builder()
-                .notMastered((int) notMastered)
-                .learning((int) learning)
+                .stranger((int) stranger)
+                .beginner((int) beginner)
+                .basic((int) basic)
+                .proficient((int) proficient)
                 .mastered((int) mastered)
                 .build();
     }
 
     /**
-     * 5.4 每日复习完成率（近30天）
+     * 5.4 每日复习完成率（近 N 天，默认 30）
      */
-    public List<DailyCompletionResp> dailyCompletion() {
+    public List<DailyCompletionResp> dailyCompletion(int days) {
 
         Long accountId = threadStorageUtil.getCurAccountId();
         LocalDate today = LocalDate.now();
-        LocalDate start = today.minusDays(29);
+        LocalDate start = today.minusDays(days - 1L);
 
         List<ReviewPlan> plans = reviewPlanService.listByAccountAndDateRange(accountId, start, today);
 
@@ -249,37 +278,46 @@ public class StatsService {
     }
 
     /**
-     * 5.6 复习效果趋势（近30天）
+     * 5.6 复习效果趋势（近 N 天，默认 30）
+     * 逐日补齐：返回长度恒等于 days；无复习记录日 avgMastery=null，前端按断线处理
      */
-    public List<MasteryTrendResp> masteryTrend() {
+    public List<MasteryTrendResp> masteryTrend(int days) {
 
         Long accountId = threadStorageUtil.getCurAccountId();
         LocalDate today = LocalDate.now();
-        LocalDate start = today.minusDays(29);
+        LocalDate start = today.minusDays(days - 1L);
 
         List<ReviewRecord> records = reviewRecordService.listByAccountAndTimeRange(
                 accountId, start.atStartOfDay(), today.atTime(LocalTime.MAX));
 
-        if (CollectionUtils.isEmpty(records)) {
-            return new ArrayList<>();
+        Map<LocalDate, List<ReviewRecord>> groupedByDate = CollectionUtils.isEmpty(records)
+                ? new HashMap<>()
+                : records.stream().collect(Collectors.groupingBy(r -> r.getReviewTime().toLocalDate()));
+
+        List<MasteryTrendResp> result = new ArrayList<>();
+        for (LocalDate date = start; !date.isAfter(today); date = date.plusDays(1)) {
+            List<ReviewRecord> dayRecords = groupedByDate.get(date);
+
+            if (CollectionUtils.isEmpty(dayRecords)) {
+                result.add(MasteryTrendResp.builder()
+                        .date(date.format(DATE_FMT))
+                        .avgMastery(null)
+                        .build());
+                continue;
+            }
+
+            double avg = dayRecords.stream()
+                    .mapToInt(ReviewRecord::getMasteryAfter)
+                    .average()
+                    .orElse(0.0);
+
+            result.add(MasteryTrendResp.builder()
+                    .date(date.format(DATE_FMT))
+                    .avgMastery(Math.round(avg * 100.0) / 100.0)
+                    .build());
         }
 
-        Map<String, List<ReviewRecord>> groupedByDate = records.stream()
-                .collect(Collectors.groupingBy(r -> r.getReviewTime().toLocalDate().format(DATE_FMT)));
-
-        return groupedByDate.entrySet().stream()
-                .map(entry -> {
-                    double avg = entry.getValue().stream()
-                            .mapToInt(ReviewRecord::getMasteryAfter)
-                            .average()
-                            .orElse(0.0);
-                    return MasteryTrendResp.builder()
-                            .date(entry.getKey())
-                            .avgMastery(Math.round(avg * 100.0) / 100.0)
-                            .build();
-                })
-                .sorted(Comparator.comparing(MasteryTrendResp::getDate))
-                .collect(Collectors.toList());
+        return result;
     }
 
     /**
@@ -367,13 +405,17 @@ public class StatsService {
      */
     public MasteryDistributionResp adminMastery() {
 
-        long notMastered = mistakeService.countAllByMasteryRange(0, 60);
-        long learning = mistakeService.countAllByMasteryRange(60, 80);
-        long mastered = mistakeService.countAllByMasteryRange(80, null);
+        long stranger = mistakeService.countAllByMasteryRange(0, 20);
+        long beginner = mistakeService.countAllByMasteryRange(20, 60);
+        long basic = mistakeService.countAllByMasteryRange(60, 80);
+        long proficient = mistakeService.countAllByMasteryRange(80, 100);
+        long mastered = mistakeService.countAllByMasteryRange(100, null);
 
         return MasteryDistributionResp.builder()
-                .notMastered((int) notMastered)
-                .learning((int) learning)
+                .stranger((int) stranger)
+                .beginner((int) beginner)
+                .basic((int) basic)
+                .proficient((int) proficient)
                 .mastered((int) mastered)
                 .build();
     }
@@ -404,11 +446,280 @@ public class StatsService {
             avgCompletionRate = Math.round((double) completedCount / weekPlans.size() * 10000.0) / 10000.0;
         }
 
+        // 全平台平均记忆保持率
+        List<Mistake> allMistakes = mistakeService.listAllValidWithReviewFields();
+        double avgRetention = 0.0;
+        if (CollectionUtils.isNotEmpty(allMistakes)) {
+            LocalDateTime now = LocalDateTime.now();
+            double sum = allMistakes.stream().mapToDouble(m -> calcRetentionForMistake(m, now)).sum();
+            avgRetention = Math.round((sum / allMistakes.size()) * 10000.0) / 10000.0;
+        }
+
         return AdminOverviewResp.builder()
                 .totalUsers((int) totalUsers)
                 .activeUsersToday((int) activeUsersToday)
                 .totalMistakes((int) totalMistakes)
                 .avgCompletionRate(avgCompletionRate)
+                .avgRetention(avgRetention)
                 .build();
+    }
+
+    /**
+     * 单题遗忘曲线数据
+     */
+    public ForgettingCurveResp forgettingCurve(Long mistakeId) {
+
+        Mistake mistake = mistakeService.getById(mistakeId);
+        if (mistake == null) {
+            return ForgettingCurveResp.builder().mistakeId(mistakeId).segments(new ArrayList<>()).build();
+        }
+
+        List<ReviewRecord> records = reviewRecordService.listRawByMistakeAsc(mistakeId);
+        LocalDateTime now = LocalDateTime.now();
+
+        List<CurveSegment> segments = new ArrayList<>();
+        LocalDateTime segStart = mistake.getCreatedTime();
+        int currentStage = 0;
+
+        if (CollectionUtils.isNotEmpty(records)) {
+            // 第一段：从创建到第一次复习
+            segments.add(CurveSegment.builder()
+                    .startTime(segStart.format(DATETIME_FMT))
+                    .stability(STABILITY_FACTOR)
+                    .stageAfter(0)
+                    .isCorrect(null)
+                    .endTime(records.get(0).getReviewTime().format(DATETIME_FMT))
+                    .build());
+
+            for (int i = 0; i < records.size(); i++) {
+                ReviewRecord rec = records.get(i);
+                int stageAfter = rec.getReviewStageAfter() != null ? rec.getReviewStageAfter() : 0;
+                double stability = calcStability(stageAfter);
+                LocalDateTime endTime = (i < records.size() - 1) ? records.get(i + 1).getReviewTime() : now;
+
+                segments.add(CurveSegment.builder()
+                        .startTime(rec.getReviewTime().format(DATETIME_FMT))
+                        .stability(stability)
+                        .stageAfter(stageAfter)
+                        .isCorrect(rec.getIsCorrect() != null && rec.getIsCorrect() == 1)
+                        .endTime(endTime.format(DATETIME_FMT))
+                        .build());
+
+                currentStage = stageAfter;
+            }
+        } else {
+            // 无复习记录：从创建到现在的单段衰减
+            segments.add(CurveSegment.builder()
+                    .startTime(segStart.format(DATETIME_FMT))
+                    .stability(STABILITY_FACTOR)
+                    .stageAfter(0)
+                    .isCorrect(null)
+                    .endTime(now.format(DATETIME_FMT))
+                    .build());
+        }
+
+        double currentRetention = calcRetentionForMistake(mistake, now);
+        double currentStability = calcStability(currentStage);
+
+        CurvePrediction prediction = CurvePrediction.builder()
+                .fromTime(now.format(DATETIME_FMT))
+                .fromRetention(currentRetention)
+                .stability(currentStability)
+                .daysToShow(PREDICTION_DAYS)
+                .build();
+
+        return ForgettingCurveResp.builder()
+                .mistakeId(mistakeId)
+                .createdTime(mistake.getCreatedTime().format(DATETIME_FMT))
+                .currentRetention(Math.round(currentRetention * 10000.0) / 10000.0)
+                .currentStage(currentStage)
+                .nextReviewTime(mistake.getNextReviewTime() != null ? mistake.getNextReviewTime().format(DATETIME_FMT) : null)
+                .segments(segments)
+                .prediction(prediction)
+                .build();
+    }
+
+    /**
+     * 记忆健康总览
+     */
+    public MemoryHealthResp memoryHealth() {
+
+        Long accountId = threadStorageUtil.getCurAccountId();
+        LocalDateTime now = LocalDateTime.now();
+
+        List<Mistake> mistakes = mistakeService.listValidWithReviewFields(accountId);
+        if (CollectionUtils.isEmpty(mistakes)) {
+            return MemoryHealthResp.builder()
+                    .overallRetention(0.0)
+                    .totalActive(0)
+                    .dangerCount(0)
+                    .warningCount(0)
+                    .safeCount(0)
+                    .distribution(buildEmptyDistribution())
+                    .upcoming(buildEmptyUpcoming())
+                    .build();
+        }
+
+        double retentionSum = 0;
+        int danger = 0;
+        int warning = 0;
+        int safe = 0;
+        int[] buckets = new int[5];
+
+        LocalDate today = LocalDate.now();
+        int[] upcomingCounts = new int[7];
+
+        for (Mistake m : mistakes) {
+            double r = calcRetentionForMistake(m, now);
+            retentionSum += r;
+
+            if (r < 0.3) danger++;
+            else if (r < 0.7) warning++;
+            else safe++;
+
+            int pct = (int) (r * 100);
+            int bucket = Math.min(pct / 20, 4);
+            buckets[bucket]++;
+
+            if (m.getNextReviewTime() != null) {
+                long daysUntil = ChronoUnit.DAYS.between(today, m.getNextReviewTime().toLocalDate());
+                if (daysUntil >= 0 && daysUntil < 7) {
+                    upcomingCounts[(int) daysUntil]++;
+                }
+            }
+        }
+
+        double avgRetention = retentionSum / mistakes.size();
+
+        String[] labels = {"0-20%", "20-40%", "40-60%", "60-80%", "80-100%"};
+        List<RetentionBucket> distribution = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            distribution.add(RetentionBucket.builder().range(labels[i]).count(buckets[i]).build());
+        }
+
+        List<UpcomingReview> upcoming = new ArrayList<>();
+        for (int i = 0; i < 7; i++) {
+            upcoming.add(UpcomingReview.builder().daysFromNow(i).count(upcomingCounts[i]).build());
+        }
+
+        return MemoryHealthResp.builder()
+                .overallRetention(Math.round(avgRetention * 10000.0) / 10000.0)
+                .totalActive(mistakes.size())
+                .dangerCount(danger)
+                .warningCount(warning)
+                .safeCount(safe)
+                .distribution(distribution)
+                .upcoming(upcoming)
+                .build();
+    }
+
+    /**
+     * 管理端记忆保持率趋势（近30天）
+     */
+    public List<RetentionTrendResp> adminRetentionTrend() {
+
+        LocalDate today = LocalDate.now();
+        LocalDate start = today.minusDays(29);
+
+        List<Mistake> allMistakes = mistakeService.listAllValidWithReviewFields();
+        if (CollectionUtils.isEmpty(allMistakes)) {
+            List<RetentionTrendResp> empty = new ArrayList<>();
+            for (LocalDate d = start; !d.isAfter(today); d = d.plusDays(1)) {
+                empty.add(RetentionTrendResp.builder().date(d.format(DATE_FMT)).avgRetention(null).build());
+            }
+            return empty;
+        }
+
+        List<RetentionTrendResp> result = new ArrayList<>();
+        for (LocalDate date = start; !date.isAfter(today); date = date.plusDays(1)) {
+            LocalDateTime dateTime = date.atTime(LocalTime.MAX);
+            double sum = 0;
+            int count = 0;
+
+            for (Mistake m : allMistakes) {
+                if (m.getCreatedTime() != null && m.getCreatedTime().toLocalDate().isAfter(date)) {
+                    continue;
+                }
+                double r = calcRetentionForMistake(m, dateTime);
+                sum += r;
+                count++;
+            }
+
+            Double avg = count > 0 ? Math.round((sum / count) * 10000.0) / 10000.0 : null;
+            result.add(RetentionTrendResp.builder().date(date.format(DATE_FMT)).avgRetention(avg).build());
+        }
+
+        return result;
+    }
+
+    // ===== 工具方法 =====
+
+    /**
+     * 根据阶段获取间隔天数（动态配置优先）
+     */
+    private int getIntervalByStage(int stageIndex) {
+
+        String intervalsStr = systemConfigService.getByKey(CFG_INTERVALS, DEFAULT_INTERVALS);
+        String[] parts = intervalsStr.split(",");
+
+        if (stageIndex >= 0 && stageIndex < parts.length) {
+            try {
+                return Integer.parseInt(parts[stageIndex].trim());
+            } catch (NumberFormatException e) {
+                // 回退到枚举默认值
+            }
+        }
+
+        return ReviewStage.getIntervalByStage(stageIndex);
+    }
+
+    /**
+     * 根据阶段计算记忆稳定性 S
+     */
+    private double calcStability(int stage) {
+
+        int interval = getIntervalByStage(stage);
+        return interval > 0 ? interval * STABILITY_FACTOR : STABILITY_FACTOR;
+    }
+
+    /**
+     * 计算某题在指定时刻的记忆保持率
+     */
+    private double calcRetentionForMistake(Mistake m, LocalDateTime atTime) {
+
+        LocalDateTime lastReview = m.getLastReviewTime();
+        if (lastReview == null) {
+            lastReview = m.getCreatedTime();
+        }
+        if (lastReview == null) {
+            return 1.0;
+        }
+
+        double t = Duration.between(lastReview, atTime).toMinutes() / (60.0 * 24.0);
+        if (t < 0) {
+            return 1.0;
+        }
+        int stage = m.getReviewStage() != null ? m.getReviewStage() : 0;
+        double S = calcStability(stage);
+        return Math.max(0, Math.min(1, Math.exp(-t / S)));
+    }
+
+    private List<RetentionBucket> buildEmptyDistribution() {
+
+        String[] labels = {"0-20%", "20-40%", "40-60%", "60-80%", "80-100%"};
+        List<RetentionBucket> list = new ArrayList<>();
+        for (String label : labels) {
+            list.add(RetentionBucket.builder().range(label).count(0).build());
+        }
+        return list;
+    }
+
+    private List<UpcomingReview> buildEmptyUpcoming() {
+
+        List<UpcomingReview> list = new ArrayList<>();
+        for (int i = 0; i < 7; i++) {
+            list.add(UpcomingReview.builder().daysFromNow(i).count(0).build());
+        }
+        return list;
     }
 }

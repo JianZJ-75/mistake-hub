@@ -49,7 +49,7 @@ public class NonceController {
      */
     @Operation(summary = "根据 ID 获取 Nonce")
     @GetMapping("/get")
-    public Nonce get(@RequestParam Long id) {
+    public Nonce get(@RequestParam("id") Long id) {
 
         return nonceService.consumeById(id);
     }
