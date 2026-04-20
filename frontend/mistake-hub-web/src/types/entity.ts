@@ -167,6 +167,7 @@ export interface AdminOverviewResp {
 	activeUsersToday: number;
 	totalMistakes: number;
 	avgCompletionRate: number;
+	avgRetention: number;
 }
 
 /** 对应后端 ReviewRecordAdminResp */
@@ -203,8 +204,10 @@ export interface SubjectStatsResp {
 
 /** 对应后端 MasteryDistributionResp */
 export interface MasteryDistributionResp {
-	notMastered: number;
-	learning: number;
+	stranger: number;
+	beginner: number;
+	basic: number;
+	proficient: number;
 	mastered: number;
 }
 
@@ -227,4 +230,36 @@ export interface OperationLogResp {
 	targetId?: string;
 	detail?: string;
 	createdTime: string;
+}
+
+/** 对应后端 RetentionTrendResp */
+export interface RetentionTrendResp {
+	date: string;
+	avgRetention: number | null;
+}
+
+/** 对应后端 ForgettingCurveResp */
+export interface ForgettingCurveResp {
+	mistakeId: number;
+	createdTime: string;
+	currentRetention: number;
+	currentStage: number;
+	nextReviewTime: string;
+	segments: CurveSegment[];
+	prediction: CurvePrediction;
+}
+
+export interface CurveSegment {
+	startTime: string;
+	stability: number;
+	stageAfter: number;
+	isCorrect: boolean | null;
+	endTime: string;
+}
+
+export interface CurvePrediction {
+	fromTime: string;
+	fromRetention: number;
+	stability: number;
+	daysToShow: number;
 }

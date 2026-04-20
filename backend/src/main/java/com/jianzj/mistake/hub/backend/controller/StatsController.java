@@ -1,10 +1,14 @@
 package com.jianzj.mistake.hub.backend.controller;
 
 import com.jianzj.mistake.hub.backend.annotation.PreAuthorize;
+import com.jianzj.mistake.hub.backend.dto.req.ForgettingCurveReq;
 import com.jianzj.mistake.hub.backend.dto.resp.AdminOverviewResp;
 import com.jianzj.mistake.hub.backend.dto.resp.DailyCompletionResp;
+import com.jianzj.mistake.hub.backend.dto.resp.ForgettingCurveResp;
 import com.jianzj.mistake.hub.backend.dto.resp.MasteryDistributionResp;
 import com.jianzj.mistake.hub.backend.dto.resp.MasteryTrendResp;
+import com.jianzj.mistake.hub.backend.dto.resp.MemoryHealthResp;
+import com.jianzj.mistake.hub.backend.dto.resp.RetentionTrendResp;
 import com.jianzj.mistake.hub.backend.dto.resp.StatsOverviewResp;
 import com.jianzj.mistake.hub.backend.dto.resp.StreakResp;
 import com.jianzj.mistake.hub.backend.dto.resp.SubjectStatsResp;
@@ -12,10 +16,14 @@ import com.jianzj.mistake.hub.backend.enums.Role;
 import com.jianzj.mistake.hub.backend.service.StatsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -79,9 +87,10 @@ public class StatsController {
     @Operation(summary = "每日复习完成率")
     @PostMapping("/daily-completion")
     @PreAuthorize(requiredRole = Role.STUDENT)
-    public List<DailyCompletionResp> dailyCompletion() {
+    public List<DailyCompletionResp> dailyCompletion(
+            @RequestParam(name = "days", defaultValue = "30") @Min(1) @Max(365) Integer days) {
 
-        return statsService.dailyCompletion();
+        return statsService.dailyCompletion(days);
     }
 
     /**
@@ -101,9 +110,10 @@ public class StatsController {
     @Operation(summary = "复习效果趋势")
     @PostMapping("/mastery-trend")
     @PreAuthorize(requiredRole = Role.STUDENT)
-    public List<MasteryTrendResp> masteryTrend() {
+    public List<MasteryTrendResp> masteryTrend(
+            @RequestParam(name = "days", defaultValue = "30") @Min(1) @Max(365) Integer days) {
 
-        return statsService.masteryTrend();
+        return statsService.masteryTrend(days);
     }
 
     /**
@@ -148,5 +158,38 @@ public class StatsController {
     public MasteryDistributionResp adminMastery() {
 
         return statsService.adminMastery();
+    }
+
+    /**
+     * 单题遗忘曲线
+     */
+    @Operation(summary = "单题遗忘曲线")
+    @PostMapping("/forgetting-curve")
+    @PreAuthorize(requiredRole = Role.STUDENT)
+    public ForgettingCurveResp forgettingCurve(@RequestBody @Validated ForgettingCurveReq req) {
+
+        return statsService.forgettingCurve(req.getMistakeId());
+    }
+
+    /**
+     * 记忆健康总览
+     */
+    @Operation(summary = "记忆健康总览")
+    @PostMapping("/memory-health")
+    @PreAuthorize(requiredRole = Role.STUDENT)
+    public MemoryHealthResp memoryHealth() {
+
+        return statsService.memoryHealth();
+    }
+
+    /**
+     * 管理端记忆保持率趋势（近30天）
+     */
+    @Operation(summary = "管理端记忆保持率趋势")
+    @PostMapping("/admin-retention-trend")
+    @PreAuthorize(requiredRole = Role.ADMIN)
+    public List<RetentionTrendResp> adminRetentionTrend() {
+
+        return statsService.adminRetentionTrend();
     }
 }

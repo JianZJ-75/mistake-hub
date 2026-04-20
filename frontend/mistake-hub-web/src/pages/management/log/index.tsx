@@ -96,7 +96,7 @@ export default function LogManagementPage() {
 	return (
 		<div className="flex flex-col gap-4 p-2">
 			<div className="flex items-center justify-between">
-				<h2 className="text-2xl font-bold">操作日志</h2>
+				<h2 className="text-2xl font-bold whitespace-nowrap">操作日志</h2>
 			</div>
 
 			{/* 筛选栏 */}
@@ -148,12 +148,12 @@ export default function LogManagementPage() {
 				<table className="w-full text-sm">
 					<thead className="bg-muted/50">
 						<tr>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">时间</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">操作人</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">操作类型</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">目标类型</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">目标ID</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">操作</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">时间</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">操作人</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">操作类型</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">目标类型</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">目标ID</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">操作</th>
 						</tr>
 					</thead>
 					<tbody className="divide-y">

@@ -4,7 +4,7 @@ import { Icon } from "@/components/icon";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/ui/card";
 import { Skeleton } from "@/ui/skeleton";
 import { Title, Text } from "@/ui/typography";
-import type { AdminOverviewResp, DailyCompletionResp, MasteryDistributionResp, SubjectStatsResp } from "#/entity";
+import type { AdminOverviewResp, DailyCompletionResp, MasteryDistributionResp, RetentionTrendResp, SubjectStatsResp } from "#/entity";
 import { useCallback, useEffect, useState } from "react";
 
 function getMasteryColor(avgMastery: number): string {
@@ -25,6 +25,7 @@ export default function WorkbenchPage() {
 
 	const [overview, setOverview] = useState<AdminOverviewResp | null>(null);
 	const [dailyCompletion, setDailyCompletion] = useState<DailyCompletionResp[]>([]);
+	const [retentionTrend, setRetentionTrend] = useState<RetentionTrendResp[]>([]);
 	const [subjectStats, setSubjectStats] = useState<SubjectStatsResp[]>([]);
 	const [mastery, setMastery] = useState<MasteryDistributionResp | null>(null);
 	const [masteryLoading, setMasteryLoading] = useState(true);
@@ -33,6 +34,7 @@ export default function WorkbenchPage() {
 	useEffect(() => {
 		statsService.adminOverview().then(setOverview).catch(() => {});
 		statsService.adminDailyCompletion().then(setDailyCompletion).catch(() => {});
+		statsService.adminRetentionTrend().then(setRetentionTrend).catch(() => {});
 		statsService.adminSubject().then(setSubjectStats).catch(() => {});
 		statsService.adminMastery().then(setMastery).catch(() => {}).finally(() => setMasteryLoading(false));
 	}, []);
@@ -70,6 +72,14 @@ export default function WorkbenchPage() {
 			icon: "mdi:chart-line",
 			color: "text-purple-500",
 			bg: "bg-purple-500/10",
+		},
+		{
+			label: "平台记忆保持率",
+			value: overview ? `${(overview.avgRetention * 100).toFixed(1)}%` : "—",
+			subtitle: "基于艾宾浩斯模型",
+			icon: "mdi:brain",
+			color: "text-rose-500",
+			bg: "bg-rose-500/10",
 		},
 	];
 
@@ -114,8 +124,10 @@ export default function WorkbenchPage() {
 	});
 
 	// ===== 环形图：掌握度分布（后端按单题 masteryLevel 统计） =====
-	const masteryLabels = ["未掌握", "掌握中", "已掌握"];
-	const masteryData = mastery ? [mastery.notMastered, mastery.learning, mastery.mastered] : [0, 0, 0];
+	const masteryLabels = ["完全陌生", "初步了解", "基本掌握", "熟练掌握", "彻底掌握"];
+	const masteryData = mastery
+		? [mastery.stranger, mastery.beginner, mastery.basic, mastery.proficient, mastery.mastered]
+		: [0, 0, 0, 0, 0];
 	const masteryTotal = masteryData.reduce((a, b) => a + b, 0);
 	const masteryPercents = masteryData.map(v => masteryTotal > 0 ? ((v / masteryTotal) * 100).toFixed(1) : "0.0");
 
@@ -146,7 +158,7 @@ export default function WorkbenchPage() {
 
 	const donutChartOptions = useChart({
 		labels: masteryLabels,
-		colors: ["#FF5630", "#FFAB00", "#36B37E"],
+		colors: ["#ef4444", "#f59e0b", "#f97316", "#84cc16", "#22c55e"],
 		plotOptions: {
 			pie: {
 				expandOnClick: false,
@@ -216,6 +228,37 @@ export default function WorkbenchPage() {
 		],
 	});
 
+	// ===== 面积图：近 30 天记忆保持率趋势 =====
+	const retentionCategories = retentionTrend.map((d) => {
+		const parts = d.date.split("-");
+		return `${Number(parts[1])}/${Number(parts[2])}`;
+	});
+	const retentionSeries = retentionTrend.map((d) =>
+		d.avgRetention != null ? Math.round(d.avgRetention * 10000) / 100 : 0,
+	);
+
+	const retentionChartOptions = useChart({
+		xaxis: {
+			categories: retentionCategories,
+			labels: { rotate: -45, rotateAlways: retentionTrend.length > 15 },
+			tickAmount: 10,
+		},
+		yaxis: {
+			min: 0,
+			max: 100,
+			labels: { formatter: (val: number) => `${val}%` },
+		},
+		tooltip: {
+			y: { formatter: (val: number) => `${val.toFixed(1)}%` },
+		},
+		colors: ["#f43f5e"],
+		stroke: { curve: "smooth", width: 2 },
+		fill: {
+			type: "gradient",
+			gradient: { opacityFrom: 0.4, opacityTo: 0.1 },
+		},
+	});
+
 	// ===== 柱状图：各学科错题分布 =====
 	const barCategories = subjectStats.map((s) => s.subject);
 	const barData = subjectStats.map((s) => s.count);
@@ -247,7 +290,7 @@ export default function WorkbenchPage() {
 			</div>
 
 			{/* 统计卡片 */}
-			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
 				{statCards.map((s) => (
 					<Card key={s.label}>
 						<CardHeader>
@@ -271,7 +314,7 @@ export default function WorkbenchPage() {
 			{/* 数据图表 */}
 			<div className="grid grid-cols-12 gap-4">
 				{/* 面积图：近 30 天复习完成率趋势 */}
-				<Card className="col-span-12 lg:col-span-8">
+				<Card className="col-span-12 lg:col-span-6">
 					<CardHeader className="pb-2">
 						<CardTitle>
 							<Title as="h5">近 30 天全平台复习完成率</Title>
@@ -300,6 +343,26 @@ export default function WorkbenchPage() {
 					</CardContent>
 				</Card>
 
+				{/* 面积图：近 30 天记忆保持率趋势 */}
+				<Card className="col-span-12 lg:col-span-6">
+					<CardHeader className="pb-2">
+						<CardTitle>
+							<Title as="h5">近 30 天全平台记忆保持率</Title>
+							<Text variant="caption" className="text-muted-foreground mt-0.5">
+								基于艾宾浩斯遗忘曲线模型 R(t) = e<sup>-t/S</sup>
+							</Text>
+						</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<Chart
+							type="area"
+							series={[{ name: "记忆保持率", data: retentionSeries }]}
+							options={retentionChartOptions}
+							height={320}
+						/>
+					</CardContent>
+				</Card>
+
 				{/* 环形图：掌握度分布 */}
 				<Card className="col-span-12 lg:col-span-4">
 					<CardHeader className="pb-2">
@@ -307,7 +370,7 @@ export default function WorkbenchPage() {
 							<Title as="h5">掌握度分布</Title>
 							{!masteryLoading && masteryTotal > 0 && (
 								<Text variant="caption" className="text-muted-foreground mt-0.5">
-									已掌握 {masteryPercents[2]}% / 掌握中 {masteryPercents[1]}% / 未掌握 {masteryPercents[0]}%
+									彻底掌握 {masteryPercents[4]}% / 熟练掌握 {masteryPercents[3]}% / 基本掌握 {masteryPercents[2]}% / 初步了解 {masteryPercents[1]}% / 完全陌生 {masteryPercents[0]}%
 								</Text>
 							)}
 						</CardTitle>
@@ -317,7 +380,7 @@ export default function WorkbenchPage() {
 							<div className="flex flex-col items-center justify-center gap-6 py-6">
 								<Skeleton className="h-[180px] w-[180px] rounded-full" />
 								<div className="flex items-center gap-6">
-									{[0, 1, 2].map(i => (
+									{[0, 1, 2, 3, 4].map(i => (
 										<div key={i} className="flex items-center gap-1.5">
 											<Skeleton className="h-3 w-3 rounded-full" />
 											<Skeleton className="h-3 w-16" />

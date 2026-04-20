@@ -17,12 +17,18 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class MasteryDistributionResp {
 
-    /** 未掌握（masteryLevel < 60） */
-    private Integer notMastered;
+    /** 完全陌生（masteryLevel < 20） */
+    private Integer stranger;
 
-    /** 掌握中（60 <= masteryLevel < 80） */
-    private Integer learning;
+    /** 初步了解（20 <= masteryLevel < 60） */
+    private Integer beginner;
 
-    /** 已掌握（masteryLevel >= 80） */
+    /** 基本掌握（60 <= masteryLevel < 80） */
+    private Integer basic;
+
+    /** 熟练掌握（80 <= masteryLevel < 100） */
+    private Integer proficient;
+
+    /** 彻底掌握（masteryLevel = 100） */
     private Integer mastered;
 }

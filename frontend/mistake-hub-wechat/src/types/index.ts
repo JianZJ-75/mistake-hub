@@ -87,8 +87,10 @@ export interface SubjectStatsResp {
 }
 
 export interface MasteryDistributionResp {
-  notMastered: number
-  learning: number
+  stranger: number
+  beginner: number
+  basic: number
+  proficient: number
   mastered: number
 }
 
@@ -106,7 +108,7 @@ export interface StreakResp {
 
 export interface MasteryTrendResp {
   date: string
-  avgMastery: number
+  avgMastery: number | null
 }
 
 export interface AccountDetailResp {
@@ -117,4 +119,49 @@ export interface AccountDetailResp {
   role: string
   dailyLimit: number
   createdTime: string
+}
+
+export interface ForgettingCurveResp {
+  mistakeId: number
+  createdTime: string
+  currentRetention: number
+  currentStage: number
+  nextReviewTime: string
+  segments: CurveSegment[]
+  prediction: CurvePrediction
+}
+
+export interface CurveSegment {
+  startTime: string
+  stability: number
+  stageAfter: number
+  isCorrect: boolean | null
+  endTime: string
+}
+
+export interface CurvePrediction {
+  fromTime: string
+  fromRetention: number
+  stability: number
+  daysToShow: number
+}
+
+export interface MemoryHealthResp {
+  overallRetention: number
+  totalActive: number
+  dangerCount: number
+  warningCount: number
+  safeCount: number
+  distribution: RetentionBucket[]
+  upcoming: UpcomingReview[]
+}
+
+export interface RetentionBucket {
+  range: string
+  count: number
+}
+
+export interface UpcomingReview {
+  daysFromNow: number
+  count: number
 }

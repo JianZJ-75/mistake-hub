@@ -74,7 +74,7 @@ export default function ConfigManagementPage() {
 	return (
 		<div className="flex flex-col gap-4 p-2">
 			<div className="flex items-center justify-between">
-				<h2 className="text-2xl font-bold">参数配置</h2>
+				<h2 className="text-2xl font-bold whitespace-nowrap">参数配置</h2>
 			</div>
 
 			{loading ? (
@@ -86,10 +86,10 @@ export default function ConfigManagementPage() {
 					<table className="w-full text-sm">
 						<thead className="bg-muted/50">
 							<tr>
-								<th className="px-4 py-3 text-left font-medium text-text-secondary w-56">配置键</th>
-								<th className="px-4 py-3 text-left font-medium text-text-secondary">说明</th>
-								<th className="px-4 py-3 text-left font-medium text-text-secondary w-64">配置值</th>
-								<th className="px-4 py-3 text-left font-medium text-text-secondary w-40">更新时间</th>
+								<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap w-56">配置键</th>
+								<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">说明</th>
+								<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap w-64">配置值</th>
+								<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap w-40">更新时间</th>
 							</tr>
 						</thead>
 						<tbody className="divide-y">
@@ -101,7 +101,7 @@ export default function ConfigManagementPage() {
 								configs.map(c => (
 									<tr key={c.configKey} className="hover:bg-muted/30 transition-colors">
 										<td className="px-4 py-3 font-mono text-xs">{c.configKey}</td>
-										<td className="px-4 py-3 text-muted-foreground text-sm">{c.description || "—"}</td>
+										<td className="px-4 py-3 text-muted-foreground text-sm max-w-[200px] truncate" title={c.description || ""}>{c.description || "—"}</td>
 										<td className="px-4 py-3">
 											<Input
 												value={editValues[c.configKey] ?? c.configValue}

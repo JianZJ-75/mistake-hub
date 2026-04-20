@@ -25,9 +25,11 @@ const DEFAULT_PAGE_SIZE = 10;
 
 const MASTERY_OPTIONS = [
 	{ label: "全部掌握度", value: "all" },
-	{ label: "未掌握（<60）", value: "0" },
-	{ label: "掌握中（60-79）", value: "1" },
-	{ label: "已掌握（≥80）", value: "2" },
+	{ label: "完全陌生（<20）", value: "0" },
+	{ label: "初步了解（20-59）", value: "1" },
+	{ label: "基本掌握（60-79）", value: "2" },
+	{ label: "熟练掌握（80-99）", value: "3" },
+	{ label: "彻底掌握（100）", value: "4" },
 ];
 
 const STATUS_OPTIONS = [
@@ -39,14 +41,18 @@ const STATUS_OPTIONS = [
 const STAGE_INTERVALS = [0, 1, 2, 4, 7, 15, 30];
 
 const getMasteryBadge = (level: number) => {
-	if (level >= 80) return { label: "已掌握", cls: "bg-green-100 text-green-700" };
-	if (level >= 60) return { label: "掌握中", cls: "bg-orange-100 text-orange-700" };
-	return { label: "未掌握", cls: "bg-red-100 text-red-700" };
+	if (level >= 100) return { label: "彻底掌握", cls: "bg-green-100 text-green-700" };
+	if (level >= 80) return { label: "熟练掌握", cls: "bg-lime-100 text-lime-700" };
+	if (level >= 60) return { label: "基本掌握", cls: "bg-orange-100 text-orange-700" };
+	if (level >= 20) return { label: "初步了解", cls: "bg-amber-100 text-amber-700" };
+	return { label: "完全陌生", cls: "bg-red-100 text-red-700" };
 };
 
 const getMasteryBarColor = (level: number) => {
-	if (level >= 80) return "bg-green-500";
+	if (level >= 100) return "bg-green-500";
+	if (level >= 80) return "bg-lime-500";
 	if (level >= 60) return "bg-orange-500";
+	if (level >= 20) return "bg-amber-500";
 	return "bg-red-500";
 };
 
@@ -392,7 +398,7 @@ export default function MistakeManagementPage() {
 	return (
 		<div className="flex flex-col gap-4 p-2">
 			<div className="flex items-center justify-between">
-				<h2 className="text-2xl font-bold">错题管理</h2>
+				<h2 className="text-2xl font-bold whitespace-nowrap">错题管理</h2>
 			</div>
 
 			{/* 筛选栏 */}
@@ -549,15 +555,15 @@ export default function MistakeManagementPage() {
 				<table className="w-full text-sm">
 					<thead className="bg-muted/50">
 						<tr>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">ID</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">所属学生</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">题干</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">掌握度</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">复习阶段</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">标签</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">录入时间</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">状态</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">操作</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">ID</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">所属学生</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">题干</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">掌握度</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">复习阶段</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">标签</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">录入时间</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">状态</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">操作</th>
 						</tr>
 					</thead>
 					<tbody className="divide-y">
@@ -580,19 +586,19 @@ export default function MistakeManagementPage() {
 								return (
 									<tr key={m.id} className="hover:bg-muted/30 transition-colors">
 										<td className="px-4 py-3 text-text-secondary">{m.id}</td>
-										<td className="px-4 py-3 text-sm">
-											<div>{m.accountNickname || "—"}</div>
-											{m.accountCode && <div className="text-xs text-muted-foreground">{m.accountCode}</div>}
+										<td className="px-4 py-3 text-sm max-w-[120px]">
+											<div className="truncate" title={m.accountNickname || ""}>{m.accountNickname || "—"}</div>
+											{m.accountCode && <div className="text-xs text-muted-foreground truncate" title={m.accountCode}>{m.accountCode}</div>}
 										</td>
 										<td className="px-4 py-3 max-w-[240px]">
-											<span className="line-clamp-2 text-sm">{m.title}</span>
+											<span className="line-clamp-2 text-sm" title={m.title || ""}>{m.title}</span>
 										</td>
 										<td className="px-4 py-3">
 											<div className="flex items-center gap-2">
 												<div className="h-2 w-16 bg-muted rounded-full overflow-hidden">
 													<div className={`h-full rounded-full ${barColor}`} style={{ width: `${m.masteryLevel || 0}%` }} />
 												</div>
-												<span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${badge.cls}`}>
+												<span className={`text-xs px-1.5 py-0.5 rounded-full font-medium whitespace-nowrap ${badge.cls}`}>
 													{badge.label}
 												</span>
 											</div>
@@ -633,9 +639,9 @@ export default function MistakeManagementPage() {
 										</td>
 										<td className="px-4 py-3">
 											{m.status === 2 ? (
-												<span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-yellow-100 text-yellow-700">待删除</span>
+												<span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-yellow-100 text-yellow-700 whitespace-nowrap">待删除</span>
 											) : (
-												<span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-green-100 text-green-700">正常</span>
+												<span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-green-100 text-green-700 whitespace-nowrap">正常</span>
 											)}
 										</td>
 										<td className="px-4 py-3">
@@ -921,11 +927,11 @@ export default function MistakeManagementPage() {
 						<table className="w-full text-sm">
 							<thead className="bg-muted/50">
 								<tr>
-									<th className="px-3 py-2 text-left font-medium text-text-secondary">时间</th>
-									<th className="px-3 py-2 text-left font-medium text-text-secondary">结果</th>
-									<th className="px-3 py-2 text-left font-medium text-text-secondary">阶段变化</th>
-									<th className="px-3 py-2 text-left font-medium text-text-secondary">掌握度变化</th>
-									<th className="px-3 py-2 text-left font-medium text-text-secondary">备注</th>
+									<th className="px-3 py-2 text-left font-medium text-text-secondary whitespace-nowrap">时间</th>
+									<th className="px-3 py-2 text-left font-medium text-text-secondary whitespace-nowrap">结果</th>
+									<th className="px-3 py-2 text-left font-medium text-text-secondary whitespace-nowrap">阶段变化</th>
+									<th className="px-3 py-2 text-left font-medium text-text-secondary whitespace-nowrap">掌握度变化</th>
+									<th className="px-3 py-2 text-left font-medium text-text-secondary whitespace-nowrap">备注</th>
 								</tr>
 							</thead>
 							<tbody className="divide-y">
@@ -957,7 +963,7 @@ export default function MistakeManagementPage() {
 												{r.masteryBefore}% → {r.masteryAfter}%
 											</td>
 											<td className="px-3 py-2 text-xs max-w-[160px]">
-												<span className="line-clamp-2">{r.note || "—"}</span>
+												<span className="line-clamp-2" title={r.note || ""}>{r.note || "—"}</span>
 											</td>
 										</tr>
 									))

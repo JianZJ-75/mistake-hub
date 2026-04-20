@@ -326,6 +326,9 @@ public class ReviewScheduleService {
         int stageBefore = before.getReviewStage() != null ? before.getReviewStage() : 0;
         int masteryBefore = before.getMasteryLevel() != null ? before.getMasteryLevel() : 0;
 
+        // 计算复习前记忆保持率
+        double retentionBefore = calcRetentionBeforeReview(before);
+
         // 更新错题复习状态
         updateMistakeAfterReview(mistakeId, req.getIsCorrect());
 
@@ -356,12 +359,16 @@ public class ReviewScheduleService {
         // 精确更新缓存
         updateCachedTaskStatus(accountId, mistakeId, ReviewPlanStatus.COMPLETED.getCode());
 
+        int intervalDays = getIntervalByStage(stageAfter);
+
         return ReviewSubmitResp.builder()
                 .reviewStageBefore(stageBefore)
                 .reviewStageAfter(stageAfter)
                 .masteryBefore(masteryBefore)
                 .masteryAfter(masteryAfter)
                 .nextReviewTime(after.getNextReviewTime())
+                .retentionBeforeReview(Math.round(retentionBefore * 10000.0) / 10000.0)
+                .intervalDays(intervalDays)
                 .build();
     }
 
@@ -583,5 +590,29 @@ public class ReviewScheduleService {
         }
 
         return streak;
+    }
+
+    /**
+     * 计算复习前记忆保持率 R = e^(-t/S)
+     */
+    private double calcRetentionBeforeReview(Mistake mistake) {
+
+        LocalDateTime lastReview = mistake.getLastReviewTime();
+        if (lastReview == null) {
+            lastReview = mistake.getCreatedTime();
+        }
+        if (lastReview == null) {
+            return 1.0;
+        }
+
+        double t = Duration.between(lastReview, LocalDateTime.now()).toMinutes() / (60.0 * 24.0);
+        if (t < 0) {
+            return 1.0;
+        }
+
+        int stage = mistake.getReviewStage() != null ? mistake.getReviewStage() : 0;
+        int interval = getIntervalByStage(stage);
+        double S = interval > 0 ? interval * 1.44 : 1.44;
+        return Math.max(0, Math.min(1, Math.exp(-t / S)));
     }
 }

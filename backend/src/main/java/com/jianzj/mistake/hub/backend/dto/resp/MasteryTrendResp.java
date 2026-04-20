@@ -20,6 +20,6 @@ public class MasteryTrendResp {
     /** 日期 (yyyy-MM-dd) */
     private String date;
 
-    /** 当日所有复习题目的 mastery_after 平均值 */
+    /** 当日所有复习题目的 mastery_after 平均值；无复习记录当日为 null */
     private Double avgMastery;
 }

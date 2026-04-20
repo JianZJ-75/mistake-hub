@@ -43,6 +43,7 @@ export default function UserManagementPage() {
 	// ===== 密码展示 =====
 	const [pwdOpen, setPwdOpen] = useState(false);
 	const [plainPwd, setPlainPwd] = useState("");
+	const [pwdAction, setPwdAction] = useState<ActionType | null>(null);
 
 	const fetchUsers = async (page = pageNum, size = pageSize) => {
 		setLoading(true);
@@ -90,18 +91,21 @@ export default function UserManagementPage() {
 		try {
 			if (pendingAction === "upgrade") {
 				const pwd = await userService.changeRole(targetUser.id as unknown as number, "admin");
-				if (pwd) { setPlainPwd(pwd); setPwdOpen(true); }
+				if (pwd) { setPlainPwd(pwd); setPwdAction("upgrade"); setPwdOpen(true); }
 				toast.success("升级成功");
+				fetchUsers(pageNum);
 			} else if (pendingAction === "downgrade") {
 				await userService.changeRole(targetUser.id as unknown as number, "student");
 				toast.success("已降级为学生");
+				fetchUsers(pageNum);
 			} else {
 				const pwd = await userService.resetPassword(targetUser.id as unknown as number);
 				setPlainPwd(pwd);
+				setPwdAction("reset");
 				setPwdOpen(true);
 				toast.success("密码已重置");
+				// 不立即刷新列表，等用户关闭密码弹窗后再刷新（避免 403 跳转导致弹窗消失）
 			}
-			fetchUsers(pageNum);
 		} finally {
 			setActionLoading(false);
 			setPendingAction(null);
@@ -113,6 +117,16 @@ export default function UserManagementPage() {
 		navigator.clipboard.writeText(plainPwd).then(() => toast.success("已复制到剪贴板"));
 	};
 
+	const handlePwdClose = () => {
+		const wasReset = pwdAction === "reset";
+		setPwdOpen(false);
+		setPlainPwd("");
+		setPwdAction(null);
+		if (wasReset) {
+			fetchUsers(pageNum);
+		}
+	};
+
 	const handlePageChange = (page: number) => { setPageNum(page); fetchUsers(page); };
 	const handlePageSizeChange = (size: number) => { setPageSize(size); setPageNum(1); fetchUsers(1, size); };
 
@@ -121,7 +135,7 @@ export default function UserManagementPage() {
 	return (
 		<div className="flex flex-col gap-4 p-2">
 			<div className="flex items-center justify-between">
-				<h2 className="text-2xl font-bold">用户管理</h2>
+				<h2 className="text-2xl font-bold whitespace-nowrap">用户管理</h2>
 			</div>
 
 			{/* 筛选栏 */}
@@ -168,18 +182,18 @@ export default function UserManagementPage() {
 				<table className="w-full text-sm">
 					<thead className="bg-muted/50">
 						<tr>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">ID</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">头像</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">code</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">昵称</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">角色</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">每日复习量</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">总错题</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">已掌握</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">连续天数</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">最后活跃</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">注册时间</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">操作</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">ID</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">头像</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">code</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">昵称</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">角色</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">每日复习量</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">总错题</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">已掌握</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">连续天数</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">最后活跃</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">注册时间</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">操作</th>
 						</tr>
 					</thead>
 					<tbody className="divide-y">
@@ -210,8 +224,8 @@ export default function UserManagementPage() {
 											}
 										</td>
 										<td className="px-4 py-3 font-medium">{user.code}</td>
-										<td className="px-4 py-3">{user.nickname || "—"}</td>
-										<td className="px-4 py-3">
+										<td className="px-4 py-3 max-w-[120px] truncate" title={user.nickname || ""}>{user.nickname || "—"}</td>
+										<td className="px-4 py-3 whitespace-nowrap">
 											<span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
 												isAdmin ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
 											}`}>
@@ -310,9 +324,9 @@ export default function UserManagementPage() {
 				</DialogContent>
 			</Dialog>
 
-			{/* 密码展示 Dialog */}
-			<Dialog open={pwdOpen} onOpenChange={setPwdOpen}>
-				<DialogContent className="sm:max-w-md">
+			{/* 密码展示 Dialog（禁止外部点击/Escape 关闭，必须通过按钮关闭） */}
+			<Dialog open={pwdOpen} onOpenChange={() => {}}>
+				<DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
 					<DialogHeader>
 						<DialogTitle>新密码</DialogTitle>
 					</DialogHeader>
@@ -326,7 +340,7 @@ export default function UserManagementPage() {
 						</div>
 					</div>
 					<DialogFooter>
-						<Button onClick={() => setPwdOpen(false)}>关闭</Button>
+						<Button onClick={handlePwdClose}>确认关闭</Button>
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>

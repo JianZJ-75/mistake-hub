@@ -111,7 +111,7 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
     /**
      * 分页查询错题列表（2.8）
      */
-    public Page<MistakeDetailResp> listPage(Long accountId, String tagIds, Integer masteryFilter, Long pageNum, Long pageSize) {
+    public Page<MistakeDetailResp> listPage(Long accountId, String tagIds, Integer masteryFilter, Integer masteryGroup, Long pageNum, Long pageSize) {
 
         boolean admin = isAdmin();
 
@@ -137,7 +137,7 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
                 .eq(Mistake::getStatus, MistakeStatus.VALID.getCode())
                 .in(finalTagMistakeIds != null, Mistake::getId, finalTagMistakeIds != null ? finalTagMistakeIds : List.of());
 
-        Page<Mistake> page = applyMasteryFilter(query, masteryFilter)
+        Page<Mistake> page = applyMasteryGroup(applyMasteryFilter(query, masteryFilter), masteryGroup)
                 .orderByDesc(Mistake::getCreatedTime)
                 .page(new Page<>(pageNum, pageSize));
 
@@ -364,6 +364,22 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
     // ===== 工具方法 =====
 
     /**
+     * 应用掌握度粗粒度分组筛选（小程序用：0=未掌握 <100，1=已掌握 =100）
+     */
+    private LambdaQueryChainWrapper<Mistake> applyMasteryGroup(
+            LambdaQueryChainWrapper<Mistake> query, Integer masteryGroup) {
+
+        if (masteryGroup == null) {
+            return query;
+        }
+        return switch (masteryGroup) {
+            case 0 -> query.lt(Mistake::getMasteryLevel, 100);
+            case 1 -> query.eq(Mistake::getMasteryLevel, 100);
+            default -> query;
+        };
+    }
+
+    /**
      * 应用掌握度筛选条件
      */
     private LambdaQueryChainWrapper<Mistake> applyMasteryFilter(
@@ -373,9 +389,11 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
             return query;
         }
         return switch (masteryFilter) {
-            case 0 -> query.lt(Mistake::getMasteryLevel, 60);
-            case 1 -> query.ge(Mistake::getMasteryLevel, 60).lt(Mistake::getMasteryLevel, 80);
-            case 2 -> query.ge(Mistake::getMasteryLevel, 80);
+            case 0 -> query.lt(Mistake::getMasteryLevel, 20);
+            case 1 -> query.ge(Mistake::getMasteryLevel, 20).lt(Mistake::getMasteryLevel, 60);
+            case 2 -> query.ge(Mistake::getMasteryLevel, 60).lt(Mistake::getMasteryLevel, 80);
+            case 3 -> query.ge(Mistake::getMasteryLevel, 80).lt(Mistake::getMasteryLevel, 100);
+            case 4 -> query.eq(Mistake::getMasteryLevel, 100);
             default -> query;
         };
     }
@@ -614,6 +632,31 @@ public class MistakeService extends ServiceImpl<MistakeMapper, Mistake> {
                 .eq(Mistake::getAccountId, accountId)
                 .eq(Mistake::getStatus, MistakeStatus.VALID.getCode())
                 .select(Mistake::getId, Mistake::getMasteryLevel)
+                .list();
+    }
+
+    /**
+     * 查询某用户所有有效错题的复习相关字段（供记忆健康统计使用）
+     */
+    public List<Mistake> listValidWithReviewFields(Long accountId) {
+
+        return lambdaQuery()
+                .eq(Mistake::getAccountId, accountId)
+                .eq(Mistake::getStatus, MistakeStatus.VALID.getCode())
+                .select(Mistake::getId, Mistake::getReviewStage, Mistake::getMasteryLevel,
+                        Mistake::getLastReviewTime, Mistake::getNextReviewTime)
+                .list();
+    }
+
+    /**
+     * 查询全平台有效错题的复习相关字段（供管理端记忆保持率统计使用）
+     */
+    public List<Mistake> listAllValidWithReviewFields() {
+
+        return lambdaQuery()
+                .eq(Mistake::getStatus, MistakeStatus.VALID.getCode())
+                .select(Mistake::getId, Mistake::getReviewStage, Mistake::getMasteryLevel,
+                        Mistake::getLastReviewTime, Mistake::getNextReviewTime)
                 .list();
     }
 

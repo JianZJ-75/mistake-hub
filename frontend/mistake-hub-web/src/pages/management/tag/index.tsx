@@ -207,7 +207,7 @@ export default function TagManagementPage() {
 	return (
 		<div className="flex flex-col gap-4 p-2">
 			<div className="flex items-center justify-between">
-				<h2 className="text-2xl font-bold">标签管理</h2>
+				<h2 className="text-2xl font-bold whitespace-nowrap">标签管理</h2>
 				<Button onClick={openAdd}>
 					<Plus className="h-4 w-4 mr-1" />新建标签
 				</Button>
@@ -252,13 +252,13 @@ export default function TagManagementPage() {
 				<table className="w-full text-sm">
 					<thead className="bg-muted/50">
 						<tr>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary w-20">ID</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">名称</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary w-28">类型</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary">路径</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary w-28">所属用户</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary w-36">创建时间</th>
-							<th className="px-4 py-3 text-left font-medium text-text-secondary w-36">操作</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap w-20">ID</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">名称</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap w-28">类型</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap">路径</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap w-28">所属用户</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap w-36">创建时间</th>
+							<th className="px-4 py-3 text-left font-medium text-text-secondary whitespace-nowrap w-36">操作</th>
 						</tr>
 					</thead>
 					<tbody className="divide-y">
@@ -278,7 +278,7 @@ export default function TagManagementPage() {
 							displayTags.map(tag => (
 								<tr key={`${tag.isCustom ? "c" : "t"}-${tag.id}`} className="hover:bg-muted/30 transition-colors">
 									<td className="px-4 py-3 text-text-secondary">{tag.id}</td>
-									<td className="px-4 py-3 text-sm">{tag.name}</td>
+									<td className="px-4 py-3 text-sm max-w-[120px] truncate" title={tag.name || ""}>{tag.name}</td>
 									<td className="px-4 py-3">
 										{tag.type ? (
 											<span className="px-2 py-0.5 rounded-full text-xs bg-muted">{typeLabelMap.get(tag.type) || tag.type}</span>
@@ -286,8 +286,8 @@ export default function TagManagementPage() {
 											<span className="text-xs text-muted-foreground">—</span>
 										)}
 									</td>
-									<td className="px-4 py-3 text-text-secondary text-xs">{tag.path}</td>
-									<td className="px-4 py-3 text-text-secondary text-xs">{tag.accountNickname || "—"}</td>
+									<td className="px-4 py-3 text-text-secondary text-xs max-w-[160px] truncate" title={tag.path || ""}>{tag.path}</td>
+									<td className="px-4 py-3 text-text-secondary text-xs max-w-[120px] truncate" title={tag.accountNickname || ""}>{tag.accountNickname || "—"}</td>
 									<td className="px-4 py-3 text-text-secondary text-xs whitespace-nowrap">
 										{tag.createdTime?.replace("T", " ").substring(0, 16) || "—"}
 									</td>

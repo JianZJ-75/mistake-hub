@@ -3,7 +3,7 @@ import { MistakeDetailResp, PageResult } from '../types'
 
 export interface MistakeListReq {
   tagIds?: string
-  masteryFilter?: number
+  masteryGroup?: number    // 0=未掌握(<100), 1=已掌握(=100)
   pageNum: number
   pageSize: number
 }

@@ -22,9 +22,9 @@ public class MistakeAdminListReq {
     /** 按标签筛选 */
     private Long tagId;
 
-    /** 掌握度筛选：0=未掌握(<60), 1=掌握中(60~80), 2=已掌握(>=80) */
+    /** 掌握度筛选：0=完全陌生(<20), 1=初步了解(20~60), 2=基本掌握(60~80), 3=熟练掌握(80~99), 4=彻底掌握(=100) */
     @Min(value = 0, message = "掌握度筛选值最小为0")
-    @Max(value = 2, message = "掌握度筛选值最大为2")
+    @Max(value = 4, message = "掌握度筛选值最大为4")
     private Integer masteryFilter;
 
     /** 状态筛选：1=有效, 2=待删除，不传默认查有效 */

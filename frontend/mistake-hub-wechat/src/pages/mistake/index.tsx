@@ -66,7 +66,7 @@ const MistakePage = () => {
     try {
       const f = filterRef.current
       const res = await mistakeList({
-        masteryFilter: f.mastery,
+        masteryGroup: f.mastery,
         tagIds: f.tagIds,
         pageNum: page,
         pageSize: PAGE_SIZE,
@@ -150,8 +150,12 @@ const MistakePage = () => {
 
   // ===== 派生数据 =====
   const subjectTags = globalTags.filter(t => t.type === 'SUBJECT')
-  const totalCount = stats ? stats.notMastered + stats.learning + stats.mastered : 0
-  const learningCount = stats ? stats.learning + stats.mastered : 0
+  const totalCount = stats
+    ? stats.stranger + stats.beginner + stats.basic + stats.proficient + stats.mastered
+    : 0
+  const notMasteredCount = stats
+    ? stats.stranger + stats.beginner + stats.basic + stats.proficient
+    : 0
 
   return (
     <View className='list-page'>
@@ -169,14 +173,14 @@ const MistakePage = () => {
           onClick={() => handleStatClick(0)}
         >
           <Text className='stat-label'>未掌握</Text>
-          <Text className='stat-num stat-num-danger'>{stats?.notMastered ?? 0}</Text>
+          <Text className='stat-num stat-num-danger'>{notMasteredCount}</Text>
         </View>
         <View
           className={`stat-item ${masteryFilter === 1 ? 'stat-active' : ''}`}
           onClick={() => handleStatClick(1)}
         >
-          <Text className='stat-label'>掌握中</Text>
-          <Text className='stat-num stat-num-purple'>{learningCount}</Text>
+          <Text className='stat-label'>已掌握</Text>
+          <Text className='stat-num stat-num-purple'>{stats?.mastered ?? 0}</Text>
         </View>
       </View>
 

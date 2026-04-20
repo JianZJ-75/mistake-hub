@@ -3,11 +3,13 @@ package com.jianzj.mistake.hub.backend.service;
 import com.jianzj.mistake.hub.backend.dto.resp.AdminOverviewResp;
 import com.jianzj.mistake.hub.backend.dto.resp.DailyCompletionResp;
 import com.jianzj.mistake.hub.backend.dto.resp.MasteryDistributionResp;
+import com.jianzj.mistake.hub.backend.dto.resp.MasteryTrendResp;
 import com.jianzj.mistake.hub.backend.dto.resp.StatsOverviewResp;
 import com.jianzj.mistake.hub.backend.dto.resp.StreakResp;
 import com.jianzj.mistake.hub.backend.dto.resp.SubjectStatsResp;
 import com.jianzj.mistake.hub.backend.entity.Mistake;
 import com.jianzj.mistake.hub.backend.entity.ReviewPlan;
+import com.jianzj.mistake.hub.backend.entity.ReviewRecord;
 import com.jianzj.mistake.hub.backend.enums.ReviewPlanStatus;
 import com.jianzj.mistake.hub.common.utils.ThreadStorageUtil;
 import org.junit.jupiter.api.Test;
@@ -147,7 +149,7 @@ class StatsServiceTest {
         when(reviewPlanService.listByAccountAndDateRange(eq(100L), any(LocalDate.class), eq(today)))
                 .thenReturn(List.of(p1, p2));
 
-        List<DailyCompletionResp> result = statsService.dailyCompletion();
+        List<DailyCompletionResp> result = statsService.dailyCompletion(30);
 
         DailyCompletionResp todayResp = result.stream()
                 .filter(d -> d.getDate().equals(today.toString())).findFirst().orElseThrow();
@@ -184,6 +186,50 @@ class StatsServiceTest {
 
         assertThat(resp.getCurrentStreak()).isEqualTo(0);
         assertThat(resp.getLongestStreak()).isEqualTo(0);
+    }
+
+    // ===== masteryTrend =====
+
+    @Test
+    void masteryTrend_sparseRecords_shouldZeroPadMissingDays() {
+
+        when(threadStorageUtil.getCurAccountId()).thenReturn(100L);
+
+        LocalDate today = LocalDate.now();
+        ReviewRecord r1 = ReviewRecord.builder()
+                .reviewTime(today.minusDays(2).atTime(10, 0)).masteryAfter(30).build();
+        ReviewRecord r2 = ReviewRecord.builder()
+                .reviewTime(today.minusDays(1).atTime(10, 0)).masteryAfter(90).build();
+        ReviewRecord r3 = ReviewRecord.builder()
+                .reviewTime(today.atTime(10, 0)).masteryAfter(50).build();
+        when(reviewRecordService.listByAccountAndTimeRange(eq(100L), any(LocalDateTime.class), any(LocalDateTime.class)))
+                .thenReturn(List.of(r1, r2, r3));
+
+        List<MasteryTrendResp> result = statsService.masteryTrend(30);
+
+        assertThat(result).hasSize(30);
+        // 倒数第三天 = 30
+        assertThat(result.get(27).getAvgMastery()).isEqualTo(30.0);
+        // 倒数第二天 = 90
+        assertThat(result.get(28).getAvgMastery()).isEqualTo(90.0);
+        // 今天 = 50
+        assertThat(result.get(29).getAvgMastery()).isEqualTo(50.0);
+        // 其余日期都是 null
+        assertThat(result.get(0).getAvgMastery()).isNull();
+        assertThat(result.get(15).getAvgMastery()).isNull();
+    }
+
+    @Test
+    void masteryTrend_noRecords_shouldReturnAllNull() {
+
+        when(threadStorageUtil.getCurAccountId()).thenReturn(100L);
+        when(reviewRecordService.listByAccountAndTimeRange(eq(100L), any(LocalDateTime.class), any(LocalDateTime.class)))
+                .thenReturn(List.of());
+
+        List<MasteryTrendResp> result = statsService.masteryTrend(7);
+
+        assertThat(result).hasSize(7);
+        assertThat(result).allMatch(r -> r.getAvgMastery() == null);
     }
 
     // ===== adminOverview =====
