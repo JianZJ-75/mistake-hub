@@ -253,6 +253,7 @@ export interface CurveSegment {
 	startTime: string;
 	stability: number;
 	stageAfter: number;
+	startRetention: number;
 	isCorrect: boolean | null;
 	endTime: string;
 }

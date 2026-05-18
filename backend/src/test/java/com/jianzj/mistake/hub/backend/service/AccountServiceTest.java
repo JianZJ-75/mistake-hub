@@ -11,6 +11,7 @@ import com.jianzj.mistake.hub.backend.dto.resp.AccountChangeRoleResp;
 import com.jianzj.mistake.hub.backend.dto.resp.AccountDetailResp;
 import com.jianzj.mistake.hub.backend.dto.resp.AccountResetPasswordResp;
 import com.jianzj.mistake.hub.backend.entity.Account;
+import com.jianzj.mistake.hub.backend.client.OssClient;
 import com.jianzj.mistake.hub.backend.entity.Nonce;
 import com.jianzj.mistake.hub.backend.enums.Role;
 import com.jianzj.mistake.hub.backend.mapper.AccountMapper;
@@ -61,6 +62,9 @@ class AccountServiceTest {
     @Mock
     private ThreadStorageUtil threadStorageUtil;
 
+    @Mock
+    private OssClient ossClient;
+
     private AccountService accountService;
 
     @BeforeEach
@@ -68,7 +72,7 @@ class AccountServiceTest {
 
         accountService = spy(new AccountService(
                 wechatProperties, sessionService, nonceService,
-                encryptionUtil, threadStorageUtil
+                encryptionUtil, threadStorageUtil, ossClient
         ));
         ReflectionTestUtils.setField(accountService, "baseMapper", mockAccountMapper);
     }

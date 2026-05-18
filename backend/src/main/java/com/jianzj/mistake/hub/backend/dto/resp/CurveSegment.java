@@ -26,6 +26,9 @@ public class CurveSegment {
     /** 复习后的阶段 */
     private Integer stageAfter;
 
+    /** 该段起始记忆保持率（答对=1.0，答错=较低值） */
+    private Double startRetention;
+
     /** 该次复习是否答对 */
     private Boolean isCorrect;
 

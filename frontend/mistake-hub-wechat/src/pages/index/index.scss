@@ -136,6 +136,144 @@
   margin-top: 8rpx;
 }
 
+/* ===== 记忆健康 ===== */
+.health-section {
+  margin-bottom: 40rpx;
+}
+
+.health-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: $color-text-primary;
+  margin-bottom: 16rpx;
+}
+
+.health-card {
+  @include card-base;
+  padding: 28rpx;
+}
+
+.health-gauge-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24rpx;
+}
+
+.health-gauge {
+  position: relative;
+  width: 240rpx;
+  height: 120rpx;
+  overflow: hidden;
+}
+
+.health-gauge-ring {
+  width: 240rpx;
+  height: 240rpx;
+  border-radius: 50%;
+}
+
+.health-gauge-mask {
+  position: absolute;
+  bottom: 0;
+  left: 30rpx;
+  width: 180rpx;
+  height: 90rpx;
+  border-radius: 90rpx 90rpx 0 0;
+  background: $color-bg-card;
+}
+
+.health-gauge-label {
+  position: absolute;
+  bottom: 8rpx;
+  left: 0;
+  right: 0;
+  text-align: center;
+}
+
+.health-gauge-pct {
+  font-size: 36rpx;
+  font-weight: 700;
+}
+
+.health-gauge-hint {
+  font-size: 20rpx;
+  color: $color-text-muted;
+  display: block;
+}
+
+.health-zones {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  margin-bottom: 28rpx;
+}
+
+.health-zone-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6rpx;
+}
+
+.health-zone-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+}
+
+.health-zone-count {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: $color-text-primary;
+}
+
+.health-zone-label {
+  font-size: 20rpx;
+  color: $color-text-muted;
+}
+
+.health-forecast-title {
+  font-size: 24rpx;
+  color: $color-text-secondary;
+  margin-bottom: 16rpx;
+}
+
+.health-forecast-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 12rpx;
+  height: 120rpx;
+}
+
+.health-forecast-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+}
+
+.health-forecast-bar {
+  width: 100%;
+  border-radius: 6rpx 6rpx 0 0;
+  min-height: 4rpx;
+}
+
+.health-forecast-num {
+  font-size: 20rpx;
+  font-weight: 600;
+  color: $color-text-primary;
+  margin-bottom: 4rpx;
+}
+
+.health-forecast-day {
+  font-size: 18rpx;
+  color: $color-text-muted;
+  margin-top: 8rpx;
+}
+
 /* ===== 学科分布 ===== */
 .subject-section {
   margin-bottom: 40rpx;

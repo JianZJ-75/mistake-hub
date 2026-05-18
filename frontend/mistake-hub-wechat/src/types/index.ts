@@ -39,11 +39,18 @@ export interface ReviewTaskResp {
   answerImageUrl?: string
   reviewStage: number
   masteryLevel: number
+  lastReviewTime?: string
   overdueDays: number
   priority: number
   tags?: TagResp[]
   planStatus: string
   reviewPlanId: number
+  /** 复习前掌握度（仅已完成任务） */
+  masteryBefore?: number
+  /** 复习前阶段（仅已完成任务） */
+  reviewStageBefore?: number
+  /** 本次复习间隔天数（仅已完成任务） */
+  intervalDays?: number
 }
 
 export interface ReviewSubmitResp {
@@ -52,6 +59,8 @@ export interface ReviewSubmitResp {
   masteryBefore: number
   masteryAfter: number
   nextReviewTime: string
+  retentionBeforeReview?: number
+  intervalDays?: number
 }
 
 export interface ReviewProgressResp {
@@ -135,6 +144,7 @@ export interface CurveSegment {
   startTime: string
   stability: number
   stageAfter: number
+  startRetention: number
   isCorrect: boolean | null
   endTime: string
 }

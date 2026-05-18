@@ -1,9 +1,10 @@
 import mistakeService from "@/api/services/mistakeService";
 import reviewService from "@/api/services/reviewService";
+import statsService from "@/api/services/statsService";
 import tagService from "@/api/services/tagService";
 import userService from "@/api/services/userService";
 import uploadService from "@/api/services/uploadService";
-import type { EnumOption, MistakeDetailResp, ReviewRecordResp, TagResp, UserInfo } from "#/entity";
+import type { EnumOption, ForgettingCurveResp, MistakeDetailResp, ReviewRecordResp, TagResp, UserInfo } from "#/entity";
 import { Badge } from "@/ui/badge";
 import { Button } from "@/ui/button";
 import { Checkbox } from "@/ui/checkbox";
@@ -14,8 +15,9 @@ import { ScrollArea } from "@/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/ui/select";
 import { Textarea } from "@/ui/textarea";
 import { cascadeToggleTag } from "@/utils/tagCascade";
+import { Chart, useChart } from "@/components/chart";
 import { Pagination } from "@/ui/pagination";
-import { ChevronDown, ChevronRight, Eye, History, Loader2, Pencil, Search, Trash2, Upload, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Eye, History, LineChart, Loader2, Pencil, Search, Trash2, Upload, X } from "lucide-react";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/ui/command";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/ui/tooltip";
 import { useEffect, useRef, useState } from "react";
@@ -74,6 +76,104 @@ interface EditForm {
 	tagIds: number[];
 }
 
+function CurveChart({ data }: { data: ForgettingCurveResp }) {
+
+	const { segments, prediction, createdTime } = data;
+	const timeOrigin = new Date(createdTime).getTime();
+
+	const samplePoints: { x: number; y: number }[] = [];
+	const predPoints: { x: number; y: number }[] = [];
+	const annotations: { x: number; y: number; label: string; color: string }[] = [];
+
+	for (let i = 0; i < segments.length; i++) {
+		const seg = segments[i];
+		const segStartTs = new Date(seg.startTime).getTime();
+		const segEndTs = new Date(seg.endTime).getTime();
+		const durationDays = (segEndTs - segStartTs) / 86400000;
+		if (durationDays <= 0) continue;
+
+		const totalSamples = Math.max(1, Math.ceil(durationDays * 2));
+		const segStartR = seg.startRetention ?? 1.0;
+		for (let j = 0; j <= totalSamples; j++) {
+			const t = j / 2;
+			const ts = segStartTs + t * 86400000;
+			const daysSinceOrigin = (ts - timeOrigin) / 86400000;
+			const r = segStartR * Math.exp(-t / seg.stability) * 100;
+			samplePoints.push({ x: Math.round(daysSinceOrigin * 100) / 100, y: Math.round(Math.max(0, Math.min(100, r)) * 10) / 10 });
+		}
+
+		if (i > 0 && seg.isCorrect !== null) {
+			const daysSinceOrigin = (segStartTs - timeOrigin) / 86400000;
+			const markerY = (seg.startRetention ?? 1.0) * 100;
+			annotations.push({
+				x: Math.round(daysSinceOrigin * 100) / 100,
+				y: Math.round(markerY * 10) / 10,
+				label: seg.isCorrect ? "答对" : "答错",
+				color: seg.isCorrect ? "#22c55e" : "#ef4444",
+			});
+		}
+	}
+
+	const predStartTs = new Date(prediction.fromTime).getTime();
+	const predSamples = Math.max(1, Math.ceil(prediction.daysToShow * 2));
+	for (let j = 0; j <= predSamples; j++) {
+		const t = j / 2;
+		const ts = predStartTs + t * 86400000;
+		const daysSinceOrigin = (ts - timeOrigin) / 86400000;
+		const r = prediction.fromRetention * Math.exp(-t / prediction.stability) * 100;
+		predPoints.push({ x: Math.round(daysSinceOrigin * 100) / 100, y: Math.round(Math.max(0, r) * 10) / 10 });
+	}
+
+	const chartOptions = useChart({
+		xaxis: {
+			type: "numeric" as const,
+			title: { text: "天数" },
+			labels: { formatter: (val: string) => `${Math.round(Number(val))}` },
+		},
+		yaxis: {
+			min: 0,
+			max: 100,
+			title: { text: "记忆保持率 (%)" },
+			labels: { formatter: (val: number) => `${val}%` },
+		},
+		stroke: { width: [2.5, 1.5], dashArray: [0, 5] },
+		colors: ["#2563eb", "#94a3b8"],
+		annotations: {
+			yaxis: [{ y: 50, borderColor: "#e2e8f0", strokeDashArray: 4, label: { text: "50% 复习阈值", style: { fontSize: "11px", color: "#94a3b8" } } }],
+			points: annotations.map(a => ({
+				x: a.x,
+				y: a.y,
+				marker: { size: 5, fillColor: a.color, strokeColor: "#fff", strokeWidth: 2 },
+				label: { text: a.label, style: { fontSize: "10px", background: a.color, color: "#fff" } },
+			})),
+		},
+		legend: { position: "top" as const },
+		tooltip: {
+			shared: false,
+			y: { formatter: (val: number) => `${val.toFixed(1)}%` },
+		},
+	});
+
+	return (
+		<div>
+			<div className="flex items-center gap-4 mb-2 text-sm text-muted-foreground">
+				<span>当前保持率: <strong className={data.currentRetention >= 0.5 ? "text-green-600" : "text-red-600"}>{Math.round(data.currentRetention * 100)}%</strong></span>
+				<span>当前阶段: 第 {data.currentStage} 阶段</span>
+				{data.nextReviewTime && <span>下次复习: {data.nextReviewTime.split(" ")[0]}</span>}
+			</div>
+			<Chart
+				type="line"
+				series={[
+					{ name: "实际衰减", data: samplePoints },
+					{ name: "预测衰减", data: predPoints },
+				]}
+				options={chartOptions}
+				height={350}
+			/>
+		</div>
+	);
+}
+
 export default function MistakeManagementPage() {
 	// ===== 枚举选项（从后端拉取） =====
 	const [tagTypeOptions, setTagTypeOptions] = useState<EnumOption[]>([]);
@@ -124,6 +224,11 @@ export default function MistakeManagementPage() {
 	const [historyOpen, setHistoryOpen] = useState(false);
 	const [historyRecords, setHistoryRecords] = useState<ReviewRecordResp[]>([]);
 	const [historyLoading, setHistoryLoading] = useState(false);
+
+	// ===== 遗忘曲线弹窗 =====
+	const [curveOpen, setCurveOpen] = useState(false);
+	const [curveData, setCurveData] = useState<ForgettingCurveResp | null>(null);
+	const [curveLoading, setCurveLoading] = useState(false);
 
 	useEffect(() => {
 		tagService.getTagTypes().then(setTagTypeOptions).catch(() => {});
@@ -387,6 +492,20 @@ export default function MistakeManagementPage() {
 			// apiClient 已 toast
 		} finally {
 			setHistoryLoading(false);
+		}
+	};
+
+	const openCurve = async (mistakeId: number) => {
+
+		setCurveOpen(true);
+		setCurveLoading(true);
+		try {
+			const data = await statsService.forgettingCurve(mistakeId);
+			setCurveData(data);
+		} catch {
+			// apiClient 已 toast
+		} finally {
+			setCurveLoading(false);
 		}
 	};
 
@@ -876,6 +995,12 @@ export default function MistakeManagementPage() {
 								</Button>
 								<Button
 									variant="outline"
+									onClick={() => { if (selected) openCurve(selected.id); }}
+								>
+									<LineChart className="h-4 w-4 mr-1" />记忆曲线
+								</Button>
+								<Button
+									variant="outline"
 									className="text-destructive border-destructive hover:bg-destructive/10"
 									onClick={() => { setDetailOpen(false); if (selected) openDelete(selected.id); }}
 									disabled={selected?.status === 2}
@@ -973,6 +1098,27 @@ export default function MistakeManagementPage() {
 					</div>
 					<DialogFooter>
 						<Button variant="outline" onClick={() => setHistoryOpen(false)}>关闭</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			{/* 遗忘曲线弹窗 */}
+			<Dialog open={curveOpen} onOpenChange={setCurveOpen}>
+				<DialogContent className="max-w-3xl">
+					<DialogHeader>
+						<DialogTitle>记忆曲线</DialogTitle>
+					</DialogHeader>
+					{curveLoading ? (
+						<div className="flex items-center justify-center h-[300px]">
+							<Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+						</div>
+					) : curveData ? (
+						<CurveChart data={curveData} />
+					) : (
+						<div className="flex items-center justify-center h-[300px] text-muted-foreground">暂无数据</div>
+					)}
+					<DialogFooter>
+						<Button variant="outline" onClick={() => setCurveOpen(false)}>关闭</Button>
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>

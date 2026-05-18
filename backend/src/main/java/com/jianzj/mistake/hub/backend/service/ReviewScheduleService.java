@@ -21,7 +21,9 @@ import com.jianzj.mistake.hub.common.utils.ThreadStorageUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import jakarta.annotation.PostConstruct;
 import org.redisson.api.RBucket;
+import org.redisson.api.RKeys;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 
@@ -94,6 +96,24 @@ public class ReviewScheduleService {
         this.systemConfigService = systemConfigService;
         this.redissonClient = redissonClient;
         this.threadStorageUtil = threadStorageUtil;
+    }
+
+    /**
+     * 启动时清理复习任务缓存，防止缓存结构与代码不一致
+     */
+    @PostConstruct
+    public void clearDailyCacheOnStartup() {
+
+        RKeys keys = redissonClient.getKeys();
+        Iterable<String> matched = keys.getKeysByPattern(CACHE_KEY_PREFIX + "*");
+        int count = 0;
+        for (String key : matched) {
+            redissonClient.getBucket(key).delete();
+            count++;
+        }
+        if (count > 0) {
+            log.info("启动清理复习任务缓存：删除 {} 个 key", count);
+        }
     }
 
     // ===== 业务方法 =====
@@ -356,10 +376,11 @@ public class ReviewScheduleService {
         // 更新计划状态为 COMPLETED
         reviewPlanService.updateStatus(plan.getId(), ReviewPlanStatus.COMPLETED.getCode());
 
-        // 精确更新缓存
-        updateCachedTaskStatus(accountId, mistakeId, ReviewPlanStatus.COMPLETED.getCode());
-
         int intervalDays = getIntervalByStage(stageAfter);
+
+        // 精确更新缓存（同步写入反馈字段，供切页后仍能展示反馈卡片）
+        updateCachedTaskStatus(accountId, mistakeId, ReviewPlanStatus.COMPLETED.getCode(),
+                masteryBefore, stageBefore, intervalDays);
 
         return ReviewSubmitResp.builder()
                 .reviewStageBefore(stageBefore)
@@ -394,7 +415,7 @@ public class ReviewScheduleService {
         }
 
         reviewPlanService.updateStatus(plan.getId(), ReviewPlanStatus.SKIPPED.getCode());
-        updateCachedTaskStatus(accountId, mistakeId, ReviewPlanStatus.SKIPPED.getCode());
+        updateCachedTaskStatus(accountId, mistakeId, ReviewPlanStatus.SKIPPED.getCode(), null, null, null);
     }
 
     /**
@@ -510,6 +531,15 @@ public class ReviewScheduleService {
 
         Map<Long, MistakeDetailResp> detailMap = mistakeService.listDetailByIds(mistakeIds);
 
+        // 已完成计划批量查当天最新一条 review_record，用于回填反馈字段
+        List<Long> completedMistakeIds = allPlans.stream()
+                .filter(p -> ReviewPlanStatus.COMPLETED.getCode().equals(p.getStatus()))
+                .map(ReviewPlan::getMistakeId)
+                .collect(Collectors.toList());
+
+        Map<Long, ReviewRecord> latestRecordMap = reviewRecordService.getLatestRecordMapByMistakeIds(
+                accountId, completedMistakeIds, date.atStartOfDay(), date.atTime(LocalTime.MAX));
+
         return allPlans.stream()
                 .map(plan -> {
                     MistakeDetailResp detail = detailMap.get(plan.getMistakeId());
@@ -520,7 +550,7 @@ public class ReviewScheduleService {
                     int overdueDays = calculateOverdueDays(detail.getNextReviewTime(), date);
                     double priority = calculatePriorityScore(overdueDays, detail.getMasteryLevel(), detail.getReviewStage());
 
-                    return ReviewTaskResp.builder()
+                    ReviewTaskResp task = ReviewTaskResp.builder()
                             .mistakeId(plan.getMistakeId())
                             .title(detail.getTitle())
                             .titleImageUrl(detail.getTitleImageUrl())
@@ -528,12 +558,25 @@ public class ReviewScheduleService {
                             .answerImageUrl(detail.getAnswerImageUrl())
                             .reviewStage(detail.getReviewStage())
                             .masteryLevel(detail.getMasteryLevel())
+                            .lastReviewTime(detail.getLastReviewTime())
                             .overdueDays(overdueDays)
                             .priority(priority)
                             .tags(detail.getTags())
                             .planStatus(plan.getStatus())
                             .reviewPlanId(plan.getId())
                             .build();
+
+                    ReviewRecord record = latestRecordMap.get(plan.getMistakeId());
+                    if (record != null) {
+                        task.setMasteryBefore(record.getMasteryBefore());
+                        task.setReviewStageBefore(record.getReviewStageBefore());
+                        Integer stageAfter = record.getReviewStageAfter();
+                        if (stageAfter != null) {
+                            task.setIntervalDays(getIntervalByStage(stageAfter));
+                        }
+                    }
+
+                    return task;
                 })
                 .filter(t -> t != null)
                 .sorted(Comparator.comparingDouble(ReviewTaskResp::getPriority).reversed())
@@ -549,9 +592,10 @@ public class ReviewScheduleService {
     }
 
     /**
-     * 精确更新缓存中指定错题的计划状态（避免 evict 重建）
+     * 精确更新缓存中指定错题的计划状态与反馈字段（避免 evict 重建）
      */
-    private void updateCachedTaskStatus(Long accountId, Long mistakeId, String newStatus) {
+    private void updateCachedTaskStatus(Long accountId, Long mistakeId, String newStatus,
+                                        Integer masteryBefore, Integer reviewStageBefore, Integer intervalDays) {
 
         List<ReviewTaskResp> cached = getCachedDaily(accountId);
         if (cached == null) {
@@ -561,6 +605,9 @@ public class ReviewScheduleService {
         for (ReviewTaskResp task : cached) {
             if (mistakeId.equals(task.getMistakeId())) {
                 task.setPlanStatus(newStatus);
+                task.setMasteryBefore(masteryBefore);
+                task.setReviewStageBefore(reviewStageBefore);
+                task.setIntervalDays(intervalDays);
                 break;
             }
         }

@@ -339,6 +339,114 @@
   margin-top: 4rpx;
 }
 
+/* ===== 记忆衰减总览 ===== */
+.decay-card {
+  @include card-base;
+  padding: 28rpx;
+  margin-bottom: 36rpx;
+}
+
+.decay-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12rpx;
+  margin-bottom: 20rpx;
+}
+
+.decay-retention {
+  font-size: 48rpx;
+  font-weight: 700;
+}
+
+.decay-hint {
+  font-size: 24rpx;
+  color: $color-text-muted;
+}
+
+.decay-compare {
+  display: flex;
+  gap: 24rpx;
+  margin-bottom: 16rpx;
+}
+
+.decay-compare-row {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.decay-compare-line {
+  width: 24rpx;
+  height: 4rpx;
+  border-radius: 2rpx;
+}
+
+.decay-compare-dash {
+  width: 24rpx;
+  height: 0;
+  border-top: 2rpx dashed #CBD5E1;
+}
+
+.decay-compare-text {
+  font-size: 20rpx;
+  color: $color-text-muted;
+}
+
+.decay-chart-wrap {
+  position: relative;
+  width: 100%;
+  height: 200rpx;
+  margin-bottom: 20rpx;
+}
+
+.decay-chart-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+
+.decay-chart-actual {
+  z-index: 1;
+}
+
+.decay-x-label {
+  position: absolute;
+  bottom: -28rpx;
+  font-size: 18rpx;
+  color: $color-text-muted;
+}
+
+.decay-x-start { left: 0; }
+.decay-x-mid { left: 50%; transform: translateX(-50%); }
+.decay-x-end { right: 0; }
+
+.decay-zones {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 36rpx;
+}
+
+.decay-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+}
+
+.decay-zone-num {
+  font-size: 36rpx;
+  font-weight: 700;
+}
+
+.decay-zone-label {
+  font-size: 22rpx;
+  color: $color-text-muted;
+}
+
 /* ===== 学习趋势图表 ===== */
 .trend-header {
   display: flex;

@@ -2,10 +2,14 @@ import { useState, useRef } from 'react'
 import Taro, { useLoad } from '@tarojs/taro'
 import { View, Text, Textarea, Image, ScrollView } from '@tarojs/components'
 import { mistakeDetail, mistakeModify, mistakeDelete } from '../../service/mistake'
+import { statsForgettingCurve } from '../../service/stats'
 import { tagTree, tagCustomList } from '../../service/tag'
 import { uploadImage } from '../../service/upload'
-import { MistakeDetailResp, TagResp } from '../../types'
+import { MistakeDetailResp, TagResp, ForgettingCurveResp } from '../../types'
 import { findTagNamesByIds, getMasteryInfo } from '../../utils/mistake'
+import { getRetentionColor } from '../../utils/retention'
+import { buildForgettingCurveSvg } from '../../utils/forgettingCurve'
+import type { ForgettingCurveSvgResult } from '../../utils/forgettingCurve'
 import TagPickerModal from '../../components/TagPickerModal'
 import './index.scss'
 
@@ -29,12 +33,15 @@ const MistakeDetailPage = () => {
   const [showTagModal, setShowTagModal] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [curveData, setCurveData] = useState<ForgettingCurveResp | null>(null)
+  const [curveSvg, setCurveSvg] = useState<ForgettingCurveSvgResult | null>(null)
   const idRef = useRef(0)
 
   useLoad(params => {
     const id = Number(params.id)
     idRef.current = id
     loadDetail(id)
+    loadCurve(id)
     tagTree().then(tree => setAllTags(tree)).catch(() => {})
     loadCustomTags()
   })
@@ -51,6 +58,24 @@ const MistakeDetailPage = () => {
       setDetail(res)
     } catch {
       if (navigateBackOnError) Taro.navigateBack()
+    }
+  }
+
+  const loadCurve = async (id: number) => {
+
+    try {
+      const res = await statsForgettingCurve(id)
+      setCurveData(res)
+      if (res.segments && res.segments.length > 0) {
+        const svgResult = buildForgettingCurveSvg({
+          segments: res.segments,
+          prediction: res.prediction,
+          createdTime: res.createdTime,
+        })
+        setCurveSvg(svgResult)
+      }
+    } catch {
+      // 非关键数据，静默失败
     }
   }
 
@@ -249,6 +274,64 @@ const MistakeDetailPage = () => {
                 <Text className='mastery-pct'>掌握度 {detail.masteryLevel || 0}%</Text>
               </View>
             </View>
+
+            {/* 遗忘曲线 */}
+            {curveData && curveSvg && (
+              <View className='curve-section'>
+                <View className='curve-header'>
+                  <Text className='curve-title'>记忆曲线</Text>
+                  <Text className='curve-retention' style={{ color: getRetentionColor(curveData.currentRetention) }}>
+                    当前保持率 {Math.round(curveData.currentRetention * 100)}%
+                  </Text>
+                </View>
+
+                <View className='curve-chart-wrap'>
+                  <View className='curve-chart-bg' style={{ backgroundImage: curveSvg.svgBgUrl }} />
+                  <Text className='curve-y-label curve-y-100'>100%</Text>
+                  <Text className='curve-y-label curve-y-50'>50%</Text>
+                  <Text className='curve-y-label curve-y-0'>0%</Text>
+                  {curveSvg.reviewMarkers.map((marker, idx) => (
+                    <View
+                      key={idx}
+                      className={`curve-marker ${marker.isCorrect ? 'curve-marker-correct' : 'curve-marker-wrong'}`}
+                      style={{ left: `${marker.xPct}%`, top: `${marker.yPct}%` }}
+                    />
+                  ))}
+                </View>
+
+                <View className='curve-legend'>
+                  <View className='curve-legend-item'>
+                    <View className='curve-legend-line' style={{ background: '#2563EB' }} />
+                    <Text className='curve-legend-text'>实际衰减</Text>
+                  </View>
+                  <View className='curve-legend-item'>
+                    <View className='curve-legend-dash' />
+                    <Text className='curve-legend-text'>预测衰减</Text>
+                  </View>
+                  <View className='curve-legend-item'>
+                    <View className='curve-legend-dot' style={{ background: '#10B981' }} />
+                    <Text className='curve-legend-text'>答对</Text>
+                  </View>
+                  <View className='curve-legend-item'>
+                    <View className='curve-legend-dot' style={{ background: '#EF4444' }} />
+                    <Text className='curve-legend-text'>答错</Text>
+                  </View>
+                </View>
+
+                <View className='curve-footer'>
+                  <Text className='curve-footer-item'>
+                    下次复习: <Text className='curve-footer-value'>
+                      {curveData.nextReviewTime
+                        ? `${Math.max(0, Math.ceil((new Date(curveData.nextReviewTime).getTime() - Date.now()) / 86400000))}天后`
+                        : '—'}
+                    </Text>
+                  </Text>
+                  <Text className='curve-footer-item'>
+                    稳定性: <Text className='curve-footer-value'>{STAGE_INTERVALS[detail.reviewStage] || 0}天</Text>
+                  </Text>
+                </View>
+              </View>
+            )}
 
             {/* 题干 */}
             <View className='detail-section'>

@@ -2,9 +2,10 @@ import { useState } from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text } from '@tarojs/components'
 import { reviewProgress } from '../../service/review'
-import { statsSubject } from '../../service/stats'
-import { ReviewProgressResp, SubjectStatsResp } from '../../types'
+import { statsSubject, statsMemoryHealth } from '../../service/stats'
+import { ReviewProgressResp, SubjectStatsResp, MemoryHealthResp } from '../../types'
 import { COLOR_PRIMARY, COLOR_TRACK, COLOR_MASTERY_HIGH, COLOR_MASTERY_MID, COLOR_MASTERY_LOW, getBarColor } from '../../utils/colors'
+import { getRetentionColor } from '../../utils/retention'
 import './index.scss'
 
 /** 生成 conic-gradient 色段，用于纯 CSS 进度环 */
@@ -35,6 +36,7 @@ const IndexPage = () => {
 
   const [progress, setProgress] = useState<ReviewProgressResp | null>(null)
   const [subjectList, setSubjectList] = useState<SubjectStatsResp[]>([])
+  const [health, setHealth] = useState<MemoryHealthResp | null>(null)
   const [loading, setLoading] = useState(true)
 
   useDidShow(() => {
@@ -48,6 +50,7 @@ const IndexPage = () => {
       const [res, subjects] = await Promise.all([reviewProgress(), statsSubject()])
       setProgress(res)
       setSubjectList(subjects || [])
+      statsMemoryHealth().then(setHealth).catch(() => {})
     } catch {
       // request.ts 已处理 toast
     } finally {
@@ -113,6 +116,63 @@ const IndexPage = () => {
           <Text className='stat-label'>连续天数</Text>
         </View>
       </View>
+
+      {/* 记忆健康 */}
+      {health && health.totalActive > 0 && (
+        <View className='health-section'>
+          <Text className='health-title'>记忆健康</Text>
+          <View className='health-card'>
+            <View className='health-gauge-wrap'>
+              <View className='health-gauge'>
+                <View className='health-gauge-ring' style={{
+                  background: `conic-gradient(from -270deg, ${getRetentionColor(health.overallRetention)} 0deg ${health.overallRetention * 180}deg, ${COLOR_TRACK} ${health.overallRetention * 180}deg 180deg, transparent 180deg 360deg)`
+                }} />
+                <View className='health-gauge-mask' />
+                <View className='health-gauge-label'>
+                  <Text className='health-gauge-pct' style={{ color: getRetentionColor(health.overallRetention) }}>
+                    {Math.round(health.overallRetention * 100)}%
+                  </Text>
+                  <Text className='health-gauge-hint'>平均记忆保持率</Text>
+                </View>
+              </View>
+            </View>
+
+            <View className='health-zones'>
+              <View className='health-zone-item'>
+                <View className='health-zone-dot' style={{ background: COLOR_MASTERY_LOW }} />
+                <Text className='health-zone-count'>{health.dangerCount}</Text>
+                <Text className='health-zone-label'>记忆模糊</Text>
+              </View>
+              <View className='health-zone-item'>
+                <View className='health-zone-dot' style={{ background: COLOR_MASTERY_MID }} />
+                <Text className='health-zone-count'>{health.warningCount}</Text>
+                <Text className='health-zone-label'>记忆减退</Text>
+              </View>
+              <View className='health-zone-item'>
+                <View className='health-zone-dot' style={{ background: COLOR_MASTERY_HIGH }} />
+                <Text className='health-zone-count'>{health.safeCount}</Text>
+                <Text className='health-zone-label'>记忆清晰</Text>
+              </View>
+            </View>
+
+            <Text className='health-forecast-title'>未来 7 天复习预报</Text>
+            <View className='health-forecast-row'>
+              {health.upcoming.map((item, idx) => {
+                const maxCount = Math.max(...health.upcoming.map(u => u.count), 1)
+                const barH = Math.max(4, (item.count / maxCount) * 80)
+                const dayLabel = idx === 0 ? '今' : idx === 1 ? '明' : `+${idx}`
+                return (
+                  <View key={idx} className='health-forecast-col'>
+                    <Text className='health-forecast-num'>{item.count}</Text>
+                    <View className='health-forecast-bar' style={{ height: `${barH}rpx`, background: COLOR_PRIMARY }} />
+                    <Text className='health-forecast-day'>{dayLabel}</Text>
+                  </View>
+                )
+              })}
+            </View>
+          </View>
+        </View>
+      )}
 
       {/* 学科分布 */}
       <View className='subject-section'>

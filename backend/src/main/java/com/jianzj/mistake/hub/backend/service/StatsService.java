@@ -59,6 +59,8 @@ public class StatsService {
 
     private static final double STABILITY_FACTOR = 1.44;
 
+    private static final double WRONG_ANSWER_RETENTION = 0.6;
+
     private static final int PREDICTION_DAYS = 14;
 
     private final MistakeService mistakeService;
@@ -487,6 +489,7 @@ public class StatsService {
                     .startTime(segStart.format(DATETIME_FMT))
                     .stability(STABILITY_FACTOR)
                     .stageAfter(0)
+                    .startRetention(1.0)
                     .isCorrect(null)
                     .endTime(records.get(0).getReviewTime().format(DATETIME_FMT))
                     .build());
@@ -497,11 +500,15 @@ public class StatsService {
                 double stability = calcStability(stageAfter);
                 LocalDateTime endTime = (i < records.size() - 1) ? records.get(i + 1).getReviewTime() : now;
 
+                boolean correct = rec.getIsCorrect() != null && rec.getIsCorrect() == 1;
+                double startRetention = correct ? 1.0 : WRONG_ANSWER_RETENTION;
+
                 segments.add(CurveSegment.builder()
                         .startTime(rec.getReviewTime().format(DATETIME_FMT))
                         .stability(stability)
                         .stageAfter(stageAfter)
-                        .isCorrect(rec.getIsCorrect() != null && rec.getIsCorrect() == 1)
+                        .startRetention(startRetention)
+                        .isCorrect(correct)
                         .endTime(endTime.format(DATETIME_FMT))
                         .build());
 
@@ -513,12 +520,27 @@ public class StatsService {
                     .startTime(segStart.format(DATETIME_FMT))
                     .stability(STABILITY_FACTOR)
                     .stageAfter(0)
+                    .startRetention(1.0)
                     .isCorrect(null)
                     .endTime(now.format(DATETIME_FMT))
                     .build());
         }
 
-        double currentRetention = calcRetentionForMistake(mistake, now);
+        double currentRetention;
+        if (CollectionUtils.isNotEmpty(records)) {
+            // 基于最后一次复习的 isCorrect 决定 retention 起点（答对=1.0，答错=0.6），再按对应 stability 衰减
+            // 这样前端画出的实际段终点与 prediction 起点能严丝合缝
+            ReviewRecord lastRec = records.get(records.size() - 1);
+            boolean lastCorrect = lastRec.getIsCorrect() != null && lastRec.getIsCorrect() == 1;
+            double lastStartR = lastCorrect ? 1.0 : WRONG_ANSWER_RETENTION;
+            int lastStageAfter = lastRec.getReviewStageAfter() != null ? lastRec.getReviewStageAfter() : 0;
+            double lastStability = calcStability(lastStageAfter);
+            double daysSinceLast = Duration.between(lastRec.getReviewTime(), now).toMinutes() / 1440.0;
+            currentRetention = Math.max(0, Math.min(1, lastStartR * Math.exp(-daysSinceLast / lastStability)));
+        } else {
+            double daysSinceCreation = Duration.between(mistake.getCreatedTime(), now).toMinutes() / 1440.0;
+            currentRetention = Math.max(0, Math.min(1, Math.exp(-daysSinceCreation / STABILITY_FACTOR)));
+        }
         double currentStability = calcStability(currentStage);
 
         CurvePrediction prediction = CurvePrediction.builder()
@@ -614,7 +636,7 @@ public class StatsService {
     }
 
     /**
-     * 管理端记忆保持率趋势（近30天）
+     * 管理端记忆保持率趋势（近30天，基于 ReviewRecord 重建历史状态）
      */
     public List<RetentionTrendResp> adminRetentionTrend() {
 
@@ -630,9 +652,24 @@ public class StatsService {
             return empty;
         }
 
+        List<Long> mistakeIds = allMistakes.stream().map(Mistake::getId).collect(Collectors.toList());
+        List<ReviewRecord> allRecords = reviewRecordService.listByMistakeIds(mistakeIds);
+
+        // 按 mistakeId 分组，每组按 reviewTime 升序
+        Map<Long, List<ReviewRecord>> recordsByMistake = new HashMap<>();
+        if (CollectionUtils.isNotEmpty(allRecords)) {
+            recordsByMistake = allRecords.stream().collect(Collectors.groupingBy(ReviewRecord::getMistakeId));
+        }
+
+        // 构建每道错题的创建时间 map
+        Map<Long, LocalDateTime> createdTimeMap = new HashMap<>();
+        for (Mistake m : allMistakes) {
+            createdTimeMap.put(m.getId(), m.getCreatedTime());
+        }
+
         List<RetentionTrendResp> result = new ArrayList<>();
         for (LocalDate date = start; !date.isAfter(today); date = date.plusDays(1)) {
-            LocalDateTime dateTime = date.atTime(LocalTime.MAX);
+            LocalDateTime dateEnd = date.atTime(LocalTime.MAX);
             double sum = 0;
             int count = 0;
 
@@ -640,8 +677,30 @@ public class StatsService {
                 if (m.getCreatedTime() != null && m.getCreatedTime().toLocalDate().isAfter(date)) {
                     continue;
                 }
-                double r = calcRetentionForMistake(m, dateTime);
-                sum += r;
+
+                List<ReviewRecord> records = recordsByMistake.getOrDefault(m.getId(), List.of());
+                // 找到该日期之前的最后一条复习记录
+                LocalDateTime lastReview = m.getCreatedTime();
+                int stage = 0;
+                for (ReviewRecord rec : records) {
+                    if (rec.getReviewTime().isAfter(dateEnd)) {
+                        break;
+                    }
+                    lastReview = rec.getReviewTime();
+                    stage = rec.getReviewStageAfter() != null ? rec.getReviewStageAfter() : 0;
+                }
+
+                if (lastReview == null) {
+                    continue;
+                }
+
+                double t = Duration.between(lastReview, dateEnd).toMinutes() / (60.0 * 24.0);
+                if (t < 0) {
+                    sum += 1.0;
+                } else {
+                    double S = calcStability(stage);
+                    sum += Math.max(0, Math.min(1, Math.exp(-t / S)));
+                }
                 count++;
             }
 
@@ -650,6 +709,24 @@ public class StatsService {
         }
 
         return result;
+    }
+
+    /**
+     * 获取当前复习间隔配置
+     */
+    public List<Integer> getReviewIntervals() {
+
+        String intervalsStr = systemConfigService.getByKey(CFG_INTERVALS, DEFAULT_INTERVALS);
+        String[] parts = intervalsStr.split(",");
+        List<Integer> intervals = new ArrayList<>();
+        for (String part : parts) {
+            try {
+                intervals.add(Integer.parseInt(part.trim()));
+            } catch (NumberFormatException e) {
+                log.warn("复习间隔配置解析失败：{}", part);
+            }
+        }
+        return intervals;
     }
 
     // ===== 工具方法 =====

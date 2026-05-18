@@ -24,3 +24,6 @@ export const statsForgettingCurve = (mistakeId: number): Promise<ForgettingCurve
 
 export const statsMemoryHealth = (): Promise<MemoryHealthResp> =>
   request({ url: '/v1/stats/memory-health' })
+
+export const statsReviewIntervals = (): Promise<number[]> =>
+  request({ url: '/v1/stats/review-intervals', method: 'GET' })
