@@ -205,12 +205,60 @@ public class ReviewRecordService extends ServiceImpl<ReviewRecordMapper, ReviewR
     }
 
     /**
+     * 按 accountId + mistakeIds + 时间范围，取每个 mistake 最近一条 review_record。
+     * 用于复习页已完成任务的反馈字段回填（掌握度/阶段/间隔）。
+     */
+    public Map<Long, ReviewRecord> getLatestRecordMapByMistakeIds(Long accountId,
+                                                                   Collection<Long> mistakeIds,
+                                                                   LocalDateTime start,
+                                                                   LocalDateTime end) {
+
+        if (CollectionUtils.isEmpty(mistakeIds)) {
+            return Collections.emptyMap();
+        }
+
+        List<ReviewRecord> records = lambdaQuery()
+                .eq(ReviewRecord::getAccountId, accountId)
+                .in(ReviewRecord::getMistakeId, mistakeIds)
+                .ge(ReviewRecord::getReviewTime, start)
+                .le(ReviewRecord::getReviewTime, end)
+                .orderByDesc(ReviewRecord::getReviewTime)
+                .list();
+
+        if (CollectionUtils.isEmpty(records)) {
+            return Collections.emptyMap();
+        }
+
+        Map<Long, ReviewRecord> result = new HashMap<>();
+        for (ReviewRecord record : records) {
+            result.putIfAbsent(record.getMistakeId(), record);
+        }
+        return result;
+    }
+
+    /**
      * 查询某道错题的全部原始复习记录（按时间升序，供遗忘曲线使用）
      */
     public List<ReviewRecord> listRawByMistakeAsc(Long mistakeId) {
 
         return lambdaQuery()
                 .eq(ReviewRecord::getMistakeId, mistakeId)
+                .orderByAsc(ReviewRecord::getReviewTime)
+                .list();
+    }
+
+    /**
+     * 批量查询多道错题的复习记录（按时间升序，供管理端趋势图使用）
+     */
+    public List<ReviewRecord> listByMistakeIds(List<Long> mistakeIds) {
+
+        if (CollectionUtils.isEmpty(mistakeIds)) {
+            return new ArrayList<>();
+        }
+        return lambdaQuery()
+                .in(ReviewRecord::getMistakeId, mistakeIds)
+                .select(ReviewRecord::getMistakeId, ReviewRecord::getReviewTime,
+                        ReviewRecord::getReviewStageAfter, ReviewRecord::getIsCorrect)
                 .orderByAsc(ReviewRecord::getReviewTime)
                 .list();
     }

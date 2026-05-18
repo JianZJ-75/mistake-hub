@@ -6,7 +6,6 @@
   background: $color-bg-page;
   display: flex;
   flex-direction: column;
-  overflow-x: hidden;
 }
 
 /* ===== 顶部进度条 ===== */
@@ -328,6 +327,97 @@
 .feedback-text {
   font-size: 24rpx;
   color: $color-success;
+}
+
+.feedback-interval {
+  font-size: 22rpx;
+  color: $color-text-secondary;
+  margin-top: 8rpx;
+  display: block;
+}
+
+/* 间隔递增时间线 */
+.interval-timeline {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-top: 16rpx;
+  gap: 4rpx;
+}
+
+.interval-step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.interval-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+}
+
+.dot-current {
+  background: $color-primary;
+  box-shadow: 0 0 0 4rpx rgba(37, 99, 235, 0.2);
+}
+
+.dot-past {
+  background: $color-success;
+}
+
+.dot-future {
+  background: $color-track;
+}
+
+.interval-label {
+  font-size: 18rpx;
+  color: $color-text-muted;
+}
+
+.label-current {
+  color: $color-primary;
+  font-weight: 600;
+}
+
+/* 记忆保持率指示器 */
+.retention-indicator {
+  margin-bottom: 20rpx;
+  padding: 16rpx 20rpx;
+  background: rgba(37, 99, 235, 0.04);
+  border-radius: 12rpx;
+}
+
+.retention-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10rpx;
+}
+
+.retention-label {
+  font-size: 22rpx;
+  color: $color-text-muted;
+}
+
+.retention-value {
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+.retention-track {
+  height: 8rpx;
+  background: $color-track;
+  border-radius: 4rpx;
+  overflow: hidden;
+}
+
+.retention-fill {
+  height: 100%;
+  border-radius: 4rpx;
+  transition: width 0.3s ease;
 }
 
 /* ===== 查看答案按钮 ===== */

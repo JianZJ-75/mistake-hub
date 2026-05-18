@@ -3,10 +3,11 @@ import Taro, { useDidShow } from '@tarojs/taro'
 import { View, Text, Image, Input } from '@tarojs/components'
 import { currentDetail, modifyDailyLimit, modifyProfile } from '../../service/account'
 import { uploadImage } from '../../service/upload'
-import { statsOverview, statsMastery, statsStreak, statsDailyCompletion, statsMasteryTrend } from '../../service/stats'
-import { AccountDetailResp, StatsOverviewResp, MasteryDistributionResp, StreakResp, DailyCompletionResp, MasteryTrendResp } from '../../types'
+import { statsOverview, statsMastery, statsStreak, statsDailyCompletion, statsMasteryTrend, statsMemoryHealth } from '../../service/stats'
+import { AccountDetailResp, StatsOverviewResp, MasteryDistributionResp, StreakResp, DailyCompletionResp, MasteryTrendResp, MemoryHealthResp } from '../../types'
 import { getCompletionColor, getMasteryDotColor, COLOR_PRIMARY, COLOR_MASTERY_HIGH, COLOR_MASTERY_LOW } from '../../utils/colors'
 import { buildLineChartSvg, svgToBgUrl } from '../../utils/charts'
+import { getRetentionColor } from '../../utils/retention'
 import './index.scss'
 
 /** 格式化日期为 M/D */
@@ -45,6 +46,7 @@ const ProfilePage = () => {
   const [streak, setStreak] = useState<StreakResp | null>(null)
   const [dailyCompletion, setDailyCompletion] = useState<DailyCompletionResp[]>([])
   const [masteryTrend, setMasteryTrend] = useState<MasteryTrendResp[]>([])
+  const [memoryHealth, setMemoryHealth] = useState<MemoryHealthResp | null>(null)
 
   // ===== 学习趋势交互 =====
   const [daysRange, setDaysRange] = useState<7 | 30 | 90>(30)
@@ -80,6 +82,7 @@ const ProfilePage = () => {
     statsOverview().then(setOverview).catch(() => {})
     statsMastery().then(setMastery).catch(() => {})
     statsStreak().then(setStreak).catch(() => {})
+    statsMemoryHealth().then(setMemoryHealth).catch(() => {})
   }
 
   const loadTrends = (days: number) => {
@@ -359,6 +362,75 @@ const ProfilePage = () => {
           <Text className='loading-text'>暂无数据</Text>
         )}
       </View>
+
+      {/* 记忆衰减总览 */}
+      {memoryHealth && memoryHealth.totalActive > 0 && (
+        <>
+          <Text className='section-title'>记忆衰减总览</Text>
+          <View className='decay-card'>
+            <View className='decay-header'>
+              <Text className='decay-retention' style={{ color: getRetentionColor(memoryHealth.overallRetention) }}>
+                {Math.round(memoryHealth.overallRetention * 100)}%
+              </Text>
+              <Text className='decay-hint'>平均记忆保持率</Text>
+            </View>
+
+            <View className='decay-compare'>
+              <View className='decay-compare-row'>
+                <View className='decay-compare-line' style={{ background: '#2563EB' }} />
+                <Text className='decay-compare-text'>间歇重复后的实际保持率</Text>
+              </View>
+              <View className='decay-compare-row'>
+                <View className='decay-compare-dash' />
+                <Text className='decay-compare-text'>理论遗忘曲线（无复习）</Text>
+              </View>
+            </View>
+
+            <View className='decay-chart-wrap'>
+              {(() => {
+                const STABILITY_THEORY = 1.44
+                const days = [0, 1, 3, 7, 14, 21, 30]
+                const theoryData = days.map(d => ({ value: Math.round(100 * Math.exp(-d / STABILITY_THEORY)) }))
+                const theorySvg = buildLineChartSvg({
+                  data: theoryData,
+                  lineColor: '#CBD5E1',
+                })
+                const overallR = memoryHealth.overallRetention
+                const sEff = overallR > 0 && overallR < 1 ? -30 / Math.log(overallR) : 30
+                const actualData = days.map(d => ({ value: Math.round(100 * Math.exp(-d / sEff)) }))
+                const actualSvg = buildLineChartSvg({
+                  data: actualData,
+                  lineColor: '#2563EB',
+                })
+                return (
+                  <>
+                    <View className='decay-chart-layer' style={{ backgroundImage: svgToBgUrl(theorySvg) }} />
+                    <View className='decay-chart-layer decay-chart-actual' style={{ backgroundImage: svgToBgUrl(actualSvg) }} />
+                    <Text className='decay-x-label decay-x-start'>第1天</Text>
+                    <Text className='decay-x-label decay-x-mid'>第7天</Text>
+                    <Text className='decay-x-label decay-x-end'>第30天</Text>
+                  </>
+                )
+              })()}
+            </View>
+
+            <View className='decay-zones'>
+              <View className='decay-zone'>
+                <Text className='decay-zone-num' style={{ color: COLOR_MASTERY_LOW }}>{memoryHealth.dangerCount}</Text>
+                <Text className='decay-zone-label'>记忆模糊</Text>
+              </View>
+              <View className='decay-zone'>
+                <Text className='decay-zone-num' style={{ color: '#F59E0B' }}>{memoryHealth.warningCount}</Text>
+                <Text className='decay-zone-label'>记忆减退</Text>
+              </View>
+              <View className='decay-zone'>
+                <Text className='decay-zone-num' style={{ color: COLOR_MASTERY_HIGH }}>{memoryHealth.safeCount}</Text>
+                <Text className='decay-zone-label'>记忆清晰</Text>
+              </View>
+            </View>
+          </View>
+        </>
+      )}
 
       {/* 学习趋势 */}
       <View className='trend-header'>

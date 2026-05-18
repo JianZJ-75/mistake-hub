@@ -1,6 +1,7 @@
 package com.jianzj.mistake.hub.backend.service;
 
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
+import com.jianzj.mistake.hub.backend.client.OssClient;
 import com.jianzj.mistake.hub.backend.dto.req.MistakeAddReq;
 import com.jianzj.mistake.hub.backend.dto.req.MistakeDeleteReq;
 import com.jianzj.mistake.hub.backend.dto.req.MistakeDetailReq;
@@ -9,6 +10,7 @@ import com.jianzj.mistake.hub.backend.dto.resp.MistakeDetailResp;
 import com.jianzj.mistake.hub.backend.dto.resp.TagResp;
 import com.jianzj.mistake.hub.backend.entity.Account;
 import com.jianzj.mistake.hub.backend.entity.Mistake;
+import com.jianzj.mistake.hub.backend.enums.MistakeStatus;
 import com.jianzj.mistake.hub.backend.mapper.MistakeMapper;
 import com.jianzj.mistake.hub.backend.support.MockChainHelper;
 import com.jianzj.mistake.hub.common.convention.exception.BaseException;
@@ -50,6 +52,9 @@ class MistakeServiceTest {
     private AccountService accountService;
 
     @Mock
+    private OssClient ossClient;
+
+    @Mock
     private ThreadStorageUtil threadStorageUtil;
 
     private MistakeService mistakeService;
@@ -59,7 +64,7 @@ class MistakeServiceTest {
 
         mistakeService = spy(new MistakeService(
                 mistakeTagService, tagService, accountService,
-                threadStorageUtil
+                ossClient, threadStorageUtil
         ));
         ReflectionTestUtils.setField(mistakeService, "baseMapper", mockMistakeMapper);
     }
@@ -220,7 +225,7 @@ class MistakeServiceTest {
         emptyPage.setRecords(List.of());
         when(chain.page(any())).thenReturn(emptyPage);
 
-        mistakeService.listPage(null, null, null, 1L, 10L);
+        mistakeService.listPage(null, null, null, null, 1L, 10L);
 
         // D-02：admin + accountId=null 时必须调用 getCurAccountId() 按自己 ID 过滤
         verify(threadStorageUtil).getCurAccountId();
@@ -241,7 +246,7 @@ class MistakeServiceTest {
         emptyPage.setRecords(List.of());
         when(chain.page(any())).thenReturn(emptyPage);
 
-        mistakeService.listPage(null, null, null, 1L, 10L);
+        mistakeService.listPage(null, null, null, null, 1L, 10L);
 
         verify(threadStorageUtil).getCurAccountId();
     }
@@ -265,7 +270,7 @@ class MistakeServiceTest {
 
         Mistake deleted = mistakeService.delete(req);
 
-        assertThat(deleted.getStatus()).isEqualTo(0);
+        assertThat(deleted.getStatus()).isEqualTo(MistakeStatus.PENDING_DELETE.getCode());
         verify(mistakeTagService).removeByMistakeId(1L);
     }
 

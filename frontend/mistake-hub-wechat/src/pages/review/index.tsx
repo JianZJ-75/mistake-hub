@@ -1,10 +1,12 @@
 import { useState, useCallback, useRef } from 'react'
 import Taro, { useDidShow } from '@tarojs/taro'
-import { View, Text, Image, Textarea, ScrollView } from '@tarojs/components'
+import { View, Text, Image, Textarea } from '@tarojs/components'
 import { reviewToday, reviewSubmit } from '../../service/review'
 import { uploadImage } from '../../service/upload'
+import { statsReviewIntervals } from '../../service/stats'
 import { ReviewTaskResp, ReviewSubmitResp } from '../../types'
 import { getMasteryInfo } from '../../utils/mistake'
+import { calcRetention, getRetentionColor, getRetentionLabel, DEFAULT_INTERVALS } from '../../utils/retention'
 import './index.scss'
 
 const ReviewPage = () => {
@@ -25,12 +27,16 @@ const ReviewPage = () => {
   const [uploading, setUploading] = useState(false)
   const pickingImageRef = useRef(false)
 
+  // ===== 复习间隔配置 =====
+  const [intervals, setIntervals] = useState<number[]>(DEFAULT_INTERVALS)
+
   const fetchTasks = useCallback(async () => {
 
     setLoading(true)
     try {
-      const res = await reviewToday()
+      const [res, ivls] = await Promise.all([reviewToday(), statsReviewIntervals()])
       setTasks(res || [])
+      if (ivls && ivls.length > 0) setIntervals(ivls)
     } catch {
       // request.ts 已处理 toast
     } finally {
@@ -140,7 +146,7 @@ const ReviewPage = () => {
       </View>
 
       {/* 任务列表 */}
-      <ScrollView scrollY className='task-scroll'>
+      <View className='task-scroll'>
         {loading && (
           <View className='loading-wrap'>
             <Text className='loading-text'>加载中…</Text>
@@ -191,7 +197,15 @@ const ReviewPage = () => {
           const mastery = getMasteryInfo(task.masteryLevel || 0)
           const isExpanded = expandedId === task.mistakeId
           const isDone = task.planStatus === 'COMPLETED'
-          const feedback = feedbackMap[task.mistakeId]
+          // feedback 优先取本地（刚提交时的完整返回），否则从 task 字段回填（切页回来场景）
+          const localFeedback = feedbackMap[task.mistakeId]
+          const feedback: Pick<ReviewSubmitResp, 'masteryBefore' | 'masteryAfter' | 'reviewStageAfter' | 'intervalDays'> | undefined =
+            localFeedback || (isDone && task.masteryBefore != null ? {
+              masteryBefore: task.masteryBefore,
+              masteryAfter: task.masteryLevel,
+              reviewStageAfter: task.reviewStage,
+              intervalDays: task.intervalDays,
+            } : undefined)
           const isAnswerRevealed = answerVisible[task.mistakeId] || false
 
           return (
@@ -225,6 +239,28 @@ const ReviewPage = () => {
               {/* 展开详情区 */}
               {isExpanded && !isDone && (
                 <View className='task-detail'>
+                  {/* 记忆保持率指示器 */}
+                  {(() => {
+                    const retention = calcRetention(task.lastReviewTime, task.reviewStage)
+                    const retPct = Math.round(retention * 100)
+                    return (
+                      <View className='retention-indicator'>
+                        <View className='retention-info'>
+                          <Text className='retention-label'>当前记忆保持率</Text>
+                          <Text className='retention-value' style={{ color: getRetentionColor(retention) }}>
+                            {retPct}% · {getRetentionLabel(retention)}
+                          </Text>
+                        </View>
+                        <View className='retention-track'>
+                          <View className='retention-fill' style={{
+                            width: `${retPct}%`,
+                            background: `linear-gradient(90deg, ${getRetentionColor(retention)}, ${getRetentionColor(retention)}88)`
+                          }} />
+                        </View>
+                      </View>
+                    )
+                  })()}
+
                   {/* 题目 + 题目图片 */}
                   <Text className='detail-title'>{task.title}</Text>
                   {task.titleImageUrl && (
@@ -329,12 +365,30 @@ const ReviewPage = () => {
                     掌握度 {feedback.masteryBefore}% → {feedback.masteryAfter}%
                     （{feedback.masteryAfter >= feedback.masteryBefore ? '+' : ''}{feedback.masteryAfter - feedback.masteryBefore}）
                   </Text>
+                  {feedback.intervalDays != null && (
+                    <Text className='feedback-interval'>
+                      下次复习: {feedback.intervalDays}天后
+                    </Text>
+                  )}
+                  {/* 间隔递增时间线 */}
+                  <View className='interval-timeline'>
+                    {intervals.map((days, stageIdx) => {
+                      const isCurrent = stageIdx === feedback.reviewStageAfter
+                      const isPast = stageIdx < feedback.reviewStageAfter
+                      return (
+                        <View key={stageIdx} className='interval-step'>
+                          <View className={`interval-dot ${isCurrent ? 'dot-current' : isPast ? 'dot-past' : 'dot-future'}`} />
+                          <Text className={`interval-label ${isCurrent ? 'label-current' : ''}`}>{days === 0 ? '当天' : `${days}天`}</Text>
+                        </View>
+                      )
+                    })}
+                  </View>
                 </View>
               )}
             </View>
           )
         })}
-      </ScrollView>
+      </View>
     </View>
   )
 }

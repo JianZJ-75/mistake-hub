@@ -2,8 +2,10 @@ package com.jianzj.mistake.hub.backend.service;
 
 import com.jianzj.mistake.hub.backend.dto.resp.AdminOverviewResp;
 import com.jianzj.mistake.hub.backend.dto.resp.DailyCompletionResp;
+import com.jianzj.mistake.hub.backend.dto.resp.ForgettingCurveResp;
 import com.jianzj.mistake.hub.backend.dto.resp.MasteryDistributionResp;
 import com.jianzj.mistake.hub.backend.dto.resp.MasteryTrendResp;
+import com.jianzj.mistake.hub.backend.dto.resp.MemoryHealthResp;
 import com.jianzj.mistake.hub.backend.dto.resp.StatsOverviewResp;
 import com.jianzj.mistake.hub.backend.dto.resp.StreakResp;
 import com.jianzj.mistake.hub.backend.dto.resp.SubjectStatsResp;
@@ -56,6 +58,9 @@ class StatsServiceTest {
 
     @Mock
     private MistakeTagService mistakeTagService;
+
+    @Mock
+    private SystemConfigService systemConfigService;
 
     @Mock
     private ThreadStorageUtil threadStorageUtil;
@@ -121,18 +126,22 @@ class StatsServiceTest {
     // ===== mastery =====
 
     @Test
-    void mastery_threeSegments_shouldReturnCorrectDistribution() {
+    void mastery_fiveBuckets_shouldReturnCorrectDistribution() {
 
         when(threadStorageUtil.getCurAccountId()).thenReturn(100L);
-        when(mistakeService.countByMasteryRange(100L, 0, 60)).thenReturn(10L);
+        when(mistakeService.countByMasteryRange(100L, 0, 20)).thenReturn(3L);
+        when(mistakeService.countByMasteryRange(100L, 20, 60)).thenReturn(7L);
         when(mistakeService.countByMasteryRange(100L, 60, 80)).thenReturn(5L);
-        when(mistakeService.countByMasteryRange(100L, 80, null)).thenReturn(3L);
+        when(mistakeService.countByMasteryRange(100L, 80, 100)).thenReturn(4L);
+        when(mistakeService.countByMasteryRange(100L, 100, null)).thenReturn(2L);
 
         MasteryDistributionResp resp = statsService.mastery();
 
-        assertThat(resp.getNotMastered()).isEqualTo(10);
-        assertThat(resp.getLearning()).isEqualTo(5);
-        assertThat(resp.getMastered()).isEqualTo(3);
+        assertThat(resp.getStranger()).isEqualTo(3);
+        assertThat(resp.getBeginner()).isEqualTo(7);
+        assertThat(resp.getBasic()).isEqualTo(5);
+        assertThat(resp.getProficient()).isEqualTo(4);
+        assertThat(resp.getMastered()).isEqualTo(2);
     }
 
     // ===== dailyCompletion =====
@@ -247,11 +256,112 @@ class StatsServiceTest {
         when(reviewPlanService.listAllByDateRange(any(LocalDate.class), any(LocalDate.class)))
                 .thenReturn(List.of(p1, p2));
 
+        when(mistakeService.listAllValidWithReviewFields()).thenReturn(List.of());
+
         AdminOverviewResp resp = statsService.adminOverview();
 
         assertThat(resp.getTotalUsers()).isEqualTo(100);
         assertThat(resp.getTotalMistakes()).isEqualTo(500);
         assertThat(resp.getActiveUsersToday()).isEqualTo(20);
         assertThat(resp.getAvgCompletionRate()).isEqualTo(0.5);
+    }
+
+    // ===== forgettingCurve =====
+
+    @Test
+    void forgettingCurve_withReviewHistory_shouldBuildSegments() {
+
+        Mistake mistake = Mistake.builder()
+                .id(1L)
+                .reviewStage(2)
+                .masteryLevel(40)
+                .lastReviewTime(LocalDateTime.now().minusDays(1))
+                .createdTime(LocalDateTime.now().minusDays(10))
+                .build();
+        when(mistakeService.getById(1L)).thenReturn(mistake);
+
+        ReviewRecord r1 = ReviewRecord.builder()
+                .reviewTime(LocalDateTime.now().minusDays(8))
+                .reviewStageAfter(1)
+                .isCorrect(1)
+                .build();
+        ReviewRecord r2 = ReviewRecord.builder()
+                .reviewTime(LocalDateTime.now().minusDays(5))
+                .reviewStageAfter(2)
+                .isCorrect(1)
+                .build();
+        when(reviewRecordService.listRawByMistakeAsc(1L)).thenReturn(List.of(r1, r2));
+        when(systemConfigService.getByKey(eq("review.intervals"), any())).thenReturn("0,1,2,4,7,15,30");
+
+        ForgettingCurveResp resp = statsService.forgettingCurve(1L);
+
+        assertThat(resp.getMistakeId()).isEqualTo(1L);
+        // 3 segments: creation→r1, r1→r2, r2→now
+        assertThat(resp.getSegments()).hasSize(3);
+        assertThat(resp.getCurrentRetention()).isBetween(0.0, 1.0);
+        assertThat(resp.getPrediction()).isNotNull();
+        assertThat(resp.getPrediction().getDaysToShow()).isEqualTo(14);
+    }
+
+    @Test
+    void forgettingCurve_noRecords_shouldReturnSingleSegment() {
+
+        Mistake mistake = Mistake.builder()
+                .id(2L)
+                .reviewStage(0)
+                .masteryLevel(0)
+                .createdTime(LocalDateTime.now().minusDays(1))
+                .build();
+        when(mistakeService.getById(2L)).thenReturn(mistake);
+        when(reviewRecordService.listRawByMistakeAsc(2L)).thenReturn(List.of());
+        when(systemConfigService.getByKey(eq("review.intervals"), any())).thenReturn("0,1,2,4,7,15,30");
+
+        ForgettingCurveResp resp = statsService.forgettingCurve(2L);
+
+        assertThat(resp.getSegments()).hasSize(1);
+        assertThat(resp.getCurrentRetention()).isLessThan(1.0);
+    }
+
+    // ===== memoryHealth =====
+
+    @Test
+    void memoryHealth_normal_shouldComputeRetentionDistribution() {
+
+        when(threadStorageUtil.getCurAccountId()).thenReturn(100L);
+        when(systemConfigService.getByKey(eq("review.intervals"), any())).thenReturn("0,1,2,4,7,15,30");
+
+        Mistake m1 = Mistake.builder()
+                .id(1L).reviewStage(3).masteryLevel(60)
+                .lastReviewTime(LocalDateTime.now().minusDays(1))
+                .nextReviewTime(LocalDateTime.now().plusDays(3))
+                .createdTime(LocalDateTime.now().minusDays(10))
+                .build();
+        Mistake m2 = Mistake.builder()
+                .id(2L).reviewStage(0).masteryLevel(0)
+                .lastReviewTime(LocalDateTime.now().minusDays(5))
+                .nextReviewTime(LocalDateTime.now().minusDays(1))
+                .createdTime(LocalDateTime.now().minusDays(5))
+                .build();
+        when(mistakeService.listValidWithReviewFields(100L)).thenReturn(List.of(m1, m2));
+
+        MemoryHealthResp resp = statsService.memoryHealth();
+
+        assertThat(resp.getTotalActive()).isEqualTo(2);
+        assertThat(resp.getOverallRetention()).isBetween(0.0, 1.0);
+        assertThat(resp.getDangerCount() + resp.getWarningCount() + resp.getSafeCount()).isEqualTo(2);
+        assertThat(resp.getDistribution()).hasSize(5);
+        assertThat(resp.getUpcoming()).hasSize(7);
+    }
+
+    @Test
+    void memoryHealth_noMistakes_shouldReturnEmpty() {
+
+        when(threadStorageUtil.getCurAccountId()).thenReturn(100L);
+        when(mistakeService.listValidWithReviewFields(100L)).thenReturn(List.of());
+
+        MemoryHealthResp resp = statsService.memoryHealth();
+
+        assertThat(resp.getTotalActive()).isEqualTo(0);
+        assertThat(resp.getOverallRetention()).isEqualTo(0.0);
     }
 }

@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -42,6 +43,9 @@ public class ReviewTaskResp {
     /** 掌握度 0-100 */
     private Integer masteryLevel;
 
+    /** 上次复习时间 */
+    private LocalDateTime lastReviewTime;
+
     /** 逾期天数 */
     private Integer overdueDays;
 
@@ -56,4 +60,13 @@ public class ReviewTaskResp {
 
     /** 复习计划ID */
     private Long reviewPlanId;
+
+    /** 复习前掌握度（仅已完成任务有值，供前端展示"X% → Y%"反馈） */
+    private Integer masteryBefore;
+
+    /** 复习前阶段（仅已完成任务有值，供前端展示阶段变化） */
+    private Integer reviewStageBefore;
+
+    /** 本次复习产生的下次间隔天数（仅已完成任务有值，供前端展示"下次复习: N天后"） */
+    private Integer intervalDays;
 }

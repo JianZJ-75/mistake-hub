@@ -1,6 +1,7 @@
 package com.jianzj.mistake.hub.backend.service;
 
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
+import com.jianzj.mistake.hub.backend.client.OssClient;
 import com.jianzj.mistake.hub.backend.dto.resp.ReviewRecordResp;
 import com.jianzj.mistake.hub.backend.entity.ReviewRecord;
 import com.jianzj.mistake.hub.backend.mapper.ReviewRecordMapper;
@@ -16,6 +17,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -40,12 +42,15 @@ class ReviewRecordServiceTest {
     @Mock
     private MistakeService mistakeService;
 
+    @Mock
+    private OssClient ossClient;
+
     private ReviewRecordService reviewRecordService;
 
     @BeforeEach
     void setUp() {
 
-        reviewRecordService = spy(new ReviewRecordService(accountService, mistakeService));
+        reviewRecordService = spy(new ReviewRecordService(accountService, mistakeService, ossClient));
         ReflectionTestUtils.setField(reviewRecordService, "baseMapper", mockReviewRecordMapper);
     }
 
@@ -123,6 +128,49 @@ class ReviewRecordServiceTest {
         List<ReviewRecordResp> result = reviewRecordService.listByMistake(100L, 5L);
 
         assertThat(result).isNotNull().isEmpty();
+    }
+
+    // ===== getLatestRecordMapByMistakeIds =====
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void getLatestRecordMapByMistakeIds_sameMistakeMultipleRecords_keepsLatest() {
+
+        LambdaQueryChainWrapper<ReviewRecord> chain = mockChain();
+        doReturn(chain).when(reviewRecordService).lambdaQuery();
+
+        LocalDateTime base = LocalDateTime.of(2026, 4, 21, 10, 0);
+        ReviewRecord later = ReviewRecord.builder()
+                .id(2L).accountId(100L).mistakeId(5L)
+                .masteryBefore(40).masteryAfter(60)
+                .reviewStageBefore(2).reviewStageAfter(3)
+                .reviewTime(base.plusHours(2))
+                .build();
+        ReviewRecord earlier = ReviewRecord.builder()
+                .id(1L).accountId(100L).mistakeId(5L)
+                .masteryBefore(20).masteryAfter(40)
+                .reviewStageBefore(1).reviewStageAfter(2)
+                .reviewTime(base)
+                .build();
+        // mock：按 reviewTime DESC 顺序返回
+        when(chain.list()).thenReturn(List.of(later, earlier));
+
+        Map<Long, ReviewRecord> result = reviewRecordService.getLatestRecordMapByMistakeIds(
+                100L, List.of(5L), base.toLocalDate().atStartOfDay(), base.toLocalDate().atTime(23, 59, 59));
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(5L).getId()).isEqualTo(2L);
+        assertThat(result.get(5L).getMasteryBefore()).isEqualTo(40);
+        assertThat(result.get(5L).getReviewStageAfter()).isEqualTo(3);
+    }
+
+    @Test
+    void getLatestRecordMapByMistakeIds_emptyIds_returnsEmptyMap() {
+
+        Map<Long, ReviewRecord> result = reviewRecordService.getLatestRecordMapByMistakeIds(
+                100L, List.of(), LocalDateTime.now().minusHours(1), LocalDateTime.now());
+
+        assertThat(result).isEmpty();
     }
 
     // ===== 工具方法 =====

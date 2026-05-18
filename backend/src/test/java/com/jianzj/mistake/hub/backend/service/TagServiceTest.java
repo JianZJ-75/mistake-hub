@@ -43,6 +43,9 @@ class TagServiceTest {
     private MistakeTagMapper mistakeTagMapper;
 
     @Mock
+    private AccountService accountService;
+
+    @Mock
     private ThreadStorageUtil threadStorageUtil;
 
     private TagService tagService;
@@ -50,7 +53,7 @@ class TagServiceTest {
     @BeforeEach
     void setUp() {
 
-        tagService = spy(new TagService(mistakeTagMapper, threadStorageUtil));
+        tagService = spy(new TagService(mistakeTagMapper, accountService, threadStorageUtil));
         ReflectionTestUtils.setField(tagService, "baseMapper", mockTagMapper);
     }
 
